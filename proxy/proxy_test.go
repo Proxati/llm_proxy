@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	px "github.com/kardianos/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/config"
 	"github.com/proxati/llm_proxy/proxy/addons"
 	"github.com/proxati/llm_proxy/schema"
@@ -115,7 +116,7 @@ func runWebServer(hitCounter *atomic.Int32, listenAddr string) (*http.Server, fu
 	}
 }
 
-func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode) (shutdownFunc func(), err error) {
+func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...px.Addon) (shutdownFunc func(), err error) {
 	// Create a simple proxy config
 	cfg := config.NewDefaultConfig()
 	cfg.Listen = proxyPort
@@ -130,6 +131,11 @@ func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode) (shutdownF
 	p, err := configProxy(cfg)
 	if err != nil {
 		return nil, err
+	}
+
+	// add any additional addons
+	for _, addon := range addons {
+		p.AddAddon(addon)
 	}
 
 	// setup external control of the proxy

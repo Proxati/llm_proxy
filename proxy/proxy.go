@@ -61,6 +61,7 @@ func newProxy(debugLevel int, listenOn string, skipVerifyTLS bool, ca *cert.CA) 
 func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	// create a slice of LogDestination objects, which are used to configure the MegaDirDumper addon
 	logDest := []md.LogDestination{}
+	metaAdd := newMetaAddon(cfg)
 
 	ca, err := newCA(cfg.CertDir)
 	if err != nil {
@@ -75,13 +76,13 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	if cfg.IsVerboseOrHigher() {
 		log.Debugf("Enabling traffic logging to terminal")
 		logDest = append(logDest, md.WriteToStdOut)
-		p.AddAddon(addons.NewStdOutLogger())
+		metaAdd.addAddon(addons.NewStdOutLogger())
 	}
 
 	if !cfg.NoHttpUpgrader {
 		// upgrade all http requests to https
 		log.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
-		p.AddAddon(&addons.SchemeUpgrader{})
+		metaAdd.addAddon(&addons.SchemeUpgrader{})
 	}
 
 	log.Debugf("AppMode set to: %v", cfg.AppMode)
@@ -101,7 +102,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load cache addon: %v", err)
 		}
-		p.AddAddon(cacheAddon)
+		metaAdd.addAddon(cacheAddon)
 
 		/*
 			// logSource object with all fields enabled for caching mode
@@ -124,7 +125,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 				}
 
 				// add the dumper to the proxy
-				p.AddAddon(dumperAddon)
+				metaAdd.addAddon(dumperAddon)
 		*/
 
 	case config.DirLoggerMode:
@@ -153,15 +154,18 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		}
 
 		// add the dumper to the proxy
-		p.AddAddon(dumperAddon)
+		metaAdd.addAddon(dumperAddon)
 	case config.APIAuditMode:
 		log.Debug("Enabling API Auditor addon")
-		p.AddAddon(addons.NewAPIAuditor())
+		metaAdd.addAddon(addons.NewAPIAuditor())
 	case config.SimpleMode:
 		log.Debugf("No addons enabled for SimpleMode")
 	default:
 		return nil, fmt.Errorf("unknown app mode: %v", cfg.AppMode)
 	}
+
+	// add our single metaAddon abstraction to the proxy
+	p.AddAddon(metaAdd)
 
 	return p, nil
 }

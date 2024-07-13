@@ -258,7 +258,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	proxyPort, err := getFreePort()
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.DirLoggerMode)
+	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.SimpleMode)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port

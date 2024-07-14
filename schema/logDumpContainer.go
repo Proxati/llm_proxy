@@ -12,9 +12,11 @@ import (
 )
 
 const SchemaVersion string = "v2"
+const ObjectTypeDefault string = "llm_proxy_traffic_log"
 
 // LogDumpContainer holds the request and response data for a given flow
 type LogDumpContainer struct {
+	ObjectType      string                    `json:"object_type,omitempty"`
 	SchemaVersion   string                    `json:"schema,omitempty"`
 	Timestamp       time.Time                 `json:"timestamp,omitempty"`
 	ConnectionStats *ConnectionStatsContainer `json:"connection_stats,omitempty"`
@@ -33,6 +35,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	errs := make([]error, 0)
 
 	ldc := &LogDumpContainer{
+		ObjectType:    ObjectTypeDefault,
 		SchemaVersion: SchemaVersion,
 		Timestamp:     time.Now(),
 		logConfig:     logSources,

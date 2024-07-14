@@ -16,6 +16,16 @@ type LogSourceConfig struct {
 	LogResponse        bool
 }
 
+func NewLogSourceConfig(cfg *Config) LogSourceConfig {
+	return LogSourceConfig{
+		LogConnectionStats: !cfg.NoLogConnStats,
+		LogRequestHeaders:  !cfg.NoLogReqHeaders,
+		LogRequest:         !cfg.NoLogReqBody,
+		LogResponseHeaders: !cfg.NoLogRespHeaders,
+		LogResponse:        !cfg.NoLogRespBody,
+	}
+}
+
 func (l *LogSourceConfig) String() string {
 	bytes, err := json.Marshal(l)
 	if err != nil {

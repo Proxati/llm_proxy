@@ -40,7 +40,7 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 	d.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	go func() {
 		defer d.wg.Done()
-		<-f.Done()
+		<-f.Done() // block this goroutine until the entire flow is done
 		doneAt := time.Since(start).Milliseconds()
 
 		// load the selected fields into a container object
@@ -90,23 +90,35 @@ func (d *MegaDumpAddon) Close() error {
 // NewMegaDirDumper creates a new dumper that creates a new log file for each request
 func NewMegaDirDumper(
 	logTarget string, // output directory
-	logFormat md.LogFormat, // what file format to write
+	logFormatConfig config.TrafficLogFormat, // what file format to write the traffic logs
 	logSources config.LogSourceConfig, // which fields from the transaction to log
-	logDestinations []md.LogDestination, // various types of writers, e.g. file, directory, stdout
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
 ) (*MegaDumpAddon, error) {
 	var f formatters.MegaDumpFormatter
 	var w = make([]writers.MegaDumpWriter, 0)
+	var logDestinations []md.LogDestination
+	var logFormat md.LogFormat
 
-	switch logFormat {
-	case md.Format_JSON:
-		log.Debug("Logging format set to JSON file")
+	if logTarget == "" {
+		log.Debug("No traffic log output directory set, using stdout")
+		logDestinations = append(logDestinations, md.WriteToStdOut)
+	} else {
+		log.Debugf("Traffic log output directory set to: %s", logTarget)
+		logDestinations = append(logDestinations, md.WriteToDir)
+	}
+
+	// Setup the log format, converts the config enum to a local enum, used only inside this package
+	switch logFormatConfig {
+	case config.TrafficLog_JSON:
+		log.Debug("Traffic logging format set to JSON")
 		f = &formatters.JSON{}
-	case md.Format_PLAINTEXT:
-		log.Debug("Logging format set to plaintext file")
+		logFormat = md.Format_JSON
+	case config.TrafficLog_TXT:
+		log.Debug("Traffic logging format set to text")
 		f = &formatters.PlainText{}
+		logFormat = md.Format_PLAINTEXT
 	default:
-		return nil, fmt.Errorf("invalid log format: %v", logFormat)
+		return nil, fmt.Errorf("invalid log format: %v", logFormatConfig)
 	}
 
 	for _, logDest := range logDestinations {

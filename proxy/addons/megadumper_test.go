@@ -3,20 +3,18 @@ package addons
 import (
 	"testing"
 
-	md "github.com/proxati/llm_proxy/proxy/addons/megadumper"
 	"github.com/proxati/llm_proxy/config"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMegaDirDumper_JSON_LogDir(t *testing.T) {
 	logTarget := "/tmp/logs"
-	logFormat := md.Format_JSON
+	logFormat := config.TrafficLog_JSON
 	logSources := config.LogSourceConfig{}
-	logDestinations := []md.LogDestination{md.WriteToDir}
 	filterReqHeaders := []string{}
 	filterRespHeaders := []string{}
 
-	mda, err := NewMegaDirDumper(logTarget, logFormat, logSources, logDestinations, filterReqHeaders, filterRespHeaders)
+	mda, err := NewMegaDirDumper(logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, mda)
@@ -26,13 +24,12 @@ func TestNewMegaDirDumper_JSON_LogDir(t *testing.T) {
 
 func TestNewMegaDirDumper_TXT_LOGFILE(t *testing.T) {
 	logTarget := "/tmp/logs"
-	logFormat := md.Format_PLAINTEXT
+	logFormat := config.TrafficLog_TXT
 	logSources := config.LogSourceConfig{}
-	logDestinations := []md.LogDestination{md.WriteToFile}
 	filterReqHeaders := []string{}
 	filterRespHeaders := []string{}
 
-	mda, err := NewMegaDirDumper(logTarget, logFormat, logSources, logDestinations, filterReqHeaders, filterRespHeaders)
+	mda, err := NewMegaDirDumper(logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, mda)

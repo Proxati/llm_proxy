@@ -15,7 +15,6 @@ import (
 
 	"github.com/proxati/llm_proxy/config"
 	"github.com/proxati/llm_proxy/proxy/addons"
-	md "github.com/proxati/llm_proxy/proxy/addons/megadumper"
 	"github.com/proxati/llm_proxy/version"
 )
 
@@ -59,8 +58,6 @@ func newProxy(debugLevel int, listenOn string, skipVerifyTLS bool, ca *cert.CA) 
 // configProxy returns a configured proxy object w/ addons. This proxy still needs to be "started"
 // with a blocking call to .Start() (which is handled elsewhere)
 func configProxy(cfg *config.Config) (*px.Proxy, error) {
-	// create a slice of LogDestination objects, which are used to configure the MegaDirDumper addon
-	logDest := []md.LogDestination{}
 	metaAdd := newMetaAddon(cfg)
 
 	ca, err := newCA(cfg.CertDir)
@@ -73,17 +70,28 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		return nil, fmt.Errorf("failed to create proxy: %v", err)
 	}
 
-	if cfg.IsVerboseOrHigher() {
-		log.Debugf("Enabling traffic logging to terminal")
-		logDest = append(logDest, md.WriteToStdOut)
-		metaAdd.addAddon(addons.NewStdOutLogger())
-	}
-
 	if !cfg.NoHttpUpgrader {
 		// upgrade all http requests to https
 		log.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
 		metaAdd.addAddon(&addons.SchemeUpgrader{})
 	}
+
+	// struct of bools to toggle the various traffic log outputs
+	logSources := config.NewLogSourceConfig(cfg)
+
+	// create and configure MegaDirDumper addon object
+	dumperAddon, err := addons.NewMegaDirDumper(
+		cfg.OutputDir,
+		cfg.LogFormat,
+		logSources,
+		cfg.FilterReqHeaders, cfg.FilterRespHeaders,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
+	}
+
+	// add the traffic log dumper to the proxy
+	metaAdd.addAddon(dumperAddon)
 
 	log.Debugf("AppMode set to: %v", cfg.AppMode)
 	switch cfg.AppMode {
@@ -103,63 +111,11 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 			return nil, fmt.Errorf("failed to load cache addon: %v", err)
 		}
 		metaAdd.addAddon(cacheAddon)
-
-		/*
-			// logSource object with all fields enabled for caching mode
-			logSources := config.LogSourceConfigAllTrue
-
-			// append the WriteToDir LogDestination to the logDest slice, so megadumper will write to disk
-			logDest = append(logDest, md.WriteToDir)
-
-
-				// create and configure MegaDirDumper addon object
-				dumperAddon, err := addons.NewMegaDirDumper(
-					cfg.OutputDir,
-					md.Format_JSON,
-					logSources,
-					logDest,
-					cfg.FilterReqHeaders, cfg.FilterRespHeaders,
-				)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create dumper: %v", err)
-				}
-
-				// add the dumper to the proxy
-				metaAdd.addAddon(dumperAddon)
-		*/
-
-	case config.DirLoggerMode:
-		// struct of bools to toggle the various log outputs
-		logSources := config.LogSourceConfig{
-			LogConnectionStats: !cfg.NoLogConnStats,
-			LogRequestHeaders:  !cfg.NoLogReqHeaders,
-			LogRequest:         !cfg.NoLogReqBody,
-			LogResponseHeaders: !cfg.NoLogRespHeaders,
-			LogResponse:        !cfg.NoLogRespBody,
-		}
-
-		// append the WriteToDir LogDestination to the logDest slice, so megadumper will write to disk
-		logDest = append(logDest, md.WriteToDir)
-
-		// create and configure MegaDirDumper addon object
-		dumperAddon, err := addons.NewMegaDirDumper(
-			cfg.OutputDir,
-			md.Format_JSON,
-			logSources,
-			logDest,
-			cfg.FilterReqHeaders, cfg.FilterRespHeaders,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create dumper: %v", err)
-		}
-
-		// add the dumper to the proxy
-		metaAdd.addAddon(dumperAddon)
 	case config.APIAuditMode:
 		log.Debug("Enabling API Auditor addon")
 		metaAdd.addAddon(addons.NewAPIAuditor())
 	case config.SimpleMode:
-		log.Debugf("No addons enabled for SimpleMode")
+		// log.Debugf("No addons enabled for SimpleMode")
 	default:
 		return nil, fmt.Errorf("unknown app mode: %v", cfg.AppMode)
 	}

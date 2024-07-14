@@ -14,10 +14,6 @@ var cache_suggestions = []string{
 	"cache-proxy", "caching-proxy", "cash-proxy", "cash",
 }
 
-var dir_logger_suggestions = []string{
-	"logger", "log", "dirlog", "dir-logger",
-}
-
 var simple_suggestions = []string{
 	"proxy", "simple-proxy", "simpleproxy",
 }

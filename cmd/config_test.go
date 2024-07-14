@@ -18,10 +18,6 @@ func TestNoDuplicateSuggestions(t *testing.T) {
 			suggestions: cache_suggestions,
 		},
 		{
-			name:        "dir_logger_suggestions",
-			suggestions: dir_logger_suggestions,
-		},
-		{
 			name:        "simple_suggestions",
 			suggestions: simple_suggestions,
 		},

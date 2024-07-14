@@ -42,10 +42,10 @@ func NewDefaultConfig() *Config {
 		},
 		terminalLogger: &terminalLogger{},
 		trafficLogger: &trafficLogger{
-			OutputDir:           "",
-			WriteJsonFormatLogs: true,
-			FilterReqHeaders:    append([]string{}, defaultFilterHeaders...), // append empty to deep copy the source slice
-			FilterRespHeaders:   append([]string{}, defaultFilterHeaders...),
+			OutputDir:         "",
+			LogFormat:         TrafficLog_JSON,
+			FilterReqHeaders:  append([]string{}, defaultFilterHeaders...), // append empty to deep copy the source slice
+			FilterRespHeaders: append([]string{}, defaultFilterHeaders...),
 		},
 		Cache: &cacheBehavior{
 			Dir: "/tmp/llm_proxy",

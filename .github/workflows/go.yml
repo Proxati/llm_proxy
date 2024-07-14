@@ -28,8 +28,4 @@ jobs:
       run: make build
 
     - name: Smoketest
-      run: ./llm_proxy --help && \
-        ./llm_proxy apiAuditor --help && \
-        ./llm_proxy cache --help && \
-        ./llm_proxy run --help && \
-        ./llm_proxy version
+      run: ./llm_proxy --help

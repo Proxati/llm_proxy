@@ -1,6 +1,6 @@
 module github.com/proxati/llm_proxy
 
-go 1.22
+go 1.22.5
 
 require (
 	github.com/bojanz/currency v1.2.3

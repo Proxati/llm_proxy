@@ -114,8 +114,8 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	case config.APIAuditMode:
 		log.Debug("Enabling API Auditor addon")
 		metaAdd.addAddon(addons.NewAPIAuditor())
-	case config.SimpleMode:
-		// log.Debugf("No addons enabled for SimpleMode")
+	case config.ProxyRunMode:
+		// log.Debugf("No addons enabled for the basic proxy mode")
 	default:
 		return nil, fmt.Errorf("unknown app mode: %v", cfg.AppMode)
 	}

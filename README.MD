@@ -25,7 +25,7 @@ deploy and operate.
 
 ### Running the proxy server
 ```bash
-$ llm_proxy simple --verbose
+$ llm_proxy run --verbose
 ```
 
 ### Using cURL to query, and use the proxy

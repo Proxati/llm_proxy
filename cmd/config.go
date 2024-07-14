@@ -14,6 +14,6 @@ var cache_suggestions = []string{
 	"cache-proxy", "caching-proxy", "cash-proxy", "cash",
 }
 
-var simple_suggestions = []string{
+var proxyRun_suggestions = []string{
 	"proxy", "simple-proxy", "simpleproxy",
 }

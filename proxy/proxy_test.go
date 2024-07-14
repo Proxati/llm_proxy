@@ -163,7 +163,7 @@ func BenchmarkProxySimple(b *testing.B) {
 	proxyPort, err := getFreePort()
 	require.NoError(b, err)
 	tmpDir := b.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.SimpleMode)
+	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.ProxyRunMode)
 	require.NoError(b, err)
 
 	// Start a basic web server on another port
@@ -199,7 +199,7 @@ func TestProxySimple(t *testing.T) {
 	proxyPort, err := getFreePort()
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.SimpleMode)
+	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.ProxyRunMode)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
@@ -258,7 +258,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	proxyPort, err := getFreePort()
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.SimpleMode)
+	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.ProxyRunMode)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
@@ -544,7 +544,7 @@ func TestConfigProxy(t *testing.T) {
 	// Create a mock configuration
 	cfg := config.NewDefaultConfig()
 	cfg.CertDir = t.TempDir()
-	cfg.AppMode = config.SimpleMode
+	cfg.AppMode = config.ProxyRunMode
 
 	// Call the function with the mock configuration
 	p, err := configProxy(cfg)

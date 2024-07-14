@@ -19,7 +19,7 @@ func TestNoDuplicateSuggestions(t *testing.T) {
 		},
 		{
 			name:        "simple_suggestions",
-			suggestions: simple_suggestions,
+			suggestions: proxyRun_suggestions,
 		},
 	}
 

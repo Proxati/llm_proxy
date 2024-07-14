@@ -3,7 +3,7 @@ package config
 type AppMode int
 
 const (
-	SimpleMode AppMode = iota
+	ProxyRunMode AppMode = iota
 	CacheMode
 	APIAuditMode
 )

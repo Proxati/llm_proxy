@@ -27,9 +27,9 @@ func init() {
 	rootCmd.AddCommand(cacheCmd)
 	cacheCmd.SuggestFor = cache_suggestions
 
-	cacheCmd.Flags().StringVarP(
-		&cfg.Cache.Dir, "cache", "o", cfg.Cache.Dir,
-		"Directory to store the cache files",
+	cacheCmd.Flags().StringVar(
+		&cfg.Cache.Dir, "cache-dir", cfg.Cache.Dir,
+		"Directory to store the cache database files",
 	)
 	/*
 		cacheCmd.Flags().Int64VarP(
@@ -43,12 +43,4 @@ func init() {
 			"Limit # of cached records. LRU deletion. 0=no limit. ",
 		)
 	*/
-	cacheCmd.Flags().StringSliceVarP(
-		&cfg.FilterReqHeaders, "filter-req-headers", "", cfg.FilterReqHeaders,
-		"Request headers that match these strings will not be logged (but will still be proxied)",
-	)
-	cacheCmd.Flags().StringSliceVarP(
-		&cfg.FilterRespHeaders, "filter-resp-headers", "", cfg.FilterRespHeaders,
-		"Response headers that match these strings will not be logged (but will still be proxied)",
-	)
 }

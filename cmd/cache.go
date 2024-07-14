@@ -10,13 +10,13 @@ import (
 // cacheCmd represents the mock command
 var cacheCmd = &cobra.Command{
 	Use:   "cache",
-	Short: "Enable caching mode, which stores all requests / responses in a local directory",
-	Long: `This command creates a proxy server that sends responses to the upstream server only
-when there isn't a copy available in the cache. The cache command requires a local directory to store
-and retrieve the responses. This mode is useful for development and for CI, because it will reduce the
-number of requests to the upstream server. The cache server will respond with the same status code,
-headers, and body as the previous response. The cache server will not store responses with a status
-code of 500 or higher.`,
+	Short: "Enable literal caching mode to store all traffic in a local embedded database.",
+	Long: `This command creates a proxy server that inspects each request body and responds
+from the cache if an identical request body is found. When no cached copy is available, the
+server forwards the request to the upstream server and stores the response in a local
+directory for future use. This caching mechanism is ideal for development and CI, reducing
+the number of requests to the upstream server. The cache stores responses with the same status
+code, headers, and body as the original, except for responses with status codes 500 or higher.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg.AppMode = config.CacheMode
 		return proxy.Run(cfg)

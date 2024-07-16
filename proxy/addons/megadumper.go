@@ -31,7 +31,7 @@ type MegaDumpAddon struct {
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
 func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 	if d.closed.Load() {
-		log.Warn("MegaDirDumper is being closed, not logging a request")
+		log.Warn("MegaDumpAddon is being closed, not logging a request")
 		return
 	}
 
@@ -75,19 +75,20 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 }
 
 func (d *MegaDumpAddon) String() string {
-	return "MegaDirDumper"
+	return "MegaDumpAddon"
 }
 
 func (d *MegaDumpAddon) Close() error {
 	if !d.closed.Swap(true) {
-		log.Debug("Waiting for MegaDirDumper shutdown...")
+		log.Debug("Waiting for MegaDumpAddon shutdown...")
 		d.wg.Wait()
 	}
 
 	return nil
 }
 
-// newLogDestinations returns a slice of log destinations based on the logTarget string
+// newLogDestinations parses the logTarget string and returns a slice of log destinations.
+// The actual validation of log destinations happens in formatter. No validation here!
 func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 	if logTarget == "" {
 		log.Debug("logTarget empty, defaulting to stdout")
@@ -101,53 +102,37 @@ func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 	return logDestinations, nil
 }
 
-// NewMegaDirDumper creates a new dumper that creates a new log file for each request
-func NewMegaDirDumper(
-	logTarget string, // output directory
-	logFormatConfig config.TrafficLogFormat, // what file format to write the traffic logs
-	logSources config.LogSourceConfig, // which fields from the transaction to log
-	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
-) (*MegaDumpAddon, error) {
+// formatPicker will setup the log formatter object, which converts the config enum to a
+// local enum, which is used only inside this package
+func formatPicker(format config.TrafficLogFormat) (formatters.MegaDumpFormatter, error) {
 	var f formatters.MegaDumpFormatter
-	var w = make([]writers.MegaDumpWriter, 0)
-	var logFormat md.LogFormat
 
-	logDestinations, err := newLogDestinations(logTarget)
-	if err != nil {
-		return nil, fmt.Errorf("log destination validation error: %v", err)
-	}
-
-	// Setup the log format, converts the config enum to a local enum, used only inside this package
-	switch logFormatConfig {
+	switch format {
 	case config.TrafficLog_JSON:
 		log.Debug("Traffic logging format set to JSON")
 		f = &formatters.JSON{}
-		logFormat = md.Format_JSON
 	case config.TrafficLog_TXT:
 		log.Debug("Traffic logging format set to text")
 		f = &formatters.PlainText{}
-		logFormat = md.Format_PLAINTEXT
 	default:
-		return nil, fmt.Errorf("invalid log format: %v", logFormatConfig)
+		return nil, fmt.Errorf("invalid log format: %v", format)
 	}
 
+	return f, nil
+}
+
+// newWriters creates and configured the writer objects based on the log destinations and other parameters
+func newWriters(logDestinations []md.LogDestination, logTarget string, f formatters.MegaDumpFormatter) ([]writers.MegaDumpWriter, error) {
+	var w = make([]writers.MegaDumpWriter, 0)
 	for _, logDest := range logDestinations {
 		switch logDest {
 		case md.WriteToDir:
 			log.Debug("Directory logger enabled")
-			dirWriter, err := writers.NewToDir(logTarget, logFormat)
+			dirWriter, err := writers.NewToDir(logTarget, f)
 			if err != nil {
 				return nil, err
 			}
 			w = append(w, dirWriter)
-
-		case md.WriteToFile:
-			log.Debug("Single file logger enabled")
-			fileWriter, err := writers.NewToFile(logTarget, logFormat)
-			if err != nil {
-				return nil, err
-			}
-			w = append(w, fileWriter)
 		case md.WriteToStdOut:
 			log.Debug("Standard out logger enabled")
 			stdoutWriter, err := writers.NewToStdOut()
@@ -159,6 +144,31 @@ func NewMegaDirDumper(
 			return nil, fmt.Errorf("invalid log destination: %v", logDest)
 		}
 	}
+	return w, nil
+}
+
+// NewMegaDumpAddon creates a new dumper that creates a new log file for each request
+func NewMegaDumpAddon(
+	logTarget string, // output directory
+	logFormatConfig config.TrafficLogFormat, // what file format to write the traffic logs
+	logSources config.LogSourceConfig, // which fields from the transaction to log
+	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
+) (*MegaDumpAddon, error) {
+
+	logDestinations, err := newLogDestinations(logTarget)
+	if err != nil {
+		return nil, fmt.Errorf("log destination validation error: %v", err)
+	}
+
+	f, err := formatPicker(logFormatConfig)
+	if err != nil {
+		return nil, fmt.Errorf("log format validation error: %v", err)
+	}
+
+	w, err := newWriters(logDestinations, logTarget, f)
+	if err != nil {
+		return nil, fmt.Errorf("writer creation error: %v", err)
+	}
 
 	mda := &MegaDumpAddon{
 		formatter:         f,
@@ -167,10 +177,8 @@ func NewMegaDirDumper(
 		filterReqHeaders:  filterReqHeaders,
 		filterRespHeaders: filterRespHeaders,
 	}
+
 	mda.closed.Store(false) // initialize the atomic bool with closed = false
-
 	log.Debugf("Created MegaDirDumper with %s sources and %v writer(s)", logSources.String(), len(w))
-
 	return mda, nil
-
 }

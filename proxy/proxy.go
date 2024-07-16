@@ -80,7 +80,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	logSources := config.NewLogSourceConfig(cfg)
 
 	// create and configure MegaDirDumper addon object
-	dumperAddon, err := addons.NewMegaDirDumper(
+	dumperAddon, err := addons.NewMegaDumpAddon(
 		cfg.OutputDir,
 		cfg.LogFormat,
 		logSources,

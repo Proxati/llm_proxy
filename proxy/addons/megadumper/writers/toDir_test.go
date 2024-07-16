@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	md "github.com/proxati/llm_proxy/proxy/addons/megadumper"
+	"github.com/proxati/llm_proxy/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/proxy/addons/megadumper/writers"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,8 +15,8 @@ func TestToDir_Write(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(tempDir) // clean up
 
-	// Create a new ToDir instance
-	toDir, err := writers.NewToDir(tempDir, md.Format_PLAINTEXT)
+	// Create a new ToDir instance with a pointer to PlainText to satisfy the interface
+	toDir, err := writers.NewToDir(tempDir, &formatters.PlainText{})
 	assert.NoError(t, err)
 
 	// Write some data

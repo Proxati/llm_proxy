@@ -6,6 +6,8 @@ import (
 	"github.com/proxati/llm_proxy/schema"
 )
 
+const text_ext = "log"
+
 type PlainText struct {
 	container *schema.LogDumpContainer
 }
@@ -43,4 +45,9 @@ func (pt *PlainText) flatten() ([]byte, error) {
 func (pt *PlainText) Read(container *schema.LogDumpContainer) ([]byte, error) {
 	pt.container = container
 	return pt.flatten()
+}
+
+// GetFileExtension returns the file extension for a plain text file
+func (pt *PlainText) GetFileExtension() string {
+	return text_ext
 }

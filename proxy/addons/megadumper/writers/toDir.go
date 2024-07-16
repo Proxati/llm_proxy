@@ -2,7 +2,7 @@ package writers
 
 import (
 	"github.com/proxati/llm_proxy/fileUtils"
-	md "github.com/proxati/llm_proxy/proxy/addons/megadumper"
+	"github.com/proxati/llm_proxy/proxy/addons/megadumper/formatters"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,7 +24,7 @@ func (t *ToDir) Write(identifier string, bytes []byte) (int, error) {
 	return fileObj.Write(bytes)
 }
 
-func newToDir(target string, logFormat md.LogFormat) (*ToDir, error) {
+func newToDir(target string, formatter formatters.MegaDumpFormatter) (*ToDir, error) {
 	err := fileUtils.DirExistsOrCreate(target)
 	if err != nil {
 		return nil, err
@@ -32,10 +32,10 @@ func newToDir(target string, logFormat md.LogFormat) (*ToDir, error) {
 
 	return &ToDir{
 		targetDir:     target,
-		fileExtension: logFormat.FileExtension(),
+		fileExtension: formatter.GetFileExtension(),
 	}, nil
 }
 
-func NewToDir(target string, logFormat md.LogFormat) (MegaDumpWriter, error) {
-	return newToDir(target, logFormat)
+func NewToDir(target string, formatter formatters.MegaDumpFormatter) (MegaDumpWriter, error) {
+	return newToDir(target, formatter)
 }

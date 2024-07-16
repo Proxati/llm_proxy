@@ -7,6 +7,8 @@ import (
 	"github.com/proxati/llm_proxy/schema"
 )
 
+const json_ext = "json"
+
 type JSON struct {
 	container *schema.LogDumpContainer
 }
@@ -28,4 +30,9 @@ func (f *JSON) dumpToJSONBytes() ([]byte, error) {
 func (f *JSON) Read(container *schema.LogDumpContainer) ([]byte, error) {
 	f.container = container
 	return f.dumpToJSONBytes()
+}
+
+// GetFileExtension returns the file extension for a plain text file
+func (f *JSON) GetFileExtension() string {
+	return json_ext
 }

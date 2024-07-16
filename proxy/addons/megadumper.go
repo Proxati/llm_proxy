@@ -87,6 +87,20 @@ func (d *MegaDumpAddon) Close() error {
 	return nil
 }
 
+// newLogDestinations returns a slice of log destinations based on the logTarget string
+func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
+	if logTarget == "" {
+		log.Debug("logTarget empty, defaulting to stdout")
+		return []md.LogDestination{md.WriteToStdOut}, nil
+	}
+
+	var logDestinations []md.LogDestination
+	log.Debugf("Traffic log output directory set to: %s", logTarget)
+	logDestinations = append(logDestinations, md.WriteToDir)
+
+	return logDestinations, nil
+}
+
 // NewMegaDirDumper creates a new dumper that creates a new log file for each request
 func NewMegaDirDumper(
 	logTarget string, // output directory
@@ -96,15 +110,11 @@ func NewMegaDirDumper(
 ) (*MegaDumpAddon, error) {
 	var f formatters.MegaDumpFormatter
 	var w = make([]writers.MegaDumpWriter, 0)
-	var logDestinations []md.LogDestination
 	var logFormat md.LogFormat
 
-	if logTarget == "" {
-		log.Debug("No traffic log output directory set, using stdout")
-		logDestinations = append(logDestinations, md.WriteToStdOut)
-	} else {
-		log.Debugf("Traffic log output directory set to: %s", logTarget)
-		logDestinations = append(logDestinations, md.WriteToDir)
+	logDestinations, err := newLogDestinations(logTarget)
+	if err != nil {
+		return nil, fmt.Errorf("log destination validation error: %v", err)
 	}
 
 	// Setup the log format, converts the config enum to a local enum, used only inside this package

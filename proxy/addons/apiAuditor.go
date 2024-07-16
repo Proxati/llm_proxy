@@ -7,13 +7,9 @@ import (
 
 	px "github.com/kardianos/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/schema"
+	"github.com/proxati/llm_proxy/schema/providers"
 	log "github.com/sirupsen/logrus"
 )
-
-// domains supported by this auditor
-var auditURLs = map[string]interface{}{
-	"api.openai.com": nil,
-}
 
 // APIAuditorAddon log connection and flow
 type APIAuditorAddon struct {
@@ -40,7 +36,7 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 
 		// only account when the request domain is supported
 		reqHostname := f.Request.URL.Hostname()
-		_, shouldAudit := auditURLs[reqHostname]
+		_, shouldAudit := providers.API_Hostnames[reqHostname]
 		if !shouldAudit {
 			log.Debugf("skipping accounting for unsupported API: %s", reqHostname)
 			return

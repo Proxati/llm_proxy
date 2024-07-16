@@ -136,6 +136,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 		for _, addon := range p.Addons {
 			myAddon, ok := addon.(addons.LLM_Addon)
 			if !ok {
+				log.Errorf("Error casting addon: %v", addon)
 				continue
 			}
 			log.Debugf("Closing addon: %s", myAddon)
@@ -147,7 +148,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 		log.Debug("Closing proxy server...")
 
 		// Manual sleep to avoid race condition on connection close
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 
 		// Create a context that will be cancelled after N seconds
 		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))

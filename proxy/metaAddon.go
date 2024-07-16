@@ -121,6 +121,7 @@ func (addon *metaAddon) Response(flow *px.Flow) {
 
 	// TODO: add a logger here
 }
+
 func (addon *metaAddon) StreamRequestModifier(flow *px.Flow, in io.Reader) io.Reader {
 	for _, a := range addon.myAddons {
 		// the caller for this method doesn't check for flow mutations, so just iterate peacefully
@@ -129,6 +130,7 @@ func (addon *metaAddon) StreamRequestModifier(flow *px.Flow, in io.Reader) io.Re
 
 	return in
 }
+
 func (addon *metaAddon) StreamResponseModifier(flow *px.Flow, in io.Reader) io.Reader {
 	for _, a := range addon.myAddons {
 		// the caller for this method doesn't check for flow mutations, so just iterate peacefully

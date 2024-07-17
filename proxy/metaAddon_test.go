@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/config"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -70,7 +70,7 @@ func TestNewMetaAddon(t *testing.T) {
 
 	meta := newMetaAddon(cfg, addons...)
 	assert.Equal(t, cfg, meta.cfg)
-	assert.Equal(t, len(addons), len(meta.myAddons))
+	assert.Equal(t, len(addons), len(meta.mitmAddons))
 }
 
 func TestAddAddon(t *testing.T) {
@@ -78,7 +78,7 @@ func TestAddAddon(t *testing.T) {
 	mock := &mockAddon{}
 	meta.addAddon(mock)
 
-	assert.Contains(t, meta.myAddons, mock)
+	assert.Contains(t, meta.mitmAddons, mock)
 }
 
 func TestAllMethods(t *testing.T) {

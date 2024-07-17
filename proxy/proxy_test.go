@@ -17,11 +17,11 @@ import (
 	"testing"
 	"time"
 
-	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/config"
 	"github.com/proxati/llm_proxy/proxy/addons"
 	"github.com/proxati/llm_proxy/schema"
 	"github.com/proxati/llm_proxy/schema/utils"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -541,19 +541,92 @@ func TestNewCA(t *testing.T) {
 }
 
 func TestConfigProxy(t *testing.T) {
-	// Create a mock configuration
-	cfg := config.NewDefaultConfig()
-	cfg.CertDir = t.TempDir()
-	cfg.AppMode = config.ProxyRunMode
+	t.Run("TestConfigProxy quiet mode", func(t *testing.T) {
+		// Create a mock configuration
+		cfg := config.NewDefaultConfig()
+		cfg.CertDir = t.TempDir()
+		cfg.AppMode = config.ProxyRunMode
 
-	// Call the function with the mock configuration
-	p, err := configProxy(cfg)
+		// Call the function with the mock configuration
+		p, err := configProxy(cfg)
 
-	// Assert that no error was returned
-	assert.NoError(t, err)
+		// Assert that no error was returned
+		assert.NoError(t, err)
 
-	// Assert that a proxy was returned
-	assert.NotNil(t, p)
+		// Assert that a proxy was returned
+		assert.NotNil(t, p)
 
-	assert.Equal(t, 1, len(p.Addons))
+		assert.Equal(t, 1, len(p.Addons))
+
+		// Assert that the first, and only addon is the MetaAddon
+		_, ok := p.Addons[0].(*metaAddon)
+		assert.True(t, ok)
+
+		// Assert that the MetaAddon has the correct config
+		metaAddon := p.Addons[0].(*metaAddon)
+		assert.Equal(t, cfg, metaAddon.cfg)
+
+		// Assert that the MetaAddon has only one addon
+		assert.Equal(t, 1, len(metaAddon.mitmAddons))
+	})
+
+	t.Run("TestConfigProxy verbose mode", func(t *testing.T) {
+		// Create a mock configuration
+		cfg := config.NewDefaultConfig()
+		cfg.CertDir = t.TempDir()
+		cfg.AppMode = config.ProxyRunMode
+		cfg.Verbose = true
+
+		// Call the function with the mock configuration
+		p, err := configProxy(cfg)
+
+		// Assert that no error was returned
+		assert.NoError(t, err)
+
+		// Assert that a proxy was returned
+		assert.NotNil(t, p)
+
+		assert.Equal(t, 1, len(p.Addons))
+
+		// Assert that the first, and only addon is the MetaAddon
+		_, ok := p.Addons[0].(*metaAddon)
+		assert.True(t, ok)
+
+		// Assert that the MetaAddon has the correct config
+		metaAddon := p.Addons[0].(*metaAddon)
+		assert.Equal(t, cfg, metaAddon.cfg)
+
+		// Assert that the MetaAddon has two addons, the logger and the base addon
+		assert.Equal(t, 2, len(metaAddon.mitmAddons))
+	})
+
+	t.Run("TestConfigProxy output mode", func(t *testing.T) {
+		// Create a mock configuration
+		cfg := config.NewDefaultConfig()
+		cfg.CertDir = t.TempDir()
+		cfg.AppMode = config.ProxyRunMode
+		cfg.OutputDir = t.TempDir() // Set the output directory, which should enable the logger addon
+
+		// Call the function with the mock configuration
+		p, err := configProxy(cfg)
+
+		// Assert that no error was returned
+		assert.NoError(t, err)
+
+		// Assert that a proxy was returned
+		assert.NotNil(t, p)
+
+		assert.Equal(t, 1, len(p.Addons))
+
+		// Assert that the first, and only addon is the MetaAddon
+		_, ok := p.Addons[0].(*metaAddon)
+		assert.True(t, ok)
+
+		// Assert that the MetaAddon has the correct config
+		metaAddon := p.Addons[0].(*metaAddon)
+		assert.Equal(t, cfg, metaAddon.cfg)
+
+		// Assert that the MetaAddon has two addons, the logger and the base addon
+		assert.Equal(t, 2, len(metaAddon.mitmAddons))
+	})
 }

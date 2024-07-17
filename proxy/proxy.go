@@ -79,19 +79,21 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	// struct of bools to toggle the various traffic log outputs
 	logSources := config.NewLogSourceConfig(cfg)
 
-	// create and configure MegaDirDumper addon object
-	dumperAddon, err := addons.NewMegaDumpAddon(
-		cfg.OutputDir,
-		cfg.LogFormat,
-		logSources,
-		cfg.FilterReqHeaders, cfg.FilterRespHeaders,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
-	}
+	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requeste
+	if (cfg.OutputDir == "" && cfg.IsVerboseOrHigher()) || cfg.OutputDir != "" {
+		dumperAddon, err := addons.NewMegaDumpAddon(
+			cfg.OutputDir,
+			cfg.LogFormat,
+			logSources,
+			cfg.FilterReqHeaders, cfg.FilterRespHeaders,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
+		}
 
-	// add the traffic log dumper to the proxy
-	metaAdd.addAddon(dumperAddon)
+		// add the traffic log dumper to the proxy
+		metaAdd.addAddon(dumperAddon)
+	}
 
 	log.Debugf("AppMode set to: %v", cfg.AppMode)
 	switch cfg.AppMode {

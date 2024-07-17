@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

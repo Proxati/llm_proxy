@@ -3,7 +3,7 @@ package addons
 import (
 	"testing"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
 )
 

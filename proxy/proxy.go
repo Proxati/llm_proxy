@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kardianos/mitmproxy/cert"
-	px "github.com/kardianos/mitmproxy/proxy"
+	"github.com/proxati/mitmproxy/cert"
+	px "github.com/proxati/mitmproxy/proxy"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/config"

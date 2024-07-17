@@ -136,7 +136,6 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 		for _, addon := range p.Addons {
 			myAddon, ok := addon.(addons.LLM_Addon)
 			if !ok {
-				log.Errorf("Error casting addon: %v", addon)
 				continue
 			}
 			log.Debugf("Closing addon: %s", myAddon)

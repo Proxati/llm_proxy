@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/schema"
 	"github.com/proxati/llm_proxy/schema/utils"
 

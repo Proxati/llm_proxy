@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/config"
 	"github.com/proxati/llm_proxy/proxy/addons"
 	"github.com/proxati/llm_proxy/schema"

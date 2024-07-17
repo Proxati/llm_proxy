@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )

@@ -3,7 +3,7 @@ package proxy
 import (
 	"io"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/config"
 )
 

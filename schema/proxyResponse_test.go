@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

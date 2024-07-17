@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	px "github.com/kardianos/mitmproxy/proxy"
+	px "github.com/proxati/mitmproxy/proxy"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/config"

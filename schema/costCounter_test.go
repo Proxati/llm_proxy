@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/bojanz/currency"
-	"github.com/proxati/llm_proxy/schema/providers/openai_com"
+	"github.com/proxati/llm_proxy/v2/schema/providers/openai_com"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

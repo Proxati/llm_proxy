@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/proxati/llm_proxy/schema"
+	"github.com/proxati/llm_proxy/v2/schema"
 )
 
 const json_ext = "json"

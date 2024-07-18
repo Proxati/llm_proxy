@@ -9,11 +9,11 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/proxati/llm_proxy/config"
-	md "github.com/proxati/llm_proxy/proxy/addons/megadumper"
-	"github.com/proxati/llm_proxy/proxy/addons/megadumper/formatters"
-	"github.com/proxati/llm_proxy/proxy/addons/megadumper/writers"
-	"github.com/proxati/llm_proxy/schema"
+	"github.com/proxati/llm_proxy/v2/config"
+	md "github.com/proxati/llm_proxy/v2/proxy/addons/megadumper"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers"
+	"github.com/proxati/llm_proxy/v2/schema"
 )
 
 type MegaDumpAddon struct {

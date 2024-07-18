@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/proxati/llm_proxy/config"
-	"github.com/proxati/llm_proxy/proxy"
+	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/proxy"
 	"github.com/spf13/cobra"
 )
 

@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/proxati/llm_proxy/proxy/addons/cache/key"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/key"
 )
 
 func TestNewBoltDB(t *testing.T) {

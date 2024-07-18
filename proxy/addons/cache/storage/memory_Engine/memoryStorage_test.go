@@ -3,7 +3,7 @@ package memory_Engine
 import (
 	"testing"
 
-	"github.com/proxati/llm_proxy/proxy/addons/cache/key"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/key"
 	"github.com/stretchr/testify/require"
 )
 

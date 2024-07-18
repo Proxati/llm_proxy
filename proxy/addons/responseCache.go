@@ -10,10 +10,10 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/proxati/llm_proxy/proxy/addons/cache"
-	"github.com/proxati/llm_proxy/proxy/addons/megadumper/formatters"
-	"github.com/proxati/llm_proxy/schema"
-	"github.com/proxati/llm_proxy/schema/utils"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/cache"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
+	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
 const (

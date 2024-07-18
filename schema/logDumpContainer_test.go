@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/proxati/llm_proxy/config"
+	"github.com/proxati/llm_proxy/v2/config"
 )
 
 func getDefaultFlow() *px.Flow {

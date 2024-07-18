@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/proxati/llm_proxy/config"
+	"github.com/proxati/llm_proxy/v2/config"
 	px "github.com/proxati/mitmproxy/proxy"
 	log "github.com/sirupsen/logrus"
 )

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	"github.com/proxati/llm_proxy/schema"
-	"github.com/proxati/llm_proxy/schema/utils"
+	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

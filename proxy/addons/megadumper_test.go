@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/proxati/llm_proxy/config"
-	md "github.com/proxati/llm_proxy/proxy/addons/megadumper"
-	"github.com/proxati/llm_proxy/proxy/addons/megadumper/formatters"
+	"github.com/proxati/llm_proxy/v2/config"
+	md "github.com/proxati/llm_proxy/v2/proxy/addons/megadumper"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/proxati/llm_proxy/proxy/addons/megadumper/writers"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )

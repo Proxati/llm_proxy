@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/proxati/llm_proxy/version"
+	"github.com/proxati/llm_proxy/v2/version"
 )
 
 // versionCmd represents the version command

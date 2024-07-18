@@ -6,8 +6,8 @@ import (
 	"sync/atomic"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	"github.com/proxati/llm_proxy/schema"
-	"github.com/proxati/llm_proxy/schema/providers"
+	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/providers"
 	log "github.com/sirupsen/logrus"
 )
 

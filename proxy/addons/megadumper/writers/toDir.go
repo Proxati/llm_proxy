@@ -1,8 +1,8 @@
 package writers
 
 import (
-	"github.com/proxati/llm_proxy/fileUtils"
-	"github.com/proxati/llm_proxy/proxy/addons/megadumper/formatters"
+	"github.com/proxati/llm_proxy/v2/fileUtils"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	log "github.com/sirupsen/logrus"
 )
 

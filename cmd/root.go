@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/proxati/llm_proxy/config"
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/spf13/cobra"
 )
 

@@ -1,4 +1,4 @@
-module github.com/proxati/llm_proxy
+module github.com/proxati/llm_proxy/v2
 
 go 1.22.5
 

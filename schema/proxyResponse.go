@@ -9,7 +9,7 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/proxati/llm_proxy/schema/utils"
+	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
 type ProxyResponse struct {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/proxati/llm_proxy/fileUtils"
+	"github.com/proxati/llm_proxy/v2/fileUtils"
 	log "github.com/sirupsen/logrus"
 )
 

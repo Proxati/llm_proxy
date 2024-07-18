@@ -13,9 +13,9 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/proxati/llm_proxy/config"
-	"github.com/proxati/llm_proxy/proxy/addons"
-	"github.com/proxati/llm_proxy/version"
+	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/proxy/addons"
+	"github.com/proxati/llm_proxy/v2/version"
 )
 
 func newCA(certDir string) (*cert.CA, error) {

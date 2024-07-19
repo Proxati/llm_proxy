@@ -21,7 +21,9 @@ func TestLoadEmbeddedDataJSON(t *testing.T) {
 
 	// alphabetize the list of products, to confirm the JSON file is sorted correctly
 	for _, endpoint := range API_Endpoint_Data {
-		unSortedProducts := endpoint.Products
+		unSortedProducts := make([]Product, len(endpoint.Products))
+		copy(unSortedProducts, endpoint.Products)
+
 		sort.Slice(endpoint.Products, func(i, j int) bool {
 			return endpoint.Products[i].Name < endpoint.Products[j].Name
 		})

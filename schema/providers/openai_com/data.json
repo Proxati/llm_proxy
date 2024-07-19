@@ -1,22 +1,22 @@
 [{ 
     "url": "https://api.openai.com/v1/chat/completions",
     "products": [
+        { "name": "gpt-3.5-turbo", "inputTokenCost": "0.000003", "outputTokenCost": "0.000006", "currency": "USD" },
+        { "name": "gpt-3.5-turbo-0125", "inputTokenCost": "0.0000005", "outputTokenCost": "0.0000015", "currency": "USD" },
+        { "name": "gpt-3.5-turbo-1106", "inputTokenCost": "0.000001", "outputTokenCost": "0.000002", "currency": "USD" },
         { "name": "gpt-3.5-turbo-16k", "inputTokenCost": "0.000003", "outputTokenCost": "0.000004", "currency": "USD" },
         { "name": "gpt-3.5-turbo-16k-0613", "inputTokenCost": "0.000003", "outputTokenCost": "0.000004", "currency": "USD" },
-        { "name": "gpt-4o-2024-05-13", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD" },
-        { "name": "gpt-3.5-turbo-instruct-0914", "inputTokenCost": "0.0000015", "outputTokenCost": "0.000002", "currency": "USD" },
         { "name": "gpt-3.5-turbo-instruct", "inputTokenCost": "0.0000015", "outputTokenCost": "0.000002", "currency": "USD" },
-        { "name": "gpt-4-turbo-2024-04-09", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
+        { "name": "gpt-3.5-turbo-instruct-0914", "inputTokenCost": "0.0000015", "outputTokenCost": "0.000002", "currency": "USD" },
         { "name": "gpt-4", "inputTokenCost": "0.00003", "outputTokenCost": "0.00006", "currency": "USD" },
-        { "name": "gpt-4-turbo", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
-        { "name": "gpt-4-1106-preview", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
-        { "name": "gpt-4o-mini", "inputTokenCost": "0.00000015", "outputTokenCost": "0.0000006", "currency": "USD" },
-        { "name": "gpt-4o-mini-2024-07-18", "inputTokenCost": "0.00000015", "outputTokenCost": "0.0000006", "currency": "USD" },
-        { "name": "gpt-4o", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD" },
         { "name": "gpt-4-0125-preview", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
-        { "name": "gpt-3.5-turbo-0125", "inputTokenCost": "0.0000005", "outputTokenCost": "0.0000015", "currency": "USD" },
-        { "name": "gpt-3.5-turbo", "inputTokenCost": "0.000003", "outputTokenCost": "0.000006", "currency": "USD" },
+        { "name": "gpt-4-1106-preview", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
+        { "name": "gpt-4-turbo", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
+        { "name": "gpt-4-turbo-2024-04-09", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
         { "name": "gpt-4-turbo-preview", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
-        { "name": "gpt-3.5-turbo-1106", "inputTokenCost": "0.000001", "outputTokenCost": "0.000002", "currency": "USD" }
+        { "name": "gpt-4o", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD" },
+        { "name": "gpt-4o-2024-05-13", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD" },
+        { "name": "gpt-4o-mini", "inputTokenCost": "0.00000015", "outputTokenCost": "0.0000006", "currency": "USD" },
+        { "name": "gpt-4o-mini-2024-07-18", "inputTokenCost": "0.00000015", "outputTokenCost": "0.0000006", "currency": "USD" }
     ]
 }]

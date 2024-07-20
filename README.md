@@ -17,7 +17,7 @@ deploy and operate.
 ## How to install and run the proxy
 
 1. Install Go
-2. Run `go install github.com/proxati/llm_proxy@latest`
+2. Run `go install github.com/proxati/llm_proxy/v2@latest`
 3. The binary will be stored in your `$GOPATH/bin` directory.
 4. Verify installation with `llm_proxy --help`.
 5. Set your `HTTP_PROXY` and `HTTPS_PROXY` environment variables to `http://localhost:8080`.

@@ -24,6 +24,6 @@ if __name__ == '__main__':
                 "content": "Hello, you are amazing.",
             }
         ],
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
     )
     print(chat_completion)

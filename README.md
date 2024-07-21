@@ -21,9 +21,11 @@ deploy and operate.
 3. The binary will be stored in your `$GOPATH/bin` directory.
 4. Verify installation with `llm_proxy --help`.
 5. Set your `HTTP_PROXY` and `HTTPS_PROXY` environment variables to `http://localhost:8080`.
-6. Use the OpenAI API as you normally would.
+6. Start the proxy server: `llm_proxy run`
+7. Use the OpenAI API as you normally would.
 
 ### Running the proxy server
+
 ```bash
 $ llm_proxy run --verbose
 ```

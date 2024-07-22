@@ -2,9 +2,7 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
-
-	log "github.com/sirupsen/logrus"
+	"log/slog"
 )
 
 // LogSourceConfig holds the configuration toggles for logging request and response data
@@ -29,7 +27,7 @@ func NewLogSourceConfig(cfg *Config) LogSourceConfig {
 func (l *LogSourceConfig) String() string {
 	bytes, err := json.Marshal(l)
 	if err != nil {
-		log.Error(fmt.Sprintf("Error marshalling LogSourceConfig: %v", err))
+		slog.Error("Could not load LogSourceConfig", "error", err)
 		return ""
 	}
 	return string(bytes)

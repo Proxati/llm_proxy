@@ -3,10 +3,10 @@ package proxy
 import (
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 )
 
 // metaAddon is a meta addon that is the only addon loaded by the upstream library, and all
@@ -28,7 +28,7 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 	// iterate so the addons can be type asserted and added to the correct field
 	for _, a := range addons {
 		if err := m.addAddon(a); err != nil {
-			log.Error("error adding addon: ", err)
+			slog.Error("could not add the metaAddon", "error", err)
 		}
 	}
 
@@ -37,13 +37,13 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 
 func (addon *metaAddon) addAddon(a any) error {
 	if a == nil {
-		log.Debug("Skipping add for nil addon")
+		slog.Debug("Skipping add for nil addon")
 		return nil
 	}
 
 	mitmAddon, ok := a.(px.Addon)
 	if ok {
-		log.Debugf("Adding addon to metaAddon: %T", mitmAddon)
+		slog.Debug("Adding addon", "mitmAddon", mitmAddon)
 		addon.mitmAddons = append(addon.mitmAddons, mitmAddon)
 		return nil
 	}

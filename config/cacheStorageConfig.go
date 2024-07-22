@@ -3,11 +3,11 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/proxati/llm_proxy/v2/fileUtils"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -93,14 +93,14 @@ func NewCacheStorageConfig(cacheDir string) (*CacheStorageConfig, error) {
 	}
 
 	if fileUtils.FileExists(iFile.filePath) {
-		log.Debugf("Loading existing cache config file from: %s", iFile.filePath)
+		slog.Debug("Loading existing cache config file", "filePath", iFile.filePath)
 		if err := iFile.Load(); err != nil {
 			return nil, fmt.Errorf("failed to load cache config file: %s", err)
 		}
 		return iFile, nil
 	}
 
-	log.Infof("Creating a new cache config file at: %s", iFile.filePath)
+	slog.Info("Creating a new cache config file", "filePath", iFile.filePath)
 	err := iFile.Save()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create config file: %s", err)

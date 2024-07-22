@@ -77,7 +77,10 @@ func init() {
 		&cfg.OutputDir, "output", "o", "",
 		"Directory to write request/response traffic logs (unset will write to stdout)",
 	)
-	rootCmd.PersistentFlags().StringVar(&logFormatStr, "traffic-log-format", "json", "Traffic log output format (json, txt)")
+	rootCmd.PersistentFlags().StringVar(
+		&logFormatStr, "traffic-log-format", "json",
+		"Traffic log output format (json, txt)",
+	)
 	rootCmd.PersistentFlags().BoolVar(
 		&cfg.NoLogConnStats, "no-log-connection-stats", cfg.NoLogConnStats,
 		"Don't write connection stats to traffic logs",

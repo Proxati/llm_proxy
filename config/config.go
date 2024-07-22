@@ -13,9 +13,9 @@ func (cfg *Config) getTerminalLogger() *terminalLogger {
 	if cfg.terminalLogger == nil {
 		cfg.terminalLogger = &terminalLogger{}
 	}
-
 	return cfg.terminalLogger
 }
+
 func (cfg *Config) SetLoggerLevel() {
 	cfg.getTerminalLogger().setLoggerLevel()
 }

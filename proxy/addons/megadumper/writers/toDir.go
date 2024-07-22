@@ -1,9 +1,10 @@
 package writers
 
 import (
+	"log/slog"
+
 	"github.com/proxati/llm_proxy/v2/fileUtils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
-	log "github.com/sirupsen/logrus"
 )
 
 type ToDir struct {
@@ -20,7 +21,7 @@ func (t *ToDir) Write(identifier string, bytes []byte) (int, error) {
 		return 0, err
 	}
 	defer fileObj.Close()
-	log.Infof("Writing to file: %v", fileName)
+	slog.Info("Writing to file", "fileName", fileName)
 	return fileObj.Write(bytes)
 }
 

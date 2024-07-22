@@ -2,12 +2,12 @@ package addons
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	md "github.com/proxati/llm_proxy/v2/proxy/addons/megadumper"
@@ -30,8 +30,10 @@ type MegaDumpAddon struct {
 // Requestheaders is a callback that will receive a "flow" from the proxy, will create a
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
 func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
+	logger := slog.With("addon", "MegaDumpAddon.Requestheaders", "URL", f.Request.URL, "StatusCode", "ID", f.Id.String())
+
 	if d.closed.Load() {
-		log.Warn("MegaDumpAddon is being closed, not logging a request")
+		logger.Warn("MegaDumpAddon is being closed, not logging a request")
 		return
 	}
 
@@ -46,7 +48,7 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 		// load the selected fields into a container object
 		dumpContainer, err := schema.NewLogDumpContainer(f, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
 		if err != nil {
-			log.Error(err)
+			logger.Error("could not create LogDumpContainer", "error", err)
 			return
 		}
 
@@ -55,19 +57,19 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 		// format the container object, reformatted into a byte array
 		formattedDump, err := d.formatter.Read(dumpContainer)
 		if err != nil {
-			log.Error(err)
+			logger.Error("could not format LogDumpContainer", "error", err)
 			return
 		}
 
 		// write the formatted log data to... somewhere
 		for _, w := range d.writers {
 			if w == nil {
-				log.Error("Writer is nil, skipping")
+				logger.Error("Writer is nil, skipping")
 				continue
 			}
 			_, err := w.Write(id, formattedDump)
 			if err != nil {
-				log.Error(err)
+				logger.Error("could not write log", "error", err)
 				continue
 			}
 		}
@@ -80,7 +82,7 @@ func (d *MegaDumpAddon) String() string {
 
 func (d *MegaDumpAddon) Close() error {
 	if !d.closed.Swap(true) {
-		log.Debug("Waiting for MegaDumpAddon shutdown...")
+		slog.Debug("Waiting for MegaDumpAddon shutdown...")
 		d.wg.Wait()
 	}
 
@@ -91,12 +93,12 @@ func (d *MegaDumpAddon) Close() error {
 // The actual validation of log destinations happens in formatter. No validation here!
 func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 	if logTarget == "" {
-		log.Debug("logTarget empty, defaulting to stdout")
+		slog.Debug("logTarget empty, defaulting to stdout")
 		return []md.LogDestination{md.WriteToStdOut}, nil
 	}
 
 	var logDestinations []md.LogDestination
-	log.Debugf("Traffic log output directory set to: %s", logTarget)
+	slog.Debug("set log output directory", "logTarget", logTarget)
 	logDestinations = append(logDestinations, md.WriteToDir)
 
 	return logDestinations, nil
@@ -109,10 +111,10 @@ func formatPicker(format config.TrafficLogFormat) (formatters.MegaDumpFormatter,
 
 	switch format {
 	case config.TrafficLog_JSON:
-		log.Debug("Traffic logging format set to JSON")
+		slog.Debug("Traffic logging format set to JSON")
 		f = &formatters.JSON{}
 	case config.TrafficLog_TXT:
-		log.Debug("Traffic logging format set to text")
+		slog.Debug("Traffic logging format set to text")
 		f = &formatters.PlainText{}
 	default:
 		return nil, fmt.Errorf("invalid log format: %v", format)
@@ -127,14 +129,14 @@ func newWriters(logDestinations []md.LogDestination, logTarget string, f formatt
 	for _, logDest := range logDestinations {
 		switch logDest {
 		case md.WriteToDir:
-			log.Debug("Directory logger enabled")
+			slog.Debug("Directory logger enabled")
 			dirWriter, err := writers.NewToDir(logTarget, f)
 			if err != nil {
 				return nil, err
 			}
 			w = append(w, dirWriter)
 		case md.WriteToStdOut:
-			log.Debug("Standard out logger enabled")
+			slog.Debug("Standard out logger enabled")
 			stdoutWriter, err := writers.NewToStdOut()
 			if err != nil {
 				return nil, err
@@ -179,6 +181,6 @@ func NewMegaDumpAddon(
 	}
 
 	mda.closed.Store(false) // initialize the atomic bool with closed = false
-	log.Debugf("Created MegaDirDumper with %s sources and %v writer(s)", logSources.String(), len(w))
+	slog.Debug("Created MegaDirDumper", "sources", logSources.String(), "writers", len(w))
 	return mda, nil
 }

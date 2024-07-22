@@ -2,13 +2,13 @@ package addons
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 
-	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/providers"
-	log "github.com/sirupsen/logrus"
+	px "github.com/proxati/mitmproxy/proxy"
 )
 
 // APIAuditorAddon log connection and flow
@@ -20,12 +20,14 @@ type APIAuditorAddon struct {
 }
 
 func (aud *APIAuditorAddon) Response(f *px.Flow) {
+	logger := slog.With("addon", "APIAuditorAddon.Response", "URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
+
 	if aud.closed.Load() {
-		log.Warn("APIAuditor is being closed, not processing request")
+		logger.Warn("APIAuditor is being closed, not processing request")
 		return
 	}
 	if f.Response == nil {
-		log.Debugf("skipping accounting for nil response: %s", f.Request.URL)
+		logger.Debug("skipping accounting for nil response")
 		return
 	}
 
@@ -38,43 +40,45 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 		reqHostname := f.Request.URL.Hostname()
 		_, shouldAudit := providers.API_Hostnames[reqHostname]
 		if !shouldAudit {
-			log.Debugf("skipping accounting for unsupported API: %s", reqHostname)
+			logger.Debug("skipping accounting for unsupported API")
 			return
 		}
 
 		// Only account when receiving good response codes
 		_, shouldAccount := cacheOnlyResponseCodes[f.Response.StatusCode]
 		if !shouldAccount {
-			log.Debugf("skipping accounting for non-200 response: %s", f.Request.URL)
+			logger.Debug("skipping accounting for non-200 response")
 			return
 		}
 
 		// convert the request to an internal TrafficObject
 		tObjReq, err := schema.NewProxyRequestFromMITMRequest(f.Request, []string{})
 		if err != nil {
-			log.Errorf("error creating TrafficObject from request: %s", f.Request.URL)
+			logger.Error("error creating TrafficObject from request", "error", err)
 			return
 		}
 
 		// convert the response to an internal TrafficObject
 		tObjResp, err := schema.NewProxyResponseFromMITMResponse(f.Response, []string{})
 		if err != nil {
-			log.Errorf("error creating TrafficObject from response: %s", err)
+			logger.Error("error creating TrafficObject from response", "error", err)
 			return
 		}
 
 		// account the cost, TODO: returns what?
 		auditOutput, err := aud.costCounter.Add(*tObjReq, *tObjResp)
 		if err != nil {
-			log.Errorf("error accounting response: %s", err)
+			logger.Error("error accounting response", "error", err)
 		}
+
+		// TODO Improve this output format:
 		fmt.Println(auditOutput)
 	}()
 }
 
 func (aud *APIAuditorAddon) Close() error {
 	if !aud.closed.Swap(true) {
-		log.Debug("Waiting for APIAuditor shutdown...")
+		slog.Debug("Waiting for APIAuditor shutdown...")
 		aud.wg.Wait()
 	}
 

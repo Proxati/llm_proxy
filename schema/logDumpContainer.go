@@ -2,11 +2,11 @@ package schema
 
 import (
 	"errors"
+	"log/slog"
 	"net/url"
 	"time"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/v2/config"
 )
@@ -71,8 +71,8 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 
 	for _, err := range errs {
 		if err != nil {
-			// TODO: need to consider how to handle errors here
-			log.Error(err)
+			// TODO: need to reconsider how to handle errors here
+			slog.Error("errors encountered while creating LogDumpContainer", "error", err)
 		}
 	}
 

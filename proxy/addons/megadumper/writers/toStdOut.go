@@ -1,11 +1,11 @@
 package writers
 
-import log "github.com/sirupsen/logrus"
+import "log/slog"
 
 type ToStdOut struct{}
 
 func (t *ToStdOut) Write(identifier string, bytes []byte) (int, error) {
-	log.Infof("%v: %v", identifier, string(bytes))
+	slog.Info(string(bytes), "identifier", identifier)
 	return len(bytes), nil
 }
 

@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,7 +12,6 @@ import (
 
 	"github.com/proxati/mitmproxy/cert"
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons"
@@ -20,9 +20,9 @@ import (
 
 func newCA(certDir string) (*cert.CA, error) {
 	if certDir == "" {
-		log.Debug("No cert dir specified, defaulting to ~/.mitmproxy/")
+		slog.Debug("No cert dir specified, defaulting to ~/.mitmproxy/")
 	} else {
-		log.Debugf("Loading certs from directory: %v", certDir)
+		slog.Debug("Loading certs", "certDir", certDir)
 	}
 
 	l, err := cert.NewPathLoader(certDir)
@@ -72,7 +72,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 
 	if !cfg.NoHttpUpgrader {
 		// upgrade all http requests to https
-		log.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
+		slog.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
 		metaAdd.addAddon(&addons.SchemeUpgrader{})
 	}
 
@@ -95,7 +95,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(dumperAddon)
 	}
 
-	log.Debugf("AppMode set to: %v", cfg.AppMode)
+	slog.Debug("Starting proxy config for AppMode", "AppMode", cfg.AppMode)
 	switch cfg.AppMode {
 	case config.CacheMode:
 		cacheConfig, err := config.NewCacheStorageConfig(cfg.Cache.Dir)
@@ -114,7 +114,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		}
 		metaAdd.addAddon(cacheAddon)
 	case config.APIAuditMode:
-		log.Debug("Enabling API Auditor addon")
+		slog.Debug("Enabling API Auditor addon")
 		metaAdd.addAddon(addons.NewAPIAuditor())
 	case config.ProxyRunMode:
 		// log.Debugf("No addons enabled for the basic proxy mode")
@@ -132,7 +132,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 	go func() {
 		<-shutdown
-		log.Info("Received SIGINT, shutting down now...")
+		slog.Info("Received SIGINT, shutting down now...")
 
 		// Then close all of the addon connections
 		for _, addon := range p.Addons {
@@ -140,13 +140,13 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 			if !ok {
 				continue
 			}
-			log.Debugf("Closing addon: %s", myAddon)
+			slog.Debug("Closing", "addon", myAddon)
 			if err := myAddon.Close(); err != nil {
-				log.Errorf("Error closing addon: %v", err)
+				slog.Error("Could not close", "addon", myAddon, "error", err)
 			}
 		}
 		// Close the http client/server connections first
-		log.Debug("Closing proxy server...")
+		slog.Debug("Closing proxy server...")
 
 		// Manual sleep to avoid race condition on connection close
 		time.Sleep(100 * time.Millisecond)
@@ -156,7 +156,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 		defer cancel()
 
 		if err := p.Shutdown(ctx); err != nil {
-			log.Errorf("Error shutting down proxy server: %v", err)
+			slog.Error("Unexpected error shutting down proxy server", "error", err)
 		}
 	}()
 
@@ -169,7 +169,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 
 // Run is the main entry point for the proxy, configures the proxy and runs it
 func Run(cfg *config.Config) error {
-	log.Debugf("Starting LLM_Proxy version: %s", version.String())
+	slog.Debug("Starting LLM_Proxy", "version", version.String())
 
 	// setup background signal handler for clean shutdown
 	shutdown := make(chan os.Signal, 1)

@@ -2,14 +2,13 @@ package fileUtils
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // CreateNewFileFromFilename given a file name, this creates a new file on-disk for writing logs.
 func CreateNewFileFromFilename(fileName string) (*os.File, error) {
-	log.Debugf("Creating/opening file: %v", fileName)
+	slog.Debug("Creating/opening file", "fileName", fileName)
 
 	file, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 	if err != nil {

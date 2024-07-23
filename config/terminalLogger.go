@@ -9,12 +9,13 @@ import (
 type terminalLogger struct {
 	Verbose            bool   // if true, print runtime activity to stderr
 	Debug              bool   // if true, print debug information to stderr
-	Trace              bool   // if true, print detailed report caller tracing to stderr, for debugging
+	Trace              bool   // if true, print detailed report caller tracing, for detailed debugging
 	logLevelHasBeenSet bool   // internal flag to track if the log level has been set
 	sLoggerFormat      string // JSON or TXT ?
 	slogHandlerOpts    *slog.HandlerOptions
 }
 
+// setupLoggerFormat loads a handler into a new slog instance based on the sLoggerFormat value
 func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	var handler slog.Handler
 	switch tLo.sLoggerFormat {
@@ -26,7 +27,7 @@ func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	return slog.New(handler)
 }
 
-// setLoggerLevel sets the log level based on verbose/debug values in the config object
+// setLoggerLevel sets the log level based on verbose/debug values from the internal config object
 func (tLo *terminalLogger) setLoggerLevel() {
 	tLo.slogHandlerOpts = &slog.HandlerOptions{}
 	if tLo.Debug {

@@ -527,7 +527,7 @@ func TestNewProxy(t *testing.T) {
 	ca, err := newCA(tempDir)
 	assert.NoError(t, err)
 
-	p, err := newProxy(1, "localhost:8080", false, ca)
+	p, err := newProxy("localhost:8080", false, ca)
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
 }
@@ -596,8 +596,8 @@ func TestConfigProxy(t *testing.T) {
 		metaAddon := p.Addons[0].(*metaAddon)
 		assert.Equal(t, cfg, metaAddon.cfg)
 
-		// Assert that the MetaAddon has two addons, the logger and the base addon
-		assert.Equal(t, 2, len(metaAddon.mitmAddons))
+		// Assert that the MetaAddon has two addons (the traffic logger, stdout logger, and the base addon)
+		assert.Equal(t, 3, len(metaAddon.mitmAddons))
 	})
 
 	t.Run("TestConfigProxy output mode", func(t *testing.T) {

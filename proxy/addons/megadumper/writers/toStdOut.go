@@ -9,6 +9,10 @@ func (t *ToStdOut) Write(identifier string, bytes []byte) (int, error) {
 	return len(bytes), nil
 }
 
+func (t *ToStdOut) String() string {
+	return "ToStdOut"
+}
+
 func newToStdOut() (*ToStdOut, error) {
 	return &ToStdOut{}, nil
 }

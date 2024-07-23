@@ -43,16 +43,16 @@ func NewDefaultConfig() *Config {
 			NoHttpUpgrader:        false,
 		},
 		terminalLogger: &terminalLogger{
-			Verbose:            false,
-			Debug:              false,
-			Trace:              false,
-			logLevelHasBeenSet: false,
-			SLoggerFormat:      "txt",
-			slogHandlerOpts:    &slog.HandlerOptions{},
+			Verbose:               false,
+			Debug:                 false,
+			Trace:                 false,
+			logLevelHasBeenSet:    false,
+			TerminalSloggerFormat: LogFormat_TXT,
+			slogHandlerOpts:       &slog.HandlerOptions{},
 		},
 		trafficLogger: &trafficLogger{
 			OutputDir:         "",
-			TrafficLogFmt:     TrafficLog_JSON,
+			TrafficLogFmt:     LogFormat_JSON,
 			FilterReqHeaders:  append([]string{}, defaultFilterHeaders...), // append empty to deep copy the source slice
 			FilterRespHeaders: append([]string{}, defaultFilterHeaders...),
 		},

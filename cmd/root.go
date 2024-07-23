@@ -8,6 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// converted later to enum values in the config package
+var terminal_log_format string
+var traffic_log_format string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "llm_proxy",
@@ -20,14 +24,22 @@ This is useful for:
   * Fine-tuning: Use the stored logs to fine-tune your LLM models.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// setup logger
-		cfg.SetLoggerLevel()
 
-		// setup the traffic log format, load string to enum
 		var err error
-		cfg.TrafficLogFmt, err = config.StringToTrafficLogFormat(cfg.SLoggerFormat)
+		cfg.TerminalSloggerFormat, err = config.StringToLogFormat(terminal_log_format)
+		cfg.SetLoggerLevel()
+		slog.Debug("Global logger setup completed", "TerminalSloggerFormat", cfg.TerminalSloggerFormat.String())
+
+		if err != nil {
+			slog.Error("Could not setup terminal log", "error", err)
+		}
+
+		cfg.TrafficLogFmt, err = config.StringToLogFormat(traffic_log_format)
 		if err != nil {
 			slog.Error("Could not setup traffic log", "error", err)
+		}
+
+		if err != nil {
 			os.Exit(1)
 		}
 	},
@@ -75,8 +87,12 @@ func init() {
 		"Directory to write request/response traffic logs (unset will write to stdout)",
 	)
 	rootCmd.PersistentFlags().StringVar(
-		&cfg.SLoggerFormat, "traffic-log-format", cfg.SLoggerFormat,
-		"Traffic log output format (valid options: json or txt)",
+		&terminal_log_format, "terminal-log-format", "txt",
+		"Screen output format (valid options: json or txt)",
+	)
+	rootCmd.PersistentFlags().StringVar(
+		&traffic_log_format, "traffic-log-format", "json",
+		"Disk output format for traffic logs (valid options: json or txt)",
 	)
 	rootCmd.PersistentFlags().BoolVar(
 		&cfg.NoLogConnStats, "no-log-connection-stats", cfg.NoLogConnStats,

@@ -7,21 +7,25 @@ import (
 
 // terminalLogger controls the logging output to the terminal while the proxy is running
 type terminalLogger struct {
-	Verbose            bool   // if true, print runtime activity to stderr
-	Debug              bool   // if true, print debug information to stderr
-	Trace              bool   // if true, print detailed report caller tracing, for detailed debugging
-	logLevelHasBeenSet bool   // internal flag to track if the log level has been set
-	SLoggerFormat      string // JSON or TXT ?
-	slogHandlerOpts    *slog.HandlerOptions
+	Verbose               bool      // if true, print runtime activity to stderr
+	Debug                 bool      // if true, print debug information to stderr
+	Trace                 bool      // if true, print detailed report caller tracing, for detailed debugging
+	logLevelHasBeenSet    bool      // internal flag to track if the log level has been set
+	TerminalSloggerFormat LogFormat // JSON or TXT ?
+	slogHandlerOpts       *slog.HandlerOptions
 }
 
 // setupLoggerFormat loads a handler into a new slog instance based on the sLoggerFormat value
 func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	var handler slog.Handler
-	switch tLo.SLoggerFormat {
-	case "json":
+	switch tLo.TerminalSloggerFormat {
+	case LogFormat_JSON:
 		handler = slog.NewJSONHandler(os.Stdout, tLo.slogHandlerOpts)
+	case LogFormat_TXT:
+		// TODO: make the text handler look fancy
+		handler = slog.NewTextHandler(os.Stdout, tLo.slogHandlerOpts)
 	default:
+		// default to the simple text handler
 		handler = slog.NewTextHandler(os.Stdout, tLo.slogHandlerOpts)
 	}
 	return slog.New(handler)
@@ -43,7 +47,6 @@ func (tLo *terminalLogger) setLoggerLevel() {
 
 	logger := tLo.setupLoggerFormat()
 	slog.SetDefault(logger)
-	slog.Debug("Global logger setup completed", "sLogLevel", tLo.slogHandlerOpts.Level, "sLoggerFormat", tLo.SLoggerFormat)
 	tLo.logLevelHasBeenSet = true
 }
 

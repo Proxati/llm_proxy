@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/proxy/addons"
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
@@ -41,9 +42,15 @@ func (addon *metaAddon) addAddon(a any) error {
 		return nil
 	}
 
+	myAddon, ok := a.(addons.LLM_Addon)
+	if ok {
+		slog.Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
+		// eventually migrate to new addon types
+	}
+
 	mitmAddon, ok := a.(px.Addon)
 	if ok {
-		slog.Debug("Adding addon", "mitmAddon", mitmAddon)
+		// the addon is a valid mitmproxy addon, but it lacks a .String() method so we can't log it
 		addon.mitmAddons = append(addon.mitmAddons, mitmAddon)
 		return nil
 	}

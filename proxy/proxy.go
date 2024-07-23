@@ -39,13 +39,13 @@ func newCA(certDir string) (*cert.CA, error) {
 }
 
 // newProxy returns a new proxy object with some basic configuration
-func newProxy(debugLevel int, listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, error) {
+func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, error) {
 	opts := &px.Options{
-		Debug:                 debugLevel,
 		Addr:                  listenOn,
 		InsecureSkipVerifyTLS: skipVerifyTLS,
 		CA:                    ca,
 		StreamLargeBodies:     1024 * 1024 * 100, // responses larger than 100MB will be streamed
+		Logger:                slog.Default().WithGroup("mitmproxy.proxy"),
 	}
 
 	p, err := px.NewProxy(opts)
@@ -65,7 +65,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		return nil, fmt.Errorf("setupCA error: %v", err)
 	}
 
-	p, err := newProxy(cfg.IsDebugEnabled(), cfg.Listen, cfg.InsecureSkipVerifyTLS, ca)
+	p, err := newProxy(cfg.Listen, cfg.InsecureSkipVerifyTLS, ca)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create proxy: %v", err)
 	}
@@ -76,11 +76,16 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(&addons.SchemeUpgrader{})
 	}
 
-	// struct of bools to toggle the various traffic log outputs
-	logSources := config.NewLogSourceConfig(cfg)
+	if cfg.IsVerboseOrHigher() {
+		// add the verbose logger to the proxy
+		metaAdd.addAddon(addons.NewStdOutLogger())
+	}
 
-	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requeste
+	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
 	if (cfg.OutputDir == "" && cfg.IsVerboseOrHigher()) || cfg.OutputDir != "" {
+		// struct of bools to toggle the various traffic log outputs
+		logSources := config.NewLogSourceConfig(cfg)
+
 		dumperAddon, err := addons.NewMegaDumpAddon(
 			cfg.OutputDir,
 			cfg.TrafficLogFmt,
@@ -90,12 +95,20 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
 		}
+		slog.Debug(
+			"Created "+dumperAddon.String(),
+			"outputDir", cfg.OutputDir,
+			"logFormat", cfg.TrafficLogFmt,
+			"logSources", logSources,
+			// "filterReqHeaders", cfg.FilterReqHeaders,
+			// "filterRespHeaders", cfg.FilterRespHeaders,
+		)
 
 		// add the traffic log dumper to the proxy
 		metaAdd.addAddon(dumperAddon)
 	}
 
-	slog.Debug("Starting proxy config for AppMode", "AppMode", cfg.AppMode)
+	slog.Debug("Building proxy config", "AppMode", cfg.AppMode)
 	switch cfg.AppMode {
 	case config.CacheMode:
 		cacheConfig, err := config.NewCacheStorageConfig(cfg.Cache.Dir)
@@ -169,7 +182,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 
 // Run is the main entry point for the proxy, configures the proxy and runs it
 func Run(cfg *config.Config) error {
-	slog.Debug("Starting LLM_Proxy", "version", version.String())
+	slog.Info("Starting LLM_Proxy", "version", version.String())
 
 	// setup background signal handler for clean shutdown
 	shutdown := make(chan os.Signal, 1)

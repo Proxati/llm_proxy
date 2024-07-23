@@ -25,12 +25,16 @@ type MegaDumpAddon struct {
 	filterRespHeaders []string
 	wg                sync.WaitGroup
 	closed            atomic.Bool
+	logger            *slog.Logger
 }
 
 // Requestheaders is a callback that will receive a "flow" from the proxy, will create a
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
 func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
-	logger := slog.With("addon", "MegaDumpAddon.Requestheaders", "URL", f.Request.URL, "StatusCode", "ID", f.Id.String())
+	logger := d.logger.With(
+		"URL", f.Request.URL,
+		"ID", f.Id.String(),
+	)
 
 	if d.closed.Load() {
 		logger.Warn("MegaDumpAddon is being closed, not logging a request")
@@ -67,7 +71,8 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 				logger.Error("Writer is nil, skipping")
 				continue
 			}
-			_, err := w.Write(id, formattedDump)
+			bytesWritten, err := w.Write(id, formattedDump)
+			logger.Debug("Wrote log", "writer", w.String(), "bytesWritten", bytesWritten)
 			if err != nil {
 				logger.Error("Could not write log", "error", err)
 				continue
@@ -82,7 +87,7 @@ func (d *MegaDumpAddon) String() string {
 
 func (d *MegaDumpAddon) Close() error {
 	if !d.closed.Swap(true) {
-		slog.Debug("Waiting for MegaDumpAddon shutdown...")
+		d.logger.Debug("Waiting for MegaDumpAddon shutdown...")
 		d.wg.Wait()
 	}
 
@@ -98,7 +103,6 @@ func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 	}
 
 	var logDestinations []md.LogDestination
-	slog.Debug("Set log output directory", "logTarget", logTarget)
 	logDestinations = append(logDestinations, md.WriteToDir)
 
 	return logDestinations, nil
@@ -106,14 +110,14 @@ func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 
 // formatPicker will setup the log formatter object, which converts the config enum to a
 // local enum, which is used only inside this package
-func formatPicker(format config.TrafficLogFormat) (formatters.MegaDumpFormatter, error) {
+func formatPicker(format config.LogFormat) (formatters.MegaDumpFormatter, error) {
 	var f formatters.MegaDumpFormatter
 
 	switch format {
-	case config.TrafficLog_JSON:
+	case config.LogFormat_JSON:
 		slog.Debug("Traffic logging format set to JSON")
 		f = &formatters.JSON{}
-	case config.TrafficLog_TXT:
+	case config.LogFormat_TXT:
 		slog.Debug("Traffic logging format set to text")
 		f = &formatters.PlainText{}
 	default:
@@ -129,14 +133,12 @@ func newWriters(logDestinations []md.LogDestination, logTarget string, f formatt
 	for _, logDest := range logDestinations {
 		switch logDest {
 		case md.WriteToDir:
-			slog.Debug("Directory logger enabled")
 			dirWriter, err := writers.NewToDir(logTarget, f)
 			if err != nil {
 				return nil, err
 			}
 			w = append(w, dirWriter)
 		case md.WriteToStdOut:
-			slog.Debug("Standard out logger enabled")
 			stdoutWriter, err := writers.NewToStdOut()
 			if err != nil {
 				return nil, err
@@ -152,12 +154,13 @@ func newWriters(logDestinations []md.LogDestination, logTarget string, f formatt
 // NewMegaDumpAddon creates a new dumper that creates a new log file for each request
 func NewMegaDumpAddon(
 	logTarget string, // output directory
-	logFormatConfig config.TrafficLogFormat, // what file format to write the traffic logs
+	logFormatConfig config.LogFormat, // what file format to write the traffic logs
 	logSources config.LogSourceConfig, // which fields from the transaction to log
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
 ) (*MegaDumpAddon, error) {
 
 	logDestinations, err := newLogDestinations(logTarget)
+	slog.Debug("Set log output directory", "logTarget", logTarget)
 	if err != nil {
 		return nil, fmt.Errorf("log destination validation error: %v", err)
 	}
@@ -171,6 +174,9 @@ func NewMegaDumpAddon(
 	if err != nil {
 		return nil, fmt.Errorf("writer creation error: %v", err)
 	}
+	for _, writer := range w {
+		slog.Debug("Configured writer", "name", writer.String())
+	}
 
 	mda := &MegaDumpAddon{
 		formatter:         f,
@@ -178,9 +184,9 @@ func NewMegaDumpAddon(
 		writers:           w,
 		filterReqHeaders:  filterReqHeaders,
 		filterRespHeaders: filterRespHeaders,
+		logger:            slog.Default().With("addon", "MegaDumpAddon"),
 	}
 
 	mda.closed.Store(false) // initialize the atomic bool with closed = false
-	slog.Debug("Created MegaDirDumper", "sources", logSources, "writers", len(w))
 	return mda, nil
 }

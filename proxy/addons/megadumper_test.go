@@ -14,7 +14,7 @@ import (
 func TestNewMegaDumpAddon(t *testing.T) {
 	t.Run("JSON", func(t *testing.T) {
 		logTarget := "/tmp/logs"
-		logFormat := config.TrafficLog_JSON
+		logFormat := config.LogFormat_JSON
 		logSources := config.LogSourceConfig{}
 		filterReqHeaders := []string{}
 		filterRespHeaders := []string{}
@@ -29,7 +29,7 @@ func TestNewMegaDumpAddon(t *testing.T) {
 
 	t.Run("TXT", func(t *testing.T) {
 		logTarget := "/tmp/logs"
-		logFormat := config.TrafficLog_TXT
+		logFormat := config.LogFormat_TXT
 		logSources := config.LogSourceConfig{}
 		filterReqHeaders := []string{}
 		filterRespHeaders := []string{}

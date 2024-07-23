@@ -83,7 +83,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	if (cfg.OutputDir == "" && cfg.IsVerboseOrHigher()) || cfg.OutputDir != "" {
 		dumperAddon, err := addons.NewMegaDumpAddon(
 			cfg.OutputDir,
-			cfg.LogFormat,
+			cfg.TrafficLogFmt,
 			logSources,
 			cfg.FilterReqHeaders, cfg.FilterRespHeaders,
 		)

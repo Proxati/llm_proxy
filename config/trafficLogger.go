@@ -27,7 +27,7 @@ func StringToTrafficLogFormat(logFormat string) (TrafficLogFormat, error) {
 // trafficLogger handles config related to the *output* of the proxy traffic, for writing request/response logs
 type trafficLogger struct {
 	OutputDir         string           // Directory to write logs
-	LogFormat         TrafficLogFormat // Traffic log output format (json, txt)
+	TrafficLogFmt     TrafficLogFormat // Traffic log output format (json, txt)
 	NoLogConnStats    bool             // if true, do not log connection stats
 	NoLogReqHeaders   bool             // if true, log request headers
 	NoLogReqBody      bool             // if true, log request body

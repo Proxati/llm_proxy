@@ -11,14 +11,14 @@ type terminalLogger struct {
 	Debug              bool   // if true, print debug information to stderr
 	Trace              bool   // if true, print detailed report caller tracing, for detailed debugging
 	logLevelHasBeenSet bool   // internal flag to track if the log level has been set
-	sLoggerFormat      string // JSON or TXT ?
+	SLoggerFormat      string // JSON or TXT ?
 	slogHandlerOpts    *slog.HandlerOptions
 }
 
 // setupLoggerFormat loads a handler into a new slog instance based on the sLoggerFormat value
 func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	var handler slog.Handler
-	switch tLo.sLoggerFormat {
+	switch tLo.SLoggerFormat {
 	case "json":
 		handler = slog.NewJSONHandler(os.Stdout, tLo.slogHandlerOpts)
 	default:
@@ -43,7 +43,7 @@ func (tLo *terminalLogger) setLoggerLevel() {
 
 	logger := tLo.setupLoggerFormat()
 	slog.SetDefault(logger)
-	slog.Debug("Global logger setup completed", "sLogLevel", tLo.slogHandlerOpts.Level, "sLoggerFormat", tLo.sLoggerFormat)
+	slog.Debug("Global logger setup completed", "sLogLevel", tLo.slogHandlerOpts.Level, "sLoggerFormat", tLo.SLoggerFormat)
 	tLo.logLevelHasBeenSet = true
 }
 

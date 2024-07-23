@@ -1,5 +1,7 @@
 package config
 
+import "log/slog"
+
 // Config is the main config mega-struct
 type Config struct {
 	AppMode AppMode
@@ -40,10 +42,17 @@ func NewDefaultConfig() *Config {
 			InsecureSkipVerifyTLS: false,
 			NoHttpUpgrader:        false,
 		},
-		terminalLogger: &terminalLogger{},
+		terminalLogger: &terminalLogger{
+			Verbose:            false,
+			Debug:              false,
+			Trace:              false,
+			logLevelHasBeenSet: false,
+			SLoggerFormat:      "json",
+			slogHandlerOpts:    &slog.HandlerOptions{},
+		},
 		trafficLogger: &trafficLogger{
 			OutputDir:         "",
-			LogFormat:         TrafficLog_JSON,
+			TrafficLogFmt:     TrafficLog_JSON,
 			FilterReqHeaders:  append([]string{}, defaultFilterHeaders...), // append empty to deep copy the source slice
 			FilterRespHeaders: append([]string{}, defaultFilterHeaders...),
 		},

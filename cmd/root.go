@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/spf13/cobra"
 )
-
-// string variable that will be converted to an enum in the config package
-var logFormatStr = "json"
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -28,9 +25,9 @@ This is useful for:
 
 		// setup the traffic log format, load string to enum
 		var err error
-		cfg.LogFormat, err = config.StringToTrafficLogFormat(logFormatStr)
+		cfg.TrafficLogFmt, err = config.StringToTrafficLogFormat(cfg.SLoggerFormat)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not setup traffic log: %v\n", err)
+			slog.Error("Could not setup traffic log", "error", err)
 			os.Exit(1)
 		}
 	},
@@ -78,8 +75,8 @@ func init() {
 		"Directory to write request/response traffic logs (unset will write to stdout)",
 	)
 	rootCmd.PersistentFlags().StringVar(
-		&logFormatStr, "traffic-log-format", "json",
-		"Traffic log output format (json, txt)",
+		&cfg.SLoggerFormat, "traffic-log-format", cfg.SLoggerFormat,
+		"Traffic log output format (valid options: json or txt)",
 	)
 	rootCmd.PersistentFlags().BoolVar(
 		&cfg.NoLogConnStats, "no-log-connection-stats", cfg.NoLogConnStats,

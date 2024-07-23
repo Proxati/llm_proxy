@@ -48,7 +48,7 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 		// load the selected fields into a container object
 		dumpContainer, err := schema.NewLogDumpContainer(f, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
 		if err != nil {
-			logger.Error("could not create LogDumpContainer", "error", err)
+			logger.Error("Could not create LogDumpContainer", "error", err)
 			return
 		}
 
@@ -57,7 +57,7 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 		// format the container object, reformatted into a byte array
 		formattedDump, err := d.formatter.Read(dumpContainer)
 		if err != nil {
-			logger.Error("could not format LogDumpContainer", "error", err)
+			logger.Error("Could not format LogDumpContainer", "error", err)
 			return
 		}
 
@@ -69,7 +69,7 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 			}
 			_, err := w.Write(id, formattedDump)
 			if err != nil {
-				logger.Error("could not write log", "error", err)
+				logger.Error("Could not write log", "error", err)
 				continue
 			}
 		}
@@ -93,12 +93,12 @@ func (d *MegaDumpAddon) Close() error {
 // The actual validation of log destinations happens in formatter. No validation here!
 func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 	if logTarget == "" {
-		slog.Debug("logTarget empty, defaulting to stdout")
+		slog.Debug("LogTarget empty, defaulting to stdout")
 		return []md.LogDestination{md.WriteToStdOut}, nil
 	}
 
 	var logDestinations []md.LogDestination
-	slog.Debug("set log output directory", "logTarget", logTarget)
+	slog.Debug("Set log output directory", "logTarget", logTarget)
 	logDestinations = append(logDestinations, md.WriteToDir)
 
 	return logDestinations, nil
@@ -181,6 +181,6 @@ func NewMegaDumpAddon(
 	}
 
 	mda.closed.Store(false) // initialize the atomic bool with closed = false
-	slog.Debug("Created MegaDirDumper", "sources", logSources.String(), "writers", len(w))
+	slog.Debug("Created MegaDirDumper", "sources", logSources, "writers", len(w))
 	return mda, nil
 }

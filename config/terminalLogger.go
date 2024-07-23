@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 )
@@ -16,16 +15,15 @@ type terminalLogger struct {
 	slogHandlerOpts    *slog.HandlerOptions
 }
 
-func (tLo *terminalLogger) setupLoggerFormat() (logger *slog.Logger) {
+func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
+	var handler slog.Handler
 	switch tLo.sLoggerFormat {
 	case "json":
-		fmt.Println("JSON log format")
-		logger = slog.New(slog.NewJSONHandler(os.Stdout, tLo.slogHandlerOpts))
+		handler = slog.NewJSONHandler(os.Stdout, tLo.slogHandlerOpts)
 	default:
-		fmt.Println("TXT log format")
-		logger = slog.New(slog.NewTextHandler(os.Stdout, tLo.slogHandlerOpts))
+		handler = slog.NewTextHandler(os.Stdout, tLo.slogHandlerOpts)
 	}
-	return logger
+	return slog.New(handler)
 }
 
 // setLoggerLevel sets the log level based on verbose/debug values in the config object
@@ -44,7 +42,7 @@ func (tLo *terminalLogger) setLoggerLevel() {
 
 	logger := tLo.setupLoggerFormat()
 	slog.SetDefault(logger)
-	slog.Debug("Global logger setup completed", "sLogLevel", tLo.slogHandlerOpts.Level)
+	slog.Debug("Global logger setup completed", "sLogLevel", tLo.slogHandlerOpts.Level, "sLoggerFormat", tLo.sLoggerFormat)
 	tLo.logLevelHasBeenSet = true
 }
 

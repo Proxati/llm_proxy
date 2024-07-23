@@ -47,7 +47,7 @@ func NewDefaultConfig() *Config {
 			Debug:              false,
 			Trace:              false,
 			logLevelHasBeenSet: false,
-			SLoggerFormat:      "json",
+			SLoggerFormat:      "txt",
 			slogHandlerOpts:    &slog.HandlerOptions{},
 		},
 		trafficLogger: &trafficLogger{

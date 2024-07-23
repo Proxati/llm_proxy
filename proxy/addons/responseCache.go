@@ -45,10 +45,11 @@ type ResponseCacheAddon struct {
 	formatter         formatters.MegaDumpFormatter
 	cache             cache.DB
 	closeOnce         sync.Once
+	logger            *slog.Logger
 }
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
-	logger := slog.With("addon", "ResponseCacheAddon.Request", "URL", f.Request.URL, "ID", f.Id.String())
+	logger := c.logger.With("URL", f.Request.URL, "ID", f.Id.String())
 
 	if f.Request.URL == nil || f.Request.URL.String() == "" {
 		logger.Error("request URL is nil or empty")
@@ -82,12 +83,12 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// handle cache miss, return early otherwise NPEs below
 	if cacheLookup == nil {
 		f.Request.Header.Set(CacheStatusHeader, CacheStatusMiss)
-		logger.Debug("cache miss")
+		logger.Info("cache miss")
 		return
 	}
 
 	// handle cache hit
-	logger.Debug("cache hit")
+	logger.Info("cache hit")
 
 	cachedResp, err := cacheLookup.ToProxyResponse(f.Request.Header.Get("Accept-Encoding"))
 	if err != nil {
@@ -103,7 +104,7 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 }
 
 func (c *ResponseCacheAddon) Response(f *px.Flow) {
-	logger := slog.With("addon", "ResponseCacheAddon.Response", "URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
+	logger := c.logger.With("URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
 
 	// if the response is nil, don't even try to cache it
 	if f.Response == nil {
@@ -138,7 +139,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		// convert the request to an internal TrafficObject
 		tObjReq, err := schema.NewProxyRequestFromMITMRequest(f.Request, c.filterReqHeaders)
 		if err != nil {
-			logger.Error("could not create TrafficObject from request", "error", f.Request.URL)
+			logger.Error("could not create TrafficObject from request", "error", err)
 			return
 		}
 		// remove the Accept-Encoding header to avoid storing this in the cache
@@ -166,6 +167,7 @@ func (d *ResponseCacheAddon) String() string {
 
 func (d *ResponseCacheAddon) Close() (err error) {
 	d.closeOnce.Do(func() {
+		d.logger.Debug("Closing ResponseCacheAddon")
 		err = d.cache.Close()
 	})
 	return
@@ -198,6 +200,8 @@ func NewCacheAddon(
 ) (*ResponseCacheAddon, error) {
 	var cacheDB cache.DB
 	var err error
+	logger := slog.Default().With("addon", "ResponseCacheAddon")
+
 	cacheDir, err = cleanCacheDir(cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("error cleaning cache path: %s", err)
@@ -209,6 +213,7 @@ func NewCacheAddon(
 		panic("badger storage engine is disabled")
 	case "bolt":
 		cacheDB, err = cache.NewBoltMetaDB(cacheDir, filterRespHeaders)
+		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
 	default:
 		return nil, fmt.Errorf("unknown storage engine: %s", storageEngineName)
 	}
@@ -220,5 +225,6 @@ func NewCacheAddon(
 	return &ResponseCacheAddon{
 		formatter: &formatters.JSON{},
 		cache:     cacheDB,
+		logger:    logger,
 	}, nil
 }

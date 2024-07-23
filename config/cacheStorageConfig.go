@@ -10,6 +10,8 @@ import (
 	"github.com/proxati/llm_proxy/v2/fileUtils"
 )
 
+var sLogger = slog.Default().With("config", "CacheStorage")
+
 const (
 	currentCacheConfigVer    = "v1"
 	cacheConfigFileName      = "llm_proxy_cache.json"
@@ -17,8 +19,8 @@ const (
 	defaultStorageEngineName = "bolt"
 )
 
-// CacheStorageConfig is a struct that backs a llm_proxy_cache.json file, which configures the cache storage object
-type CacheStorageConfig struct {
+// CacheStorage is a struct that backs a llm_proxy_cache.json file, which configures the cache storage object
+type CacheStorage struct {
 	filePath       string `json:"-"`               // The full path of this cache index json file.
 	ConfigVersion  string `json:"config_version"`  // The schema version of this cache index file.
 	StorageEngine  string `json:"storage_engine"`  // The storage engine used for this cache
@@ -27,7 +29,7 @@ type CacheStorageConfig struct {
 }
 
 // Save writes the cache config json file to disk
-func (i CacheStorageConfig) Save() error {
+func (i CacheStorage) Save() error {
 	// Ensure the storage path subdirectory exists
 	if err := os.MkdirAll(filepath.Dir(i.StoragePath), 0700); err != nil {
 		return err
@@ -45,10 +47,12 @@ func (i CacheStorageConfig) Save() error {
 	}
 
 	// Write the JSON string to a tmp file, then rename it to the final file path
-	tmpFile, err := os.CreateTemp(filepath.Dir(i.filePath), "llm_proxy_cache.json")
+	tmpFile, err := os.CreateTemp(filepath.Dir(i.filePath), cacheConfigFileName)
 	if err != nil {
 		return err
 	}
+
+	// Defer closing and deleting the tmp file, in case of an error
 	defer func() {
 		tmpFile.Close()
 		os.Remove(tmpFile.Name())
@@ -62,7 +66,7 @@ func (i CacheStorageConfig) Save() error {
 }
 
 // Load reads the cache config json file from disk
-func (i *CacheStorageConfig) Load() error {
+func (i *CacheStorage) Load() error {
 	existingFilePath := i.filePath
 	jsonData, err := os.ReadFile(existingFilePath)
 	if err != nil {
@@ -82,9 +86,9 @@ func (i *CacheStorageConfig) Load() error {
 // connection settings or file paths.
 //
 // cacheDir: the directory where the cache index file will be stored
-func NewCacheStorageConfig(cacheDir string) (*CacheStorageConfig, error) {
+func NewCacheStorageConfig(cacheDir string) (*CacheStorage, error) {
 	indexFilePath := filepath.Join(cacheDir, cacheConfigFileName)
-	iFile := &CacheStorageConfig{
+	iFile := &CacheStorage{
 		filePath:       indexFilePath,
 		ConfigVersion:  currentCacheConfigVer,
 		StorageEngine:  defaultStorageEngineName,
@@ -93,17 +97,18 @@ func NewCacheStorageConfig(cacheDir string) (*CacheStorageConfig, error) {
 	}
 
 	if fileUtils.FileExists(iFile.filePath) {
-		slog.Debug("Loading existing cache config file", "filePath", iFile.filePath)
+		sLogger.Debug("Loading existing cache config file", "filePath", iFile.filePath)
 		if err := iFile.Load(); err != nil {
 			return nil, fmt.Errorf("failed to load cache config file: %s", err)
 		}
+		sLogger.Debug("Loaded cache config file", "CacheStorage", iFile)
 		return iFile, nil
 	}
 
-	slog.Info("Creating a new cache config file", "filePath", iFile.filePath)
 	err := iFile.Save()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create config file: %s", err)
 	}
+	sLogger.Info("Created a new cache config file", "filePath", iFile.filePath)
 	return iFile, nil
 }

@@ -125,6 +125,11 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load cache addon: %v", err)
 		}
+		slog.Debug(
+			"Created "+cacheAddon.String(),
+			"storageEngine", cacheConfig.StorageEngine,
+			"storagePath", cacheConfig.StoragePath,
+		)
 		metaAdd.addAddon(cacheAddon)
 	case config.APIAuditMode:
 		slog.Debug("Enabling API Auditor addon")

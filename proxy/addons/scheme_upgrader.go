@@ -17,7 +17,7 @@ type SchemeUpgrader struct {
 
 func NewSchemeUpgrader() *SchemeUpgrader {
 	return &SchemeUpgrader{
-		logger: getLogger().With("addon", "SchemeUpgrader"),
+		logger: getLogger().With("name", "SchemeUpgrader"),
 	}
 }
 

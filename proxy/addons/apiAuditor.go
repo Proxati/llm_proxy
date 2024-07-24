@@ -2,6 +2,7 @@ package addons
 
 import (
 	"fmt"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 
@@ -16,10 +17,11 @@ type APIAuditorAddon struct {
 	costCounter *schema.CostCounter
 	closed      atomic.Bool
 	wg          sync.WaitGroup
+	logger      *slog.Logger
 }
 
 func (aud *APIAuditorAddon) Response(f *px.Flow) {
-	logger := getLogger().With("name", "APIAuditorAddon.Response", "URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
+	logger := aud.logger.With("URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
 
 	if aud.closed.Load() {
 		logger.Warn("APIAuditor is being closed, not processing request")
@@ -87,6 +89,7 @@ func (aud *APIAuditorAddon) Close() error {
 func NewAPIAuditor() *APIAuditorAddon {
 	aud := &APIAuditorAddon{
 		costCounter: schema.NewCostCounterDefaults(),
+		logger:      getLogger().With("name", "APIAuditorAddon"),
 	}
 	aud.closed.Store(false) // initialize as open
 	return aud

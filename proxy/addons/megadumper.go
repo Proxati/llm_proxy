@@ -185,7 +185,7 @@ func NewMegaDumpAddon(
 		writers:           w,
 		filterReqHeaders:  filterReqHeaders,
 		filterRespHeaders: filterRespHeaders,
-		logger:            getLogger().With("addon", "MegaDumpAddon"),
+		logger:            getLogger().With("name", "MegaDumpAddon"),
 	}
 
 	mda.closed.Store(false) // initialize the atomic bool with closed = false

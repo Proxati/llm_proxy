@@ -200,7 +200,7 @@ func NewCacheAddon(
 ) (*ResponseCacheAddon, error) {
 	var cacheDB cache.DB
 	var err error
-	logger := slog.Default().With("addon", "ResponseCacheAddon")
+	logger := getLogger().With("name", "ResponseCacheAddon")
 
 	cacheDir, err = cleanCacheDir(cacheDir)
 	if err != nil {

@@ -2,7 +2,6 @@ package schema
 
 import (
 	"encoding/json"
-	"log/slog"
 
 	px "github.com/proxati/mitmproxy/proxy"
 )
@@ -19,7 +18,7 @@ type ConnectionStatsContainer struct {
 func (obj *ConnectionStatsContainer) ToJSON() []byte {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {
-		slog.Error("Could not convert object to JSON", "error", err)
+		getLogger().Error("Could not convert object to JSON", "error", err)
 		return []byte("{}")
 	}
 	return jsonData

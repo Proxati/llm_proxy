@@ -1,7 +1,6 @@
 package fileUtils
 
 import (
-	"log/slog"
 	"os"
 	"path/filepath"
 )
@@ -10,7 +9,7 @@ import (
 func RelocateExistingFileIfExists(fileName string) error {
 	if FileExists(fileName) {
 		relocatedFile := CreateUniqueFileName(filepath.Dir(fileName), filepath.Base(fileName), "", 0)
-		slog.Warn("File already exists, relocating", "oldFileName", fileName, "newFileName", relocatedFile)
+		getLogger().Warn("File already exists, relocating", "oldFileName", fileName, "newFileName", relocatedFile)
 		return os.Rename(fileName, relocatedFile)
 	}
 	return nil

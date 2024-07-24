@@ -2,7 +2,6 @@ package addons
 
 import (
 	"fmt"
-	"log/slog"
 	"sync"
 	"sync/atomic"
 
@@ -20,7 +19,7 @@ type APIAuditorAddon struct {
 }
 
 func (aud *APIAuditorAddon) Response(f *px.Flow) {
-	logger := slog.With("addon", "APIAuditorAddon.Response", "URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
+	logger := getLogger().With("name", "APIAuditorAddon.Response", "URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
 
 	if aud.closed.Load() {
 		logger.Warn("APIAuditor is being closed, not processing request")
@@ -78,7 +77,7 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 
 func (aud *APIAuditorAddon) Close() error {
 	if !aud.closed.Swap(true) {
-		slog.Debug("Waiting for APIAuditor shutdown...")
+		getLogger().Debug("Waiting for APIAuditor shutdown...")
 		aud.wg.Wait()
 	}
 

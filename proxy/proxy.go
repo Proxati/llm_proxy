@@ -20,9 +20,9 @@ import (
 
 func newCA(certDir string) (*cert.CA, error) {
 	if certDir == "" {
-		slog.Debug("No cert dir specified, defaulting to ~/.mitmproxy/")
+		getLogger().Debug("No cert dir specified, defaulting to ~/.mitmproxy/")
 	} else {
-		slog.Debug("Loading certs", "certDir", certDir)
+		getLogger().Debug("Loading certs", "certDir", certDir)
 	}
 
 	l, err := cert.NewPathLoader(certDir)
@@ -44,8 +44,8 @@ func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, erro
 		Addr:                  listenOn,
 		InsecureSkipVerifyTLS: skipVerifyTLS,
 		CA:                    ca,
-		StreamLargeBodies:     1024 * 1024 * 100, // responses larger than 100MB will be streamed
-		Logger:                slog.Default().WithGroup("mitmproxy.proxy"),
+		StreamLargeBodies:     1024 * 1024 * 100,                           // responses larger than 100MB will be streamed
+		Logger:                slog.Default().WithGroup("mitmproxy.proxy"), // don't use the logger from slog.go in this package!
 	}
 
 	p, err := px.NewProxy(opts)
@@ -72,8 +72,8 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 
 	if !cfg.NoHttpUpgrader {
 		// upgrade all http requests to https
-		slog.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
-		metaAdd.addAddon(&addons.SchemeUpgrader{})
+		getLogger().Debug("NoHttpUpgrader is false, enabling http to https upgrade")
+		metaAdd.addAddon(addons.NewSchemeUpgrader())
 	}
 
 	if cfg.IsVerboseOrHigher() {
@@ -95,7 +95,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
 		}
-		slog.Debug(
+		getLogger().Debug(
 			"Created "+dumperAddon.String(),
 			"outputDir", cfg.OutputDir,
 			"logFormat", cfg.TrafficLogFmt,
@@ -108,7 +108,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(dumperAddon)
 	}
 
-	slog.Debug("Building proxy config", "AppMode", cfg.AppMode)
+	getLogger().Debug("Building proxy config", "AppMode", cfg.AppMode)
 	switch cfg.AppMode {
 	case config.CacheMode:
 		cacheConfig, err := config.NewCacheStorageConfig(cfg.Cache.Dir)
@@ -125,14 +125,14 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load cache addon: %v", err)
 		}
-		slog.Debug(
+		getLogger().Debug(
 			"Created "+cacheAddon.String(),
 			"storageEngine", cacheConfig.StorageEngine,
 			"storagePath", cacheConfig.StoragePath,
 		)
 		metaAdd.addAddon(cacheAddon)
 	case config.APIAuditMode:
-		slog.Debug("Enabling API Auditor addon")
+		getLogger().Debug("Enabling API Auditor addon")
 		metaAdd.addAddon(addons.NewAPIAuditor())
 	case config.ProxyRunMode:
 		// log.Debugf("No addons enabled for the basic proxy mode")
@@ -150,7 +150,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 	go func() {
 		<-shutdown
-		slog.Info("Received SIGINT, shutting down now...")
+		getLogger().Info("Received SIGINT, shutting down now...")
 
 		// Then close all of the addon connections
 		for _, addon := range p.Addons {
@@ -158,13 +158,13 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 			if !ok {
 				continue
 			}
-			slog.Debug("Closing", "addon", myAddon)
+			getLogger().Debug("Closing", "addon", myAddon)
 			if err := myAddon.Close(); err != nil {
-				slog.Error("Could not close", "addon", myAddon, "error", err)
+				getLogger().Error("Could not close", "addon", myAddon, "error", err)
 			}
 		}
 		// Close the http client/server connections first
-		slog.Debug("Closing proxy server...")
+		getLogger().Debug("Closing proxy server...")
 
 		// Manual sleep to avoid race condition on connection close
 		time.Sleep(100 * time.Millisecond)
@@ -174,7 +174,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 		defer cancel()
 
 		if err := p.Shutdown(ctx); err != nil {
-			slog.Error("Unexpected error shutting down proxy server", "error", err)
+			getLogger().Error("Unexpected error shutting down proxy server", "error", err)
 		}
 	}()
 
@@ -187,7 +187,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 
 // Run is the main entry point for the proxy, configures the proxy and runs it
 func Run(cfg *config.Config) error {
-	slog.Info("Starting LLM_Proxy", "version", version.String())
+	getLogger().Info("Starting LLM_Proxy", "version", version.String())
 
 	// setup background signal handler for clean shutdown
 	shutdown := make(chan os.Signal, 1)

@@ -2,7 +2,6 @@ package schema
 
 import (
 	"errors"
-	"log/slog"
 	"net/url"
 	"time"
 
@@ -72,7 +71,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	for _, err := range errs {
 		if err != nil {
 			// TODO: need to reconsider how to handle errors here
-			slog.Error("errors encountered while creating LogDumpContainer", "error", err)
+			getLogger().Error("errors encountered while creating LogDumpContainer", "error", err)
 		}
 	}
 

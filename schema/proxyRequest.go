@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -169,9 +168,9 @@ func NewProxyRequestFromMITMRequest(req *px.Request, headersToFilter []string) (
 	pReq.loadHeaders(req.Header)
 	if err := pReq.loadBody(req.Body); err != nil {
 		if req.URL != nil {
-			slog.Warn("unable to load request body", "URL", req.URL.String())
+			getLogger().Warn("unable to load request body", "URL", req.URL.String())
 		} else {
-			slog.Warn("unable to load request body")
+			getLogger().Warn("unable to load request body")
 		}
 	}
 

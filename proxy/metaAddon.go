@@ -3,7 +3,6 @@ package proxy
 import (
 	"fmt"
 	"io"
-	"log/slog"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons"
@@ -29,7 +28,7 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 	// iterate so the addons can be type asserted and added to the correct field
 	for _, a := range addons {
 		if err := m.addAddon(a); err != nil {
-			slog.Error("could not add the metaAddon", "error", err)
+			getLogger().Error("could not add the metaAddon", "error", err)
 		}
 	}
 
@@ -38,13 +37,13 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 
 func (addon *metaAddon) addAddon(a any) error {
 	if a == nil {
-		slog.Debug("Skipping add for nil addon")
+		getLogger().Debug("Skipping add for nil addon")
 		return nil
 	}
 
 	myAddon, ok := a.(addons.LLM_Addon)
 	if ok {
-		slog.Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
+		getLogger().Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
 		// eventually migrate to new addon types
 	}
 

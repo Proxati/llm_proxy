@@ -2,7 +2,6 @@ package fileUtils
 
 import (
 	"fmt"
-	"log/slog"
 	"path/filepath"
 )
 
@@ -26,7 +25,7 @@ func CreateUniqueFileName(
 	}
 
 	if FileExists(fileName) {
-		slog.Warn("File already exists, trying again...", "fileName", fileName)
+		getLogger().Warn("File already exists, trying again...", "fileName", fileName)
 		return CreateUniqueFileName(targetDir, identifier, fileExtension, attempt+1)
 	}
 

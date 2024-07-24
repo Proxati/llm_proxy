@@ -12,10 +12,17 @@ const (
 
 type SchemeUpgrader struct {
 	px.BaseAddon
+	logger *slog.Logger
+}
+
+func NewSchemeUpgrader() *SchemeUpgrader {
+	return &SchemeUpgrader{
+		logger: getLogger().With("addon", "SchemeUpgrader"),
+	}
 }
 
 func (c *SchemeUpgrader) Request(f *px.Flow) {
-	logger := slog.With("addon", "SchemeUpgrader.Request", "URL", f.Request.URL, "ID", f.Id.String())
+	logger := c.logger.With("addon", "SchemeUpgrader.Request", "URL", f.Request.URL, "ID", f.Id.String())
 
 	// upgrade to https
 	if f.Request.URL.Scheme == "https" {

@@ -3,7 +3,6 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"path/filepath"
 	"sync"
 
@@ -51,7 +50,7 @@ func (c *BoltMetaDB) Get(identifier string, body []byte) (response *schema.Proxy
 		return nil, err
 	}
 	if valueBytes == nil {
-		slog.Debug("valueBytes empty", "identifier", identifier)
+		getLogger().Debug("valueBytes empty", "identifier", identifier)
 		return nil, nil
 	}
 
@@ -81,10 +80,10 @@ func (c *BoltMetaDB) Put(request *schema.ProxyRequest, response *schema.ProxyRes
 
 	err = c.db.SetBytes(identifier, key.NewKeyStr(request.Body), respJSON)
 	if err != nil {
-		slog.Error("set bytes error", "error", err)
+		getLogger().Error("set bytes error", "error", err)
 	}
 
-	slog.Debug("stored response in cache", "identifier", identifier)
+	getLogger().Debug("stored response in cache", "identifier", identifier)
 	return nil
 }
 

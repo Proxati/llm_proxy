@@ -10,8 +10,6 @@ import (
 	"github.com/proxati/llm_proxy/v2/fileUtils"
 )
 
-var sLogger = slog.Default().With("config", "CacheStorage")
-
 const (
 	currentCacheConfigVer    = "v1"
 	cacheConfigFileName      = "llm_proxy_cache.json"
@@ -87,6 +85,10 @@ func (i *CacheStorage) Load() error {
 //
 // cacheDir: the directory where the cache index file will be stored
 func NewCacheStorageConfig(cacheDir string) (*CacheStorage, error) {
+	// this is a special case where we're NOT using a package-level slog.go, because the config
+	// package also configures the logger.
+	logger := slog.Default().WithGroup("config.CacheStorage")
+
 	indexFilePath := filepath.Join(cacheDir, cacheConfigFileName)
 	iFile := &CacheStorage{
 		filePath:       indexFilePath,
@@ -97,11 +99,11 @@ func NewCacheStorageConfig(cacheDir string) (*CacheStorage, error) {
 	}
 
 	if fileUtils.FileExists(iFile.filePath) {
-		sLogger.Debug("Loading existing cache config file", "filePath", iFile.filePath)
+		logger.Debug("Loading existing cache config file", "filePath", iFile.filePath)
 		if err := iFile.Load(); err != nil {
 			return nil, fmt.Errorf("failed to load cache config file: %s", err)
 		}
-		sLogger.Debug("Loaded cache config file", "CacheStorage", iFile)
+		logger.Debug("Loaded cache config file", "iFile", iFile)
 		return iFile, nil
 	}
 
@@ -109,6 +111,6 @@ func NewCacheStorageConfig(cacheDir string) (*CacheStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create config file: %s", err)
 	}
-	sLogger.Info("Created a new cache config file", "filePath", iFile.filePath)
+	logger.Info("Created a new cache config file", "filePath", iFile.filePath)
 	return iFile, nil
 }

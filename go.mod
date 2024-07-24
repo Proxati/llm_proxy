@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/log v0.4.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/mattn/go-isatty v0.0.20
 	github.com/proxati/mitmproxy v0.0.0-20240723201132-fee9eb1c165d
 	github.com/sashabaranov/go-openai v1.26.3
 	github.com/satori/go.uuid v1.2.0
@@ -26,7 +27,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect

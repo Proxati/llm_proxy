@@ -1,12 +1,32 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
+	"github.com/mattn/go-isatty"
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/spf13/cobra"
 )
+
+// https://manytools.org/hacker-tools/ascii-banner/
+var intro string = `
+██████╗ ██████╗  ██████╗ ██╗  ██╗ █████╗ ████████╗██╗                                             
+██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝██╔══██╗╚══██╔══╝██║                                             
+██████╔╝██████╔╝██║   ██║ ╚███╔╝ ███████║   ██║   ██║                                             
+██╔═══╝ ██╔══██╗██║   ██║ ██╔██╗ ██╔══██║   ██║   ██║                                             
+██║     ██║  ██║╚██████╔╝██╔╝ ██╗██║  ██║   ██║   ██║                                             
+╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝                                             
+                                                                                                  
+██╗     ██╗     ███╗   ███╗        ██████╗ ██████╗  ██████╗ ██╗  ██╗██╗   ██╗    ██╗   ██╗██████╗ 
+██║     ██║     ████╗ ████║        ██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝╚██╗ ██╔╝    ██║   ██║╚════██╗
+██║     ██║     ██╔████╔██║        ██████╔╝██████╔╝██║   ██║ ╚███╔╝  ╚████╔╝     ██║   ██║ █████╔╝
+██║     ██║     ██║╚██╔╝██║        ██╔═══╝ ██╔══██╗██║   ██║ ██╔██╗   ╚██╔╝      ╚██╗ ██╔╝██╔═══╝ 
+███████╗███████╗██║ ╚═╝ ██║███████╗██║     ██║  ██║╚██████╔╝██╔╝ ██╗   ██║        ╚████╔╝ ███████╗
+╚══════╝╚══════╝╚═╝     ╚═╝╚══════╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝         ╚═══╝  ╚══════╝
+                                                                                                  
+`
 
 // converted later to enum values in the config package
 var terminal_log_format string
@@ -24,6 +44,14 @@ This is useful for:
   * Fine-tuning: Use the stored logs to fine-tune your LLM models.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+
+		// print the log splash screen
+		if cfg.Verbose || cfg.Debug {
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				fmt.Print(intro)
+			}
+		}
+
 		var err error
 		cfg.TerminalSloggerFormat, err = config.StringToLogFormat(terminal_log_format)
 		cfg.SetLoggerLevel()

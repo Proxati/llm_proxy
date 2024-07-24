@@ -15,12 +15,13 @@ type terminalLogger struct {
 	logLevelHasBeenSet    bool      // internal flag to track if the log level has been set
 	TerminalSloggerFormat LogFormat // JSON or TXT ?
 	slogHandlerOpts       *slog.HandlerOptions
+	logger                *slog.Logger
 }
 
 // setupLoggerFormat loads a handler into a new slog instance based on the sLoggerFormat value
 func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	var handler slog.Handler
-	w := os.Stdout
+	w := os.Stderr
 
 	switch tLo.TerminalSloggerFormat {
 	case LogFormat_JSON:
@@ -62,6 +63,7 @@ func (tLo *terminalLogger) setLoggerLevel() {
 
 	logger := tLo.setupLoggerFormat()
 	slog.SetDefault(logger)
+	tLo.logger = logger
 	tLo.logLevelHasBeenSet = true
 }
 

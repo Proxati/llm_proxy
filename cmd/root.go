@@ -11,7 +11,7 @@ import (
 )
 
 // https://manytools.org/hacker-tools/ascii-banner/
-var intro string = `
+const intro = `
 ██████╗ ██████╗  ██████╗ ██╗  ██╗ █████╗ ████████╗██╗                                             
 ██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝██╔══██╗╚══██╔══╝██║                                             
 ██████╔╝██████╔╝██║   ██║ ╚███╔╝ ███████║   ██║   ██║                                             
@@ -31,6 +31,9 @@ var intro string = `
 // converted later to enum values in the config package
 var terminalLogFormat string
 var trafficLogFormat string
+var debugMode bool
+var verboseMode bool
+var traceMode bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -45,6 +48,17 @@ This is useful for:
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 
+		// set log levels
+		if debugMode {
+			if traceMode {
+				cfg.EnableOutputTrace()
+			} else {
+				cfg.EnableOutputDebug()
+			}
+		} else if verboseMode {
+			cfg.EnableOutputVerbose()
+		}
+
 		// print the log splash screen
 		if cfg.IsVerboseOrHigher() {
 			if isatty.IsTerminal(os.Stdout.Fd()) {
@@ -52,15 +66,15 @@ This is useful for:
 			}
 		}
 
-		var err error
-		cfg.TerminalSloggerFormat, err = config.StringToLogFormat(terminalLogFormat)
-		cfg.SetLoggerLevel()
-		slog.Debug("Global logger setup completed", "TerminalSloggerFormat", cfg.TerminalSloggerFormat.String())
+		// set the terminal log format, json or txt
+		logFormat, err := cfg.SetTerminalOutputFormat(terminalLogFormat)
+		slog.Debug("Global logger setup completed", "TerminalSloggerFormat", logFormat.String())
 
 		if err != nil {
 			slog.Error("Could not setup terminal log", "error", err)
 		}
 
+		// set the traffic log (disk) format, json or txt
 		cfg.TrafficLogFmt, err = config.StringToLogFormat(trafficLogFormat)
 		if err != nil {
 			slog.Error("Could not setup traffic log", "error", err)
@@ -84,10 +98,12 @@ func Execute() {
 
 func init() {
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true // don't show the default completion command in help
-	rootCmd.PersistentFlags().BoolVarP(&cfg.Verbose, "verbose", "v", cfg.Verbose, "Print runtime activity to stderr")
-	rootCmd.PersistentFlags().BoolVarP(&cfg.Debug, "debug", "d", cfg.Debug, "Print debug information to stderr")
+	rootCmd.PersistentFlags().BoolVarP(
+		&verboseMode, "verbose", "v", false, "Print runtime activity to stderr")
+	rootCmd.PersistentFlags().BoolVarP(
+		&debugMode, "debug", "d", false, "Print debug information to stderr")
 	rootCmd.PersistentFlags().BoolVar(
-		&cfg.Trace, "trace", cfg.Trace, "Print detailed trace debugging information to stderr, requires --debug to also be set")
+		&traceMode, "trace", false, "Print detailed trace debugging information to stderr, requires --debug to also be set")
 	rootCmd.PersistentFlags().MarkHidden("trace")
 
 	rootCmd.PersistentFlags().StringVarP(

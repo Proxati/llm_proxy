@@ -123,9 +123,12 @@ func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...
 	cfg.CertDir = filepath.Join(tempDir, certSubdir)
 	cfg.OutputDir = filepath.Join(tempDir, outputSubdir)
 	cfg.Cache.Dir = filepath.Join(tempDir, cacheSubdir)
-	cfg.Debug = debugOutput
 	cfg.AppMode = proxyAppMode
 	cfg.NoHttpUpgrader = true // disable TLS because our test server doesn't support it
+
+	if debugOutput {
+		cfg.EnableOutputDebug()
+	}
 
 	// create a proxy with the test config
 	p, err := configProxy(cfg)
@@ -575,7 +578,7 @@ func TestConfigProxy(t *testing.T) {
 		cfg := config.NewDefaultConfig()
 		cfg.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
-		cfg.Verbose = true
+		cfg.EnableOutputVerbose()
 
 		// Call the function with the mock configuration
 		p, err := configProxy(cfg)

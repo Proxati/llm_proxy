@@ -2,13 +2,18 @@ package config
 
 import "log/slog"
 
+const (
+	DefaultListenAddr = "127.0.0.1:8080"
+	DefaultCacheDir   = "/tmp/llm_proxy"
+)
+
 // Config is the main config mega-struct
 type Config struct {
-	AppMode AppMode
 	*httpBehavior
-	*terminalLogger
 	*trafficLogger
-	Cache *cacheBehavior
+	AppMode        AppMode
+	Cache          *cacheBehavior
+	terminalLogger *terminalLogger
 }
 
 func (cfg *Config) getTerminalLogger() *terminalLogger {
@@ -34,10 +39,55 @@ func (cfg *Config) IsVerboseOrHigher() bool {
 	return false
 }
 
+func (cfg *Config) GetLogger() *slog.Logger {
+	if cfg.terminalLogger.logger == nil {
+		cfg.SetLoggerLevel()
+	}
+	return cfg.terminalLogger.logger
+}
+
+func (cfg *Config) EnableOutputDebug() {
+	tlo := cfg.getTerminalLogger()
+	tlo.Verbose = false
+	tlo.Debug = true
+	tlo.logLevelHasBeenSet = false
+	cfg.SetLoggerLevel()
+}
+
+func (cfg *Config) EnableOutputVerbose() {
+	tlo := cfg.getTerminalLogger()
+	tlo.Verbose = true
+	tlo.Debug = false
+	tlo.logLevelHasBeenSet = false
+	cfg.SetLoggerLevel()
+}
+
+func (cfg *Config) EnableOutputTrace() {
+	tlo := cfg.getTerminalLogger()
+	tlo.Verbose = false
+	tlo.Debug = true
+	tlo.Trace = true
+	tlo.logLevelHasBeenSet = false
+	cfg.SetLoggerLevel()
+}
+
+func (cfg *Config) SetTerminalOutputFormat(terminalLogFormat string) (LogFormat, error) {
+	tlo := cfg.getTerminalLogger()
+	var err error
+	tlo.TerminalSloggerFormat, err = StringToLogFormat(terminalLogFormat)
+	tlo.logLevelHasBeenSet = false
+	cfg.SetLoggerLevel()
+
+	if err != nil {
+		return 0, err
+	}
+	return tlo.TerminalSloggerFormat, nil
+}
+
 func NewDefaultConfig() *Config {
 	return &Config{
 		httpBehavior: &httpBehavior{
-			Listen:                "127.0.0.1:8080",
+			Listen:                DefaultListenAddr,
 			CertDir:               "",
 			InsecureSkipVerifyTLS: false,
 			NoHttpUpgrader:        false,
@@ -57,7 +107,7 @@ func NewDefaultConfig() *Config {
 			FilterRespHeaders: append([]string{}, defaultFilterHeaders...),
 		},
 		Cache: &cacheBehavior{
-			Dir: "/tmp/llm_proxy",
+			Dir: DefaultCacheDir,
 			TTL: 0,
 		},
 	}

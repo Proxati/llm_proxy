@@ -2,13 +2,13 @@ package addons
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
@@ -45,11 +45,14 @@ type ResponseCacheAddon struct {
 	formatter         formatters.MegaDumpFormatter
 	cache             cache.DB
 	closeOnce         sync.Once
+	logger            *slog.Logger
 }
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
+	logger := c.logger.With("URL", f.Request.URL, "ID", f.Id.String())
+
 	if f.Request.URL == nil || f.Request.URL.String() == "" {
-		log.Errorf("request URL is nil or empty")
+		logger.Error("request URL is nil or empty")
 		f.Response = &px.Response{
 			StatusCode: http.StatusBadRequest,
 			Body:       []byte("Request URL is empty"),
@@ -59,37 +62,37 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 
 	// Only cache these request methods (and empty string for GET)
 	if _, ok := cacheOnlyMethods[f.Request.Method]; !ok {
-		log.Debugf("skipping cache lookup for unsupported method: %s %s", f.Request.URL, f.Request.Method)
+		logger.Debug("skipping cache lookup for unsupported method", "method", f.Request.Method)
 		return
 	}
 
 	// decode the request body for cache lookup
 	decodedBody, err := utils.DecodeBody(f.Request.Body, f.Request.Header.Get("Content-Encoding"))
 	if err != nil {
-		log.Errorf("error decoding request body: %s", err)
+		logger.Error("error decoding request body", "error", err)
 		return
 	}
 
 	// check the cache for responses matching this request
 	cacheLookup, err := c.cache.Get(f.Request.URL.String(), decodedBody)
 	if err != nil {
-		log.Errorf("error accessing cache, bypassing: %s", err)
+		logger.Error("error accessing cache, bypassing", "error", err)
 		return
 	}
 
 	// handle cache miss, return early otherwise NPEs below
 	if cacheLookup == nil {
 		f.Request.Header.Set(CacheStatusHeader, CacheStatusMiss)
-		log.Debugf("cache miss for: %s", f.Request.URL)
+		logger.Info("cache miss")
 		return
 	}
 
 	// handle cache hit
-	log.Debugf("cache hit for: %s", f.Request.URL)
+	logger.Info("cache hit")
 
 	cachedResp, err := cacheLookup.ToProxyResponse(f.Request.Header.Get("Accept-Encoding"))
 	if err != nil {
-		log.Errorf("error converting cached response to ProxyResponse: %s", err)
+		logger.Error("error converting cached response to ProxyResponse", "error", err)
 		return
 	}
 
@@ -101,9 +104,11 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 }
 
 func (c *ResponseCacheAddon) Response(f *px.Flow) {
+	logger := c.logger.With("URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
+
 	// if the response is nil, don't even try to cache it
 	if f.Response == nil {
-		log.Debugf("skipping cache storage for nil response: %s", f.Request.URL)
+		logger.Debug("skipping cache storage for nil response")
 		return
 	}
 
@@ -119,7 +124,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		<-f.Done()
 		// if the response is nil, don't even try to cache it
 		if f.Response == nil {
-			log.Debugf("skipping cache storage for nil response: %s", f.Request.URL)
+			logger.Debug("skipping cache storage for nil response")
 			return
 		}
 
@@ -127,14 +132,14 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		_, shouldCache := cacheOnlyResponseCodes[f.Response.StatusCode]
 		if !shouldCache {
 			f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
-			log.Debugf("skipping cache storage for non-200 response: %s", f.Request.URL)
+			logger.Debug("skipping cache storage for non-200 response")
 			return
 		}
 
 		// convert the request to an internal TrafficObject
 		tObjReq, err := schema.NewProxyRequestFromMITMRequest(f.Request, c.filterReqHeaders)
 		if err != nil {
-			log.Errorf("error creating TrafficObject from request: %s", f.Request.URL)
+			logger.Error("could not create TrafficObject from request", "error", err)
 			return
 		}
 		// remove the Accept-Encoding header to avoid storing this in the cache
@@ -143,14 +148,14 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		// convert the response to an internal TrafficObject
 		tObjResp, err := schema.NewProxyResponseFromMITMResponse(f.Response, c.filterRespHeaders)
 		if err != nil {
-			log.Errorf("error creating TrafficObject from response: %s", err)
+			logger.Error("could not create TrafficObject from response", "error", err)
 			return
 		}
 		// remove the Content-Encoding header to avoid storing this in the cache
 		tObjResp.Header.Del("Content-Encoding")
 
 		if err := c.cache.Put(tObjReq, tObjResp); err != nil {
-			log.Errorf("error storing response in cache: %s", err)
+			logger.Error("could not store response in cache", "error", err)
 		}
 
 	}()
@@ -162,6 +167,7 @@ func (d *ResponseCacheAddon) String() string {
 
 func (d *ResponseCacheAddon) Close() (err error) {
 	d.closeOnce.Do(func() {
+		d.logger.Debug("Closing ResponseCacheAddon")
 		err = d.cache.Close()
 	})
 	return
@@ -188,12 +194,15 @@ func cleanCacheDir(cacheDir string) (string, error) {
 }
 
 func NewCacheAddon(
+	logger *slog.Logger,
 	storageEngineName string, // name of the storage engine to use
 	cacheDir string, // output & cache storage directory
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
 ) (*ResponseCacheAddon, error) {
 	var cacheDB cache.DB
 	var err error
+	logger = logger.With("name", "ResponseCacheAddon")
+
 	cacheDir, err = cleanCacheDir(cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("error cleaning cache path: %s", err)
@@ -205,6 +214,7 @@ func NewCacheAddon(
 		panic("badger storage engine is disabled")
 	case "bolt":
 		cacheDB, err = cache.NewBoltMetaDB(cacheDir, filterRespHeaders)
+		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
 	default:
 		return nil, fmt.Errorf("unknown storage engine: %s", storageEngineName)
 	}
@@ -216,5 +226,6 @@ func NewCacheAddon(
 	return &ResponseCacheAddon{
 		formatter: &formatters.JSON{},
 		cache:     cacheDB,
+		logger:    logger,
 	}, nil
 }

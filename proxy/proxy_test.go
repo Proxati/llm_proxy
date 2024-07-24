@@ -123,9 +123,12 @@ func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...
 	cfg.CertDir = filepath.Join(tempDir, certSubdir)
 	cfg.OutputDir = filepath.Join(tempDir, outputSubdir)
 	cfg.Cache.Dir = filepath.Join(tempDir, cacheSubdir)
-	cfg.Debug = debugOutput
 	cfg.AppMode = proxyAppMode
 	cfg.NoHttpUpgrader = true // disable TLS because our test server doesn't support it
+
+	if debugOutput {
+		cfg.EnableOutputDebug()
+	}
 
 	// create a proxy with the test config
 	p, err := configProxy(cfg)
@@ -527,7 +530,7 @@ func TestNewProxy(t *testing.T) {
 	ca, err := newCA(tempDir)
 	assert.NoError(t, err)
 
-	p, err := newProxy(1, "localhost:8080", false, ca)
+	p, err := newProxy("localhost:8080", false, ca)
 	assert.NoError(t, err)
 	assert.NotNil(t, p)
 }
@@ -575,7 +578,7 @@ func TestConfigProxy(t *testing.T) {
 		cfg := config.NewDefaultConfig()
 		cfg.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
-		cfg.Verbose = true
+		cfg.EnableOutputVerbose()
 
 		// Call the function with the mock configuration
 		p, err := configProxy(cfg)
@@ -596,8 +599,8 @@ func TestConfigProxy(t *testing.T) {
 		metaAddon := p.Addons[0].(*metaAddon)
 		assert.Equal(t, cfg, metaAddon.cfg)
 
-		// Assert that the MetaAddon has two addons, the logger and the base addon
-		assert.Equal(t, 2, len(metaAddon.mitmAddons))
+		// Assert that the MetaAddon has two addons (the traffic logger, stdout logger, and the base addon)
+		assert.Equal(t, 3, len(metaAddon.mitmAddons))
 	})
 
 	t.Run("TestConfigProxy output mode", func(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
@@ -169,9 +168,9 @@ func NewProxyRequestFromMITMRequest(req *px.Request, headersToFilter []string) (
 	pReq.loadHeaders(req.Header)
 	if err := pReq.loadBody(req.Body); err != nil {
 		if req.URL != nil {
-			log.Warnf("unable to load request body for URL: %s", req.URL.String())
+			getLogger().Warn("unable to load request body", "URL", req.URL.String())
 		} else {
-			log.Warn("unable to load request body")
+			getLogger().Warn("unable to load request body")
 		}
 	}
 

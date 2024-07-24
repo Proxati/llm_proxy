@@ -1,6 +1,7 @@
 package addons
 
 import (
+	"log/slog"
 	"os"
 	"testing"
 
@@ -12,14 +13,16 @@ import (
 )
 
 func TestNewMegaDumpAddon(t *testing.T) {
+	testLogger := slog.Default()
+
 	t.Run("JSON", func(t *testing.T) {
 		logTarget := "/tmp/logs"
-		logFormat := config.TrafficLog_JSON
+		logFormat := config.LogFormat_JSON
 		logSources := config.LogSourceConfig{}
 		filterReqHeaders := []string{}
 		filterRespHeaders := []string{}
 
-		mda, err := NewMegaDumpAddon(logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
+		mda, err := NewMegaDumpAddon(testLogger, logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, mda)
@@ -29,12 +32,12 @@ func TestNewMegaDumpAddon(t *testing.T) {
 
 	t.Run("TXT", func(t *testing.T) {
 		logTarget := "/tmp/logs"
-		logFormat := config.TrafficLog_TXT
+		logFormat := config.LogFormat_TXT
 		logSources := config.LogSourceConfig{}
 		filterReqHeaders := []string{}
 		filterRespHeaders := []string{}
 
-		mda, err := NewMegaDumpAddon(logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
+		mda, err := NewMegaDumpAddon(testLogger, logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, mda)

@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
@@ -154,7 +153,7 @@ func NewProxyResponseFromMITMResponse(req *px.Response, headersToFilter []string
 	pRes.loadHeaders(req.Header)
 
 	if err := pRes.loadBody(req.Body, req.Header.Get("Content-Encoding")); err != nil {
-		log.Warnf(err.Error())
+		getLogger().Warn("could not load ProxyResponse body", "error", err)
 	}
 
 	return pRes, nil

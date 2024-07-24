@@ -6,8 +6,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/key"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/storage/boltDB_Engine"
 	"github.com/proxati/llm_proxy/v2/schema"
@@ -52,7 +50,7 @@ func (c *BoltMetaDB) Get(identifier string, body []byte) (response *schema.Proxy
 		return nil, err
 	}
 	if valueBytes == nil {
-		log.Debugf("valueBytes empty for: %s", identifier)
+		getLogger().Debug("valueBytes empty", "identifier", identifier)
 		return nil, nil
 	}
 
@@ -82,10 +80,10 @@ func (c *BoltMetaDB) Put(request *schema.ProxyRequest, response *schema.ProxyRes
 
 	err = c.db.SetBytes(identifier, key.NewKeyStr(request.Body), respJSON)
 	if err != nil {
-		log.Fatal("set bytes error:", err)
+		getLogger().Error("set bytes error", "error", err)
 	}
 
-	log.Debugf("stored response in cache for: %s", identifier)
+	getLogger().Debug("stored response in cache", "identifier", identifier)
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 )
 
 const UnknownAddr = "unknown"
@@ -19,7 +18,7 @@ type ConnectionStatsContainer struct {
 func (obj *ConnectionStatsContainer) ToJSON() []byte {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {
-		log.Errorf("Failed to marshal object to JSON: %v", err)
+		getLogger().Error("Could not convert object to JSON", "error", err)
 		return []byte("{}")
 	}
 	return jsonData

@@ -3,7 +3,6 @@ package writers
 import (
 	"github.com/proxati/llm_proxy/v2/fileUtils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
-	log "github.com/sirupsen/logrus"
 )
 
 type ToDir struct {
@@ -20,8 +19,12 @@ func (t *ToDir) Write(identifier string, bytes []byte) (int, error) {
 		return 0, err
 	}
 	defer fileObj.Close()
-	log.Infof("Writing to file: %v", fileName)
 	return fileObj.Write(bytes)
+}
+
+// String returns the the name of this writer, and the target directory
+func (t *ToDir) String() string {
+	return "ToDir: " + t.targetDir
 }
 
 func newToDir(target string, formatter formatters.MegaDumpFormatter) (*ToDir, error) {

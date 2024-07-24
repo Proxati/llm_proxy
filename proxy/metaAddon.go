@@ -5,8 +5,8 @@ import (
 	"io"
 
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/proxy/addons"
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 )
 
 // metaAddon is a meta addon that is the only addon loaded by the upstream library, and all
@@ -28,7 +28,7 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 	// iterate so the addons can be type asserted and added to the correct field
 	for _, a := range addons {
 		if err := m.addAddon(a); err != nil {
-			log.Error("error adding addon: ", err)
+			sLogger.Error("could not add the metaAddon", "error", err)
 		}
 	}
 
@@ -37,13 +37,19 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 
 func (addon *metaAddon) addAddon(a any) error {
 	if a == nil {
-		log.Debug("Skipping add for nil addon")
+		sLogger.Debug("Skipping add for nil addon")
 		return nil
+	}
+
+	myAddon, ok := a.(addons.LLM_Addon)
+	if ok {
+		sLogger.Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
+		// eventually migrate to new addon types
 	}
 
 	mitmAddon, ok := a.(px.Addon)
 	if ok {
-		log.Debugf("Adding addon to metaAddon: %T", mitmAddon)
+		// the addon is a valid mitmproxy addon, but it lacks a .String() method so we can't log it
 		addon.mitmAddons = append(addon.mitmAddons, mitmAddon)
 		return nil
 	}

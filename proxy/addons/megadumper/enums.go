@@ -13,3 +13,16 @@ const (
 	// WriteToStdOut logs to standard out
 	WriteToStdOut
 )
+
+func (ld LogDestination) String() string {
+	switch ld {
+	case WriteToFile:
+		return "WriteToFile"
+	case WriteToDir:
+		return "WriteToDir"
+	case WriteToStdOut:
+		return "WriteToStdOut"
+	default:
+		return ""
+	}
+}

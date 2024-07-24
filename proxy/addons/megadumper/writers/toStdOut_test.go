@@ -2,29 +2,31 @@ package writers_test
 
 import (
 	"bytes"
-	"io"
-	"os"
+	"fmt"
+	"log/slog"
 	"testing"
 
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestToStdOut_Write(t *testing.T) {
-	// Redirect standard output to a buffer
-	origStdOut := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	log.SetOutput(w)
+type testLogWriter struct {
+	buf bytes.Buffer
+}
 
-	// Capture output
-	var buf bytes.Buffer
-	outputCapture := make(chan string)
-	go func() {
-		io.Copy(&buf, r)
-		outputCapture <- buf.String()
-	}()
+func (w *testLogWriter) Close() error {
+	return nil
+}
+
+func (w *testLogWriter) Write(p []byte) (n int, err error) {
+	return w.buf.Write(p)
+}
+
+func TestToStdOut_Write(t *testing.T) {
+	// Redirect log output to a buffer
+	testWriter := &testLogWriter{}
+	logger := slog.New(slog.NewTextHandler(testWriter, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	slog.SetDefault(logger)
 
 	// Create a new ToStdOut instance
 	toStdOut, err := writers.NewToStdOut()
@@ -33,16 +35,11 @@ func TestToStdOut_Write(t *testing.T) {
 	// Write some data
 	identifier := "test"
 	data := []byte("test data")
-	_, err = toStdOut.Write(identifier, data)
+	bytesWritten, err := toStdOut.Write(identifier, data)
 	assert.NoError(t, err)
-
-	// Close the write end of the pipe to finish the capture
-	w.Close()
-	os.Stdout = origStdOut // Restore original standard output
-	log.SetOutput(os.Stdout)
+	assert.Equal(t, len(data), bytesWritten)
 
 	// Assert on the captured output
-	capturedOutput := <-outputCapture
-	assert.Contains(t, capturedOutput, identifier)
-	assert.Contains(t, capturedOutput, string(data))
+	assert.Contains(t, testWriter.buf.String(), fmt.Sprintf(`identifier=%s`, identifier))
+	assert.Contains(t, testWriter.buf.String(), fmt.Sprintf(`msg="%s"`, string(data)))
 }

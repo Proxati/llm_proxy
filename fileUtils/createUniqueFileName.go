@@ -3,8 +3,6 @@ package fileUtils
 import (
 	"fmt"
 	"path/filepath"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // CreateUniqueFileName creates a new unused filename at the target directory.
@@ -27,7 +25,7 @@ func CreateUniqueFileName(
 	}
 
 	if FileExists(fileName) {
-		log.Warnf("File %s already exists, trying again...", fileName)
+		getLogger().Warn("File already exists, trying again...", "fileName", fileName)
 		return CreateUniqueFileName(targetDir, identifier, fileExtension, attempt+1)
 	}
 

@@ -2,14 +2,38 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
+	"github.com/mattn/go-isatty"
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/spf13/cobra"
 )
 
-// string variable that will be converted to an enum in the config package
-var logFormatStr = "json"
+// https://manytools.org/hacker-tools/ascii-banner/
+const intro = `
+██████╗ ██████╗  ██████╗ ██╗  ██╗ █████╗ ████████╗██╗                                             
+██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝██╔══██╗╚══██╔══╝██║                                             
+██████╔╝██████╔╝██║   ██║ ╚███╔╝ ███████║   ██║   ██║                                             
+██╔═══╝ ██╔══██╗██║   ██║ ██╔██╗ ██╔══██║   ██║   ██║                                             
+██║     ██║  ██║╚██████╔╝██╔╝ ██╗██║  ██║   ██║   ██║                                             
+╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝                                             
+                                                                                                  
+██╗     ██╗     ███╗   ███╗        ██████╗ ██████╗  ██████╗ ██╗  ██╗██╗   ██╗    ██╗   ██╗██████╗ 
+██║     ██║     ████╗ ████║        ██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝╚██╗ ██╔╝    ██║   ██║╚════██╗
+██║     ██║     ██╔████╔██║        ██████╔╝██████╔╝██║   ██║ ╚███╔╝  ╚████╔╝     ██║   ██║ █████╔╝
+██║     ██║     ██║╚██╔╝██║        ██╔═══╝ ██╔══██╗██║   ██║ ██╔██╗   ╚██╔╝      ╚██╗ ██╔╝██╔═══╝ 
+███████╗███████╗██║ ╚═╝ ██║███████╗██║     ██║  ██║╚██████╔╝██╔╝ ██╗   ██║        ╚████╔╝ ███████╗
+╚══════╝╚══════╝╚═╝     ╚═╝╚══════╝╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝         ╚═══╝  ╚══════╝
+                                                                                                  
+`
+
+// converted later to enum values in the config package
+var terminalLogFormat string
+var trafficLogFormat string
+var debugMode bool
+var verboseMode bool
+var traceMode bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -23,14 +47,40 @@ This is useful for:
   * Fine-tuning: Use the stored logs to fine-tune your LLM models.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// setup logger
-		cfg.SetLoggerLevel()
 
-		// setup the traffic log format, load string to enum
-		var err error
-		cfg.LogFormat, err = config.StringToTrafficLogFormat(logFormatStr)
+		// set log levels
+		if debugMode {
+			if traceMode {
+				cfg.EnableOutputTrace()
+			} else {
+				cfg.EnableOutputDebug()
+			}
+		} else if verboseMode {
+			cfg.EnableOutputVerbose()
+		}
+
+		// print the log splash screen
+		if cfg.IsVerboseOrHigher() {
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				fmt.Print(intro)
+			}
+		}
+
+		// set the terminal log format, json or txt
+		logFormat, err := cfg.SetTerminalOutputFormat(terminalLogFormat)
+		slog.Debug("Global logger setup completed", "TerminalSloggerFormat", logFormat.String())
+
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Could not setup traffic log: %v\n", err)
+			slog.Error("Could not setup terminal log", "error", err)
+		}
+
+		// set the traffic log (disk) format, json or txt
+		cfg.TrafficLogFmt, err = config.StringToLogFormat(trafficLogFormat)
+		if err != nil {
+			slog.Error("Could not setup traffic log", "error", err)
+		}
+
+		if err != nil {
 			os.Exit(1)
 		}
 	},
@@ -48,10 +98,12 @@ func Execute() {
 
 func init() {
 	rootCmd.CompletionOptions.HiddenDefaultCmd = true // don't show the default completion command in help
-	rootCmd.PersistentFlags().BoolVarP(&cfg.Verbose, "verbose", "v", cfg.Verbose, "Print runtime activity to stderr")
-	rootCmd.PersistentFlags().BoolVarP(&cfg.Debug, "debug", "d", cfg.Debug, "Print debug information to stderr")
+	rootCmd.PersistentFlags().BoolVarP(
+		&verboseMode, "verbose", "v", false, "Print runtime activity to stderr")
+	rootCmd.PersistentFlags().BoolVarP(
+		&debugMode, "debug", "d", false, "Print debug information to stderr")
 	rootCmd.PersistentFlags().BoolVar(
-		&cfg.Trace, "trace", cfg.Trace, "Print detailed trace debugging information to stderr, requires --debug to also be set")
+		&traceMode, "trace", false, "Print detailed trace debugging information to stderr, requires --debug to also be set")
 	rootCmd.PersistentFlags().MarkHidden("trace")
 
 	rootCmd.PersistentFlags().StringVarP(
@@ -77,7 +129,14 @@ func init() {
 		&cfg.OutputDir, "output", "o", "",
 		"Directory to write request/response traffic logs (unset will write to stdout)",
 	)
-	rootCmd.PersistentFlags().StringVar(&logFormatStr, "traffic-log-format", "json", "Traffic log output format (json, txt)")
+	rootCmd.PersistentFlags().StringVar(
+		&terminalLogFormat, "terminal-log-format", "txt",
+		"Screen output format (valid options: json or txt)",
+	)
+	rootCmd.PersistentFlags().StringVar(
+		&trafficLogFormat, "traffic-log-format", "json",
+		"Disk output format for traffic logs (valid options: json or txt)",
+	)
 	rootCmd.PersistentFlags().BoolVar(
 		&cfg.NoLogConnStats, "no-log-connection-stats", cfg.NoLogConnStats,
 		"Don't write connection stats to traffic logs",

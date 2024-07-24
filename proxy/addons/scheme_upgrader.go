@@ -1,8 +1,9 @@
 package addons
 
 import (
+	"log/slog"
+
 	px "github.com/proxati/mitmproxy/proxy"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -11,13 +12,21 @@ const (
 
 type SchemeUpgrader struct {
 	px.BaseAddon
+	logger *slog.Logger
+}
+
+func NewSchemeUpgrader(logger *slog.Logger) *SchemeUpgrader {
+	return &SchemeUpgrader{
+		logger: logger.WithGroup("addons").With("name", "SchemeUpgrader"),
+	}
 }
 
 func (c *SchemeUpgrader) Request(f *px.Flow) {
+	logger := c.logger.With("addon", "SchemeUpgrader.Request", "URL", f.Request.URL, "ID", f.Id.String())
+
 	// upgrade to https
 	if f.Request.URL.Scheme == "https" {
-		log.Debugf("Upgrading URL scheme from http to https not needed for URL: %s", f.Request.URL)
-
+		logger.Debug("Upgrading URL scheme from http to https not needed for URL")
 		return
 	}
 

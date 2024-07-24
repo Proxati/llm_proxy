@@ -1,39 +1,81 @@
 package config
 
-import log "github.com/sirupsen/logrus"
+import (
+	"log/slog"
+	"os"
+
+	chrmLog "github.com/charmbracelet/log"
+)
 
 // terminalLogger controls the logging output to the terminal while the proxy is running
 type terminalLogger struct {
-	Verbose            bool // if true, print runtime activity to stderr
-	Debug              bool // if true, print debug information to stderr
-	Trace              bool // if true, print detailed report caller tracing to stderr, for debugging
-	logLevelHasBeenSet bool // internal flag to track if the log level has been set
+	Verbose               bool      // if true, print runtime activity to stderr
+	Debug                 bool      // if true, print debug information to stderr
+	Trace                 bool      // if true, print detailed report caller tracing, for detailed debugging
+	logLevelHasBeenSet    bool      // internal flag to track if the log level has been set
+	TerminalSloggerFormat LogFormat // JSON or TXT ?
+	slogHandlerOpts       *slog.HandlerOptions
+	logger                *slog.Logger
 }
 
-// setLoggerLevel sets the logrus level based on verbose/debug values in the config object
-func (tlo *terminalLogger) setLoggerLevel() {
-	if tlo.Debug {
-		log.SetLevel(log.DebugLevel)
-		if tlo.Trace {
-			log.SetReportCaller(true)
+// setupLoggerFormat loads a handler into a new slog instance based on the sLoggerFormat value
+func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
+	var handler slog.Handler
+	w := os.Stderr
+
+	switch tLo.TerminalSloggerFormat {
+	case LogFormat_JSON:
+		handler = slog.NewJSONHandler(w, tLo.slogHandlerOpts)
+	case LogFormat_TXT:
+		var lvl chrmLog.Level
+		switch tLo.slogHandlerOpts.Level {
+		case slog.LevelDebug:
+			lvl = chrmLog.DebugLevel
+		case slog.LevelInfo:
+			lvl = chrmLog.InfoLevel
 		}
-	} else if tlo.Verbose {
-		log.SetLevel(log.InfoLevel)
-	} else {
-		log.SetLevel(log.WarnLevel)
+
+		handler = chrmLog.NewWithOptions(w, chrmLog.Options{
+			Level:           lvl,
+			ReportTimestamp: true,
+			ReportCaller:    tLo.Trace,
+		})
+	default:
+		// default to the simple text handler
+		handler = slog.NewTextHandler(w, tLo.slogHandlerOpts)
 	}
-	log.Info("Logger level set to: ", log.GetLevel())
-	tlo.logLevelHasBeenSet = true
+	return slog.New(handler)
+}
+
+// setLoggerLevel sets the log level based on verbose/debug values from the internal config object
+func (tLo *terminalLogger) setLoggerLevel() {
+	tLo.slogHandlerOpts = &slog.HandlerOptions{}
+	if tLo.Debug {
+		tLo.slogHandlerOpts.Level = slog.LevelDebug
+		if tLo.Trace {
+			tLo.slogHandlerOpts.AddSource = true
+		}
+	} else if tLo.Verbose {
+		tLo.slogHandlerOpts.Level = slog.LevelInfo
+	} else {
+		tLo.slogHandlerOpts.Level = slog.LevelWarn
+	}
+
+	logger := tLo.setupLoggerFormat()
+	slog.SetDefault(logger)
+	tLo.logger = logger
+	tLo.logLevelHasBeenSet = true
 }
 
 // getDebugLevel returns 1 if the log level is debug, 0 otherwise, for use in the proxy package
-func (tlo *terminalLogger) getDebugLevel() int {
-	if !tlo.logLevelHasBeenSet {
-		tlo.setLoggerLevel()
+func (tLo *terminalLogger) getDebugLevel() int {
+	if !tLo.logLevelHasBeenSet {
+		tLo.setLoggerLevel()
 	}
-
-	if log.GetLevel() >= log.DebugLevel {
+	switch tLo.slogHandlerOpts.Level {
+	case slog.LevelDebug:
 		return 1
+	default:
+		return 0
 	}
-	return 0
 }

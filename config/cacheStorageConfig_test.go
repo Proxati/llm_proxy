@@ -40,7 +40,7 @@ func TestCacheStorageConfig_SaveAndLoad(t *testing.T) {
 	err := cacheConfig.Save()
 	assert.NoError(t, err)
 
-	loadedCacheConfig := &CacheStorageConfig{filePath: cacheConfig.filePath}
+	loadedCacheConfig := &CacheStorage{filePath: cacheConfig.filePath}
 	err = loadedCacheConfig.Load()
 	assert.NoError(t, err)
 

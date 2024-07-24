@@ -36,3 +36,8 @@ func (f *JSON) Read(container *schema.LogDumpContainer) ([]byte, error) {
 func (f *JSON) GetFileExtension() string {
 	return json_ext
 }
+
+// String returns the name of the formatter
+func (f *JSON) String() string {
+	return "JSON"
+}

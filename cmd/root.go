@@ -24,7 +24,6 @@ This is useful for:
   * Fine-tuning: Use the stored logs to fine-tune your LLM models.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-
 		var err error
 		cfg.TerminalSloggerFormat, err = config.StringToLogFormat(terminal_log_format)
 		cfg.SetLoggerLevel()

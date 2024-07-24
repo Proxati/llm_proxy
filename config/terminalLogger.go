@@ -3,6 +3,9 @@ package config
 import (
 	"log/slog"
 	"os"
+
+	"github.com/lmittmann/tint"
+	"github.com/mattn/go-isatty"
 )
 
 // terminalLogger controls the logging output to the terminal while the proxy is running
@@ -18,15 +21,21 @@ type terminalLogger struct {
 // setupLoggerFormat loads a handler into a new slog instance based on the sLoggerFormat value
 func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	var handler slog.Handler
+	w := os.Stdout
+
 	switch tLo.TerminalSloggerFormat {
 	case LogFormat_JSON:
-		handler = slog.NewJSONHandler(os.Stdout, tLo.slogHandlerOpts)
+		handler = slog.NewJSONHandler(w, tLo.slogHandlerOpts)
 	case LogFormat_TXT:
-		// TODO: make the text handler look fancy
-		handler = slog.NewTextHandler(os.Stdout, tLo.slogHandlerOpts)
+		handler = tint.NewHandler(w, &tint.Options{
+			AddSource: tLo.Trace,
+			Level:     tLo.slogHandlerOpts.Level,
+			NoColor:   !isatty.IsTerminal(w.Fd()), // disable color if not a terminal
+			// TimeFormat: time.RFC1123,
+		})
 	default:
 		// default to the simple text handler
-		handler = slog.NewTextHandler(os.Stdout, tLo.slogHandlerOpts)
+		handler = slog.NewTextHandler(w, tLo.slogHandlerOpts)
 	}
 	return slog.New(handler)
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func TestSchemeUpgrader_Request(t *testing.T) {
-	upgrader := &SchemeUpgrader{}
+	upgrader := NewSchemeUpgrader()
 	req := &px.Request{}
 	err := req.UnmarshalJSON(
 		[]byte(`{"method":"GET","url":"http://example.com","proto":"HTTP/1.1","header":{}}`))
@@ -24,7 +24,7 @@ func TestSchemeUpgrader_Request(t *testing.T) {
 }
 
 func TestSchemeUpgrader_Request_HTTPS(t *testing.T) {
-	upgrader := &SchemeUpgrader{}
+	upgrader := NewSchemeUpgrader()
 	req := &px.Request{}
 	err := req.UnmarshalJSON(
 		[]byte(`{"method":"GET","url":"https://example.com","proto":"HTTP/1.1","header":{}}`))

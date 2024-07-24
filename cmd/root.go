@@ -29,8 +29,8 @@ var intro string = `
 `
 
 // converted later to enum values in the config package
-var terminal_log_format string
-var traffic_log_format string
+var terminalLogFormat string
+var trafficLogFormat string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -53,7 +53,7 @@ This is useful for:
 		}
 
 		var err error
-		cfg.TerminalSloggerFormat, err = config.StringToLogFormat(terminal_log_format)
+		cfg.TerminalSloggerFormat, err = config.StringToLogFormat(terminalLogFormat)
 		cfg.SetLoggerLevel()
 		slog.Debug("Global logger setup completed", "TerminalSloggerFormat", cfg.TerminalSloggerFormat.String())
 
@@ -61,7 +61,7 @@ This is useful for:
 			slog.Error("Could not setup terminal log", "error", err)
 		}
 
-		cfg.TrafficLogFmt, err = config.StringToLogFormat(traffic_log_format)
+		cfg.TrafficLogFmt, err = config.StringToLogFormat(trafficLogFormat)
 		if err != nil {
 			slog.Error("Could not setup traffic log", "error", err)
 		}
@@ -114,11 +114,11 @@ func init() {
 		"Directory to write request/response traffic logs (unset will write to stdout)",
 	)
 	rootCmd.PersistentFlags().StringVar(
-		&terminal_log_format, "terminal-log-format", "txt",
+		&terminalLogFormat, "terminal-log-format", "txt",
 		"Screen output format (valid options: json or txt)",
 	)
 	rootCmd.PersistentFlags().StringVar(
-		&traffic_log_format, "traffic-log-format", "json",
+		&trafficLogFormat, "traffic-log-format", "json",
 		"Disk output format for traffic logs (valid options: json or txt)",
 	)
 	rootCmd.PersistentFlags().BoolVar(

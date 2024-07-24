@@ -73,7 +73,7 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 				continue
 			}
 			bytesWritten, err := w.Write(id, formattedDump)
-			logger.Debug("Wrote log", "writer", w.String(), "bytesWritten", bytesWritten)
+			logger.Info("Wrote log", "writer", w.String(), "bytesWritten", bytesWritten)
 			if err != nil {
 				logger.Error("Could not write log", "error", err)
 				continue

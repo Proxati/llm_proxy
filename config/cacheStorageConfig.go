@@ -84,10 +84,10 @@ func (i *CacheStorage) Load() error {
 // connection settings or file paths.
 //
 // cacheDir: the directory where the cache index file will be stored
-func NewCacheStorageConfig(cacheDir string) (*CacheStorage, error) {
+func NewCacheStorageConfig(logger *slog.Logger, cacheDir string) (*CacheStorage, error) {
 	// this is a special case where we're NOT using a package-level slog.go, because the config
 	// package also configures the logger.
-	logger := slog.Default().WithGroup("config.CacheStorage")
+	logger = logger.WithGroup("config.CacheStorage")
 
 	indexFilePath := filepath.Join(cacheDir, cacheConfigFileName)
 	iFile := &CacheStorage{

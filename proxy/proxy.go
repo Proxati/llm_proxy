@@ -112,7 +112,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	sLogger.Debug("Building proxy config", "AppMode", cfg.AppMode)
 	switch cfg.AppMode {
 	case config.CacheMode:
-		cacheConfig, err := config.NewCacheStorageConfig(cfg.Cache.Dir)
+		cacheConfig, err := config.NewCacheStorageConfig(cfg.GetLogger(), cfg.Cache.Dir)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create cache config: %v", err)
 		}

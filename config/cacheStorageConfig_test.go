@@ -1,21 +1,23 @@
 package config
 
 import (
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewCacheStorageConfig(t *testing.T) {
+	testLogger := slog.Default()
 	tmpDir := t.TempDir()
 
-	cacheConfig, err := NewCacheStorageConfig(tmpDir)
+	cacheConfig, err := NewCacheStorageConfig(testLogger, tmpDir)
 	assert.NoError(t, err)
 	assert.NotNil(t, cacheConfig)
 	assert.Equal(t, tmpDir+"/cache", cacheConfig.StoragePath)
 
 	// test loading from an existing file
-	cacheConfig2, err := NewCacheStorageConfig(tmpDir)
+	cacheConfig2, err := NewCacheStorageConfig(testLogger, tmpDir)
 	assert.NoError(t, err)
 	assert.NotNil(t, cacheConfig2)
 	assert.Equal(t, cacheConfig.ConfigVersion, cacheConfig2.ConfigVersion)
@@ -26,7 +28,7 @@ func TestNewCacheStorageConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	// load the file again, and check the result from the loaded file
-	cacheConfig3, err := NewCacheStorageConfig(tmpDir)
+	cacheConfig3, err := NewCacheStorageConfig(testLogger, tmpDir)
 	assert.NoError(t, err)
 	assert.NotNil(t, cacheConfig3)
 	assert.Equal(t, cacheConfig2.ConfigVersion, cacheConfig3.ConfigVersion)
@@ -34,9 +36,10 @@ func TestNewCacheStorageConfig(t *testing.T) {
 }
 
 func TestCacheStorageConfig_SaveAndLoad(t *testing.T) {
+	testLogger := slog.Default()
 	tmpDir := t.TempDir()
 
-	cacheConfig, _ := NewCacheStorageConfig(tmpDir)
+	cacheConfig, _ := NewCacheStorageConfig(testLogger, tmpDir)
 	err := cacheConfig.Save()
 	assert.NoError(t, err)
 

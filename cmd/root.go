@@ -46,7 +46,7 @@ This is useful for:
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 
 		// print the log splash screen
-		if cfg.Verbose || cfg.Debug {
+		if cfg.IsVerboseOrHigher() {
 			if isatty.IsTerminal(os.Stdout.Fd()) {
 				fmt.Print(intro)
 			}

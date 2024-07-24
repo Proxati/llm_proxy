@@ -32,7 +32,6 @@ type MegaDumpAddon struct {
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
 func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 	logger := d.logger.With(
-		"name", "MegaDumpAddon.Requestheaders",
 		"URL", f.Request.URL,
 		"ID", f.Id.String(),
 	)

@@ -51,3 +51,8 @@ func (pt *PlainText) Read(container *schema.LogDumpContainer) ([]byte, error) {
 func (pt *PlainText) GetFileExtension() string {
 	return text_ext
 }
+
+// String returns the name of the formatter
+func (pt *PlainText) String() string {
+	return "PlainText"
+}

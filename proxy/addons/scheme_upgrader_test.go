@@ -1,6 +1,7 @@
 package addons
 
 import (
+	"log/slog"
 	"testing"
 
 	px "github.com/proxati/mitmproxy/proxy"
@@ -8,7 +9,7 @@ import (
 )
 
 func TestSchemeUpgrader_Request(t *testing.T) {
-	upgrader := NewSchemeUpgrader()
+	upgrader := NewSchemeUpgrader(slog.Default())
 	req := &px.Request{}
 	err := req.UnmarshalJSON(
 		[]byte(`{"method":"GET","url":"http://example.com","proto":"HTTP/1.1","header":{}}`))
@@ -24,7 +25,7 @@ func TestSchemeUpgrader_Request(t *testing.T) {
 }
 
 func TestSchemeUpgrader_Request_HTTPS(t *testing.T) {
-	upgrader := NewSchemeUpgrader()
+	upgrader := NewSchemeUpgrader(slog.Default())
 	req := &px.Request{}
 	err := req.UnmarshalJSON(
 		[]byte(`{"method":"GET","url":"https://example.com","proto":"HTTP/1.1","header":{}}`))

@@ -194,13 +194,14 @@ func cleanCacheDir(cacheDir string) (string, error) {
 }
 
 func NewCacheAddon(
+	logger *slog.Logger,
 	storageEngineName string, // name of the storage engine to use
 	cacheDir string, // output & cache storage directory
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
 ) (*ResponseCacheAddon, error) {
 	var cacheDB cache.DB
 	var err error
-	logger := getLogger().With("name", "ResponseCacheAddon")
+	logger = logger.With("name", "ResponseCacheAddon")
 
 	cacheDir, err = cleanCacheDir(cacheDir)
 	if err != nil {

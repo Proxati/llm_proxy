@@ -38,8 +38,8 @@ func (a *StdOutLogger) ServerDisconnected(connCtx *px.ConnContext) {
 	)
 }
 
-func NewStdOutLogger() *StdOutLogger {
+func NewStdOutLogger(logger *slog.Logger) *StdOutLogger {
 	return &StdOutLogger{
-		logger: getLogger().With("name", "StdOutLogger"),
+		logger: logger.WithGroup("addons").With("name", "StdOutLogger"),
 	}
 }

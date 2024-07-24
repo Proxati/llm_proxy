@@ -98,7 +98,6 @@ func (d *MegaDumpAddon) Close() error {
 // The actual validation of log destinations happens in formatter. No validation here!
 func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 	if logTarget == "" {
-		getLogger().Debug("LogTarget empty, defaulting to stdout")
 		return []md.LogDestination{md.WriteToStdOut}, nil
 	}
 
@@ -115,10 +114,8 @@ func formatPicker(format config.LogFormat) (formatters.MegaDumpFormatter, error)
 
 	switch format {
 	case config.LogFormat_JSON:
-		getLogger().Debug("Traffic logging format set to JSON")
 		f = &formatters.JSON{}
 	case config.LogFormat_TXT:
-		getLogger().Debug("Traffic logging format set to text")
 		f = &formatters.PlainText{}
 	default:
 		return nil, fmt.Errorf("invalid log format: %v", format)
@@ -153,29 +150,35 @@ func newWriters(logDestinations []md.LogDestination, logTarget string, f formatt
 
 // NewMegaDumpAddon creates a new dumper that creates a new log file for each request
 func NewMegaDumpAddon(
+	logger *slog.Logger, // the DI'd logger
 	logTarget string, // output directory
 	logFormatConfig config.LogFormat, // what file format to write the traffic logs
 	logSources config.LogSourceConfig, // which fields from the transaction to log
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
 ) (*MegaDumpAddon, error) {
+	logger = logger.WithGroup("addons").With("name", "MegaDumpAddon")
+	logger.Debug("Set log output directory", "logTarget", logTarget)
 
 	logDestinations, err := newLogDestinations(logTarget)
-	getLogger().Debug("Set log output directory", "logTarget", logTarget)
 	if err != nil {
 		return nil, fmt.Errorf("log destination validation error: %v", err)
+	}
+	for _, dest := range logDestinations {
+		logger.Debug("Configured log destination", "destination", dest.String())
 	}
 
 	f, err := formatPicker(logFormatConfig)
 	if err != nil {
 		return nil, fmt.Errorf("log format validation error: %v", err)
 	}
+	logger.Debug("Set log format", "logFormat", f.String())
 
 	w, err := newWriters(logDestinations, logTarget, f)
 	if err != nil {
 		return nil, fmt.Errorf("writer creation error: %v", err)
 	}
 	for _, writer := range w {
-		getLogger().Debug("Configured writer", "name", writer.String())
+		logger.Debug("Configured writer", "name", writer.String())
 	}
 
 	mda := &MegaDumpAddon{
@@ -184,7 +187,7 @@ func NewMegaDumpAddon(
 		writers:           w,
 		filterReqHeaders:  filterReqHeaders,
 		filterRespHeaders: filterRespHeaders,
-		logger:            getLogger().With("name", "MegaDumpAddon"),
+		logger:            logger,
 	}
 
 	mda.closed.Store(false) // initialize the atomic bool with closed = false

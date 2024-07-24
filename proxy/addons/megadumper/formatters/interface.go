@@ -6,4 +6,5 @@ import "github.com/proxati/llm_proxy/v2/schema"
 type MegaDumpFormatter interface {
 	Read(container *schema.LogDumpContainer) ([]byte, error)
 	GetFileExtension() string
+	String() string
 }

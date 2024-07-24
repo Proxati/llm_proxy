@@ -79,17 +79,17 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 
 func (aud *APIAuditorAddon) Close() error {
 	if !aud.closed.Swap(true) {
-		getLogger().Debug("Waiting for APIAuditor shutdown...")
+		aud.logger.Debug("Waiting for APIAuditor shutdown...")
 		aud.wg.Wait()
 	}
 
 	return nil
 }
 
-func NewAPIAuditor() *APIAuditorAddon {
+func NewAPIAuditor(logger *slog.Logger) *APIAuditorAddon {
 	aud := &APIAuditorAddon{
 		costCounter: schema.NewCostCounterDefaults(),
-		logger:      getLogger().With("name", "APIAuditorAddon"),
+		logger:      logger.WithGroup("addons").With("name", "APIAuditorAddon"),
 	}
 	aud.closed.Store(false) // initialize as open
 	return aud

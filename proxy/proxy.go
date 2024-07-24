@@ -73,12 +73,12 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	if !cfg.NoHttpUpgrader {
 		// upgrade all http requests to https
 		sLogger.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
-		metaAdd.addAddon(addons.NewSchemeUpgrader())
+		metaAdd.addAddon(addons.NewSchemeUpgrader(cfg.GetLogger()))
 	}
 
 	if cfg.IsVerboseOrHigher() {
 		// add the verbose logger to the proxy
-		metaAdd.addAddon(addons.NewStdOutLogger())
+		metaAdd.addAddon(addons.NewStdOutLogger(cfg.GetLogger()))
 	}
 
 	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
@@ -87,6 +87,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		logSources := config.NewLogSourceConfig(cfg)
 
 		dumperAddon, err := addons.NewMegaDumpAddon(
+			cfg.GetLogger(),
 			cfg.OutputDir,
 			cfg.TrafficLogFmt,
 			logSources,
@@ -117,6 +118,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		}
 
 		cacheAddon, err := addons.NewCacheAddon(
+			cfg.GetLogger(),
 			cacheConfig.StorageEngine,
 			cacheConfig.StoragePath,
 			cfg.FilterReqHeaders, // filters from logging, bc we want to filter cache same as the logs
@@ -133,7 +135,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(cacheAddon)
 	case config.APIAuditMode:
 		sLogger.Debug("Enabling API Auditor addon")
-		metaAdd.addAddon(addons.NewAPIAuditor())
+		metaAdd.addAddon(addons.NewAPIAuditor(cfg.GetLogger()))
 	case config.ProxyRunMode:
 		// log.Debugf("No addons enabled for the basic proxy mode")
 	default:

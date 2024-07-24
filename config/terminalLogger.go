@@ -4,8 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/lmittmann/tint"
-	"github.com/mattn/go-isatty"
+	chrmLog "github.com/charmbracelet/log"
 )
 
 // terminalLogger controls the logging output to the terminal while the proxy is running
@@ -27,11 +26,18 @@ func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	case LogFormat_JSON:
 		handler = slog.NewJSONHandler(w, tLo.slogHandlerOpts)
 	case LogFormat_TXT:
-		handler = tint.NewHandler(w, &tint.Options{
-			AddSource: tLo.Trace,
-			Level:     tLo.slogHandlerOpts.Level,
-			NoColor:   !isatty.IsTerminal(w.Fd()), // disable color if not a terminal
-			// TimeFormat: time.RFC1123,
+		var lvl chrmLog.Level
+		switch tLo.slogHandlerOpts.Level {
+		case slog.LevelDebug:
+			lvl = chrmLog.DebugLevel
+		case slog.LevelInfo:
+			lvl = chrmLog.InfoLevel
+		}
+
+		handler = chrmLog.NewWithOptions(w, chrmLog.Options{
+			Level:           lvl,
+			ReportTimestamp: true,
+			ReportCaller:    tLo.Trace,
 		})
 	default:
 		// default to the simple text handler

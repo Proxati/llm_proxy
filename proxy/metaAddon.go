@@ -28,7 +28,7 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 	// iterate so the addons can be type asserted and added to the correct field
 	for _, a := range addons {
 		if err := m.addAddon(a); err != nil {
-			getLogger().Error("could not add the metaAddon", "error", err)
+			sLogger.Error("could not add the metaAddon", "error", err)
 		}
 	}
 
@@ -37,13 +37,13 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 
 func (addon *metaAddon) addAddon(a any) error {
 	if a == nil {
-		getLogger().Debug("Skipping add for nil addon")
+		sLogger.Debug("Skipping add for nil addon")
 		return nil
 	}
 
 	myAddon, ok := a.(addons.LLM_Addon)
 	if ok {
-		getLogger().Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
+		sLogger.Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
 		// eventually migrate to new addon types
 	}
 

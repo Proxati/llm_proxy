@@ -27,20 +27,28 @@ func (cfg *Config) SetLoggerLevel() {
 	cfg.getTerminalLogger().setLoggerLevel()
 }
 
-func (cfg *Config) IsDebugEnabled() int {
-	return cfg.getTerminalLogger().getDebugLevel()
+func (cfg *Config) GetLoggerLevel() slog.Level {
+	return cfg.getTerminalLogger().slogHandlerOpts.Level.Level()
+}
+
+// IsOutputDebug returns true if the log is configured to add the source file to the log output
+func (cfg *Config) IsTraceEnabled() bool {
+	l := cfg.getTerminalLogger()
+	return l.slogHandlerOpts.AddSource
 }
 
 // IsVerboseOrHigher returns 1 if the log level is verbose or higher
 func (cfg *Config) IsVerboseOrHigher() bool {
-	if cfg.getTerminalLogger().Verbose || cfg.getTerminalLogger().Debug || cfg.getTerminalLogger().Trace {
+	switch cfg.GetLoggerLevel() {
+	case slog.LevelInfo, slog.LevelDebug:
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 func (cfg *Config) GetLogger() *slog.Logger {
-	if cfg.terminalLogger.logger == nil {
+	if cfg.getTerminalLogger().logger == nil {
 		cfg.SetLoggerLevel()
 	}
 	return cfg.terminalLogger.logger
@@ -84,6 +92,10 @@ func (cfg *Config) SetTerminalOutputFormat(terminalLogFormat string) (LogFormat,
 	return tlo.TerminalSloggerFormat, nil
 }
 
+func (cfg *Config) GetTerminalOutputFormat() LogFormat {
+	return cfg.getTerminalLogger().TerminalSloggerFormat
+}
+
 func NewDefaultConfig() *Config {
 	return &Config{
 		httpBehavior: &httpBehavior{
@@ -98,7 +110,9 @@ func NewDefaultConfig() *Config {
 			Trace:                 false,
 			logLevelHasBeenSet:    false,
 			TerminalSloggerFormat: LogFormat_TXT,
-			slogHandlerOpts:       &slog.HandlerOptions{},
+			slogHandlerOpts: &slog.HandlerOptions{
+				Level: slog.LevelWarn,
+			},
 		},
 		trafficLogger: &trafficLogger{
 			OutputDir:         "",

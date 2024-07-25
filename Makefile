@@ -15,12 +15,12 @@ help: Makefile
 ## build: build a dev binary
 .PHONY: build
 build: test vet
-	go build -ldflags "-X 'github.com/proxati/llm_proxy/version.gitHeadChecksum=$(checksum)'" -o ./llm_proxy -v
+	go build -ldflags "-X 'github.com/proxati/llm_proxy/version.gitHeadChecksum=$(checksum)'" -o llm_proxy -v
 
 ## release: build a binary for release
 .PHONY: release
 release: test vet
-	go build -ldflags "-X 'github.com/proxati/llm_proxy/version.dev=no'" -o ./llm_proxy -v
+	go build -ldflags "-X 'github.com/proxati/llm_proxy/version.dev=no'" -o llm_proxy -v
 
 ## vet: vet code
 .PHONY: vet

@@ -104,6 +104,7 @@ func setupLogFormats(cfg *config.Config, terminalLogFormat, trafficLogFormat str
 	// set the terminal log format, json or txt
 	termLogFormat, termOutErr := cfg.SetTerminalOutputFormat(terminalLogFormat)
 	if termOutErr != nil {
+		cfg.SetTerminalOutputFormat("txt") // default to txt if there's an error
 		slog.Error("Could not setup terminal log", "error", termOutErr)
 	}
 

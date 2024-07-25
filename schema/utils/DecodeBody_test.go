@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"testing"
 
+	"github.com/andybalholm/brotli"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,6 +41,20 @@ func compressDeflate(data string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+func compressBrotili(data string) ([]byte, error) {
+	var buf bytes.Buffer
+	writer := brotli.NewWriter(&buf)
+	_, err := writer.Write([]byte(data))
+	if err != nil {
+		return nil, err
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 func TestDecodeBody(t *testing.T) {
 	originalString := "This is a test string for compression."
 
@@ -54,6 +69,13 @@ func TestDecodeBody(t *testing.T) {
 	deflateCompressed, err := compressDeflate(originalString)
 	assert.NoError(t, err)
 	decompressed, err = DecodeBody(deflateCompressed, "deflate")
+	assert.NoError(t, err)
+	assert.Equal(t, originalString, string(decompressed))
+
+	// Test brotli decompression
+	brotliCompressed, err := compressBrotili(originalString)
+	assert.NoError(t, err)
+	decompressed, err = DecodeBody(brotliCompressed, "br")
 	assert.NoError(t, err)
 	assert.Equal(t, originalString, string(decompressed))
 

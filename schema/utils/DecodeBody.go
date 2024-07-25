@@ -6,12 +6,14 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+
+	"github.com/andybalholm/brotli"
 )
 
 // DecodeBody decompresses a byte array (response body) based on the content encoding
 func DecodeBody(body []byte, content_encoding string) (decodedBody []byte, err error) {
 	switch content_encoding {
-	case "gzip":
+	case gzipEncoding:
 		reader, err := gzip.NewReader(bytes.NewReader(body))
 		if err != nil {
 			return nil, fmt.Errorf("gzip decompress error: %v", err)
@@ -21,14 +23,20 @@ func DecodeBody(body []byte, content_encoding string) (decodedBody []byte, err e
 		if err != nil {
 			return nil, fmt.Errorf("gzip reader error: %v", err)
 		}
-	case "deflate":
+	case deflateEncoding:
 		reader := flate.NewReader(bytes.NewReader(body))
 		defer reader.Close()
 		decodedBody, err = io.ReadAll(reader)
 		if err != nil {
 			return nil, fmt.Errorf("deflate reader error: %v", err)
 		}
-	case "", "identity":
+	case brotliEncoding:
+		reader := brotli.NewReader(bytes.NewReader(body))
+		decodedBody, err = io.ReadAll(reader)
+		if err != nil {
+			return nil, fmt.Errorf("brotli reader error: %v", err)
+		}
+	case "", identityEncoding:
 		// no encoding, do nothing
 		return body, nil
 	default:

@@ -7,12 +7,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-)
 
-const (
-	gzipEncoding     = "gzip"
-	deflateEncoding  = "deflate"
-	identityEncoding = "identity"
+	"github.com/andybalholm/brotli"
 )
 
 // parseAcceptEncoding parses the Accept-Encoding header to find out what encodings are accepted.
@@ -44,11 +40,15 @@ func parseAcceptEncoding(headerValue *string) map[string]float64 {
 func chooseEncoding(acceptEncodingHeader *string) string {
 	encodings := parseAcceptEncoding(acceptEncodingHeader)
 
-	// Example logic to choose encoding
-	if quality, ok := encodings[gzipEncoding]; ok && quality > 0 {
+	// Prefer brotli over gzip over deflate
+	if quality, ok := encodings[brotliEncoding]; ok && quality > 0 {
+		return brotliEncoding
+	} else if quality, ok := encodings[gzipEncoding]; ok && quality > 0 {
 		return gzipEncoding
 	} else if quality, ok := encodings[deflateEncoding]; ok && quality > 0 {
 		return deflateEncoding
+	} else if _, ok := encodings[identityEncoding]; ok {
+		return identityEncoding
 	}
 	return ""
 }
@@ -56,12 +56,12 @@ func chooseEncoding(acceptEncodingHeader *string) string {
 // gzipCompress compresses a byte array using gzip
 func gzipCompress(body []byte) ([]byte, string, error) {
 	var buffer bytes.Buffer
-	writer := gzip.NewWriter(&buffer)
+	writer := gzip.NewWriter(&buffer) // TODO: need to set quality - #42
 
 	_, err := writer.Write(body)
 	if err != nil {
 		writer.Close() // Attempt to close the writer even if there's an error
-		return nil, "", fmt.Errorf("failed to write data for compression: %w", err)
+		return nil, "", fmt.Errorf("failed to write data for gzip compression: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {
@@ -74,7 +74,7 @@ func gzipCompress(body []byte) ([]byte, string, error) {
 // deflateCompress compresses a byte array using deflate
 func deflateCompress(body []byte) ([]byte, string, error) {
 	var buffer bytes.Buffer
-	writer, err := flate.NewWriter(&buffer, flate.DefaultCompression)
+	writer, err := flate.NewWriter(&buffer, flate.DefaultCompression) // TODO: need to set quality - #42
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create deflate writer: %w", err)
 	}
@@ -82,7 +82,7 @@ func deflateCompress(body []byte) ([]byte, string, error) {
 	_, err = writer.Write(body)
 	if err != nil {
 		writer.Close() // Attempt to close the writer even if there's an error
-		return nil, "", fmt.Errorf("failed to write data for compression: %w", err)
+		return nil, "", fmt.Errorf("failed to write data for flate compression: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {
@@ -90,6 +90,24 @@ func deflateCompress(body []byte) ([]byte, string, error) {
 	}
 
 	return buffer.Bytes(), deflateEncoding, nil
+}
+
+// brotliCompress compresses a byte array using brotli
+func brotliCompress(body []byte) ([]byte, string, error) {
+	var buffer bytes.Buffer
+	writer := brotli.NewWriter(&buffer) // TODO: need to set quality - #42
+
+	_, err := writer.Write(body)
+	if err != nil {
+		writer.Close() // Attempt to close the writer even if there's an error
+		return nil, "", fmt.Errorf("failed to write data for brotli compression: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, "", fmt.Errorf("failed to close brotli writer: %w", err)
+	}
+
+	return buffer.Bytes(), brotliEncoding, nil
 }
 
 // EncodeBody compresses a string (the response body) based on the content-encoding header
@@ -102,8 +120,11 @@ func EncodeBody(body *string, acceptEncodingHeader string) (encodedBody []byte, 
 		return gzipCompress(bodyBytes)
 	case deflateEncoding:
 		return deflateCompress(bodyBytes)
+	case brotliEncoding:
+		return brotliCompress(bodyBytes)
 	case "", identityEncoding:
-		return bodyBytes, selectedEncoding, nil
+		// default to empty encoding for the "identity" accept-encoding header
+		return bodyBytes, "", nil
 	}
 	return nil, "", fmt.Errorf("unsupported encoding: %s", selectedEncoding)
 }

@@ -49,7 +49,7 @@ func (pRes *ProxyResponse) loadBody(body []byte, content_encoding string) error 
 
 	decodedBody, err := utils.DecodeBody(body, content_encoding)
 	if err != nil {
-		return fmt.Errorf("error decoding body: %v", err)
+		return fmt.Errorf("error decoding body: %w", err)
 	}
 
 	pRes.Body, bodyIsPrintable = utils.CanPrintFast(decodedBody)

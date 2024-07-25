@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"testing"
 
-	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/proxati/llm_proxy/v2/schema"
+	px "github.com/proxati/mitmproxy/proxy"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -86,7 +86,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		// struct of bools to toggle the various traffic log outputs
 		logSources := config.NewLogSourceConfig(cfg)
 
-		dumperAddon, err := addons.NewMegaDumpAddon(
+		dumperAddon, err := addons.NewMegaTrafficDumperAddon(
 			cfg.GetLogger(),
 			cfg.OutputDir,
 			cfg.TrafficLogFmt,

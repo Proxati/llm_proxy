@@ -22,7 +22,7 @@ func TestNewMegaDumpAddon(t *testing.T) {
 		filterReqHeaders := []string{}
 		filterRespHeaders := []string{}
 
-		mda, err := NewMegaDumpAddon(testLogger, logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
+		mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, mda)
@@ -37,7 +37,7 @@ func TestNewMegaDumpAddon(t *testing.T) {
 		filterReqHeaders := []string{}
 		filterRespHeaders := []string{}
 
-		mda, err := NewMegaDumpAddon(testLogger, logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
+		mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, filterReqHeaders, filterRespHeaders)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, mda)

@@ -16,7 +16,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema"
 )
 
-type MegaDumpAddon struct {
+type MegaTrafficDumper struct {
 	px.BaseAddon
 	formatter         formatters.MegaDumpFormatter
 	logSources        config.LogSourceConfig
@@ -30,7 +30,7 @@ type MegaDumpAddon struct {
 
 // Requestheaders is a callback that will receive a "flow" from the proxy, will create a
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
-func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
+func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 	logger := d.logger.With(
 		"URL", f.Request.URL,
 		"ID", f.Id.String(),
@@ -81,11 +81,11 @@ func (d *MegaDumpAddon) Requestheaders(f *px.Flow) {
 	}()
 }
 
-func (d *MegaDumpAddon) String() string {
+func (d *MegaTrafficDumper) String() string {
 	return "MegaDumpAddon"
 }
 
-func (d *MegaDumpAddon) Close() error {
+func (d *MegaTrafficDumper) Close() error {
 	if !d.closed.Swap(true) {
 		d.logger.Debug("Waiting for MegaDumpAddon shutdown...")
 		d.wg.Wait()
@@ -148,15 +148,15 @@ func newWriters(logDestinations []md.LogDestination, logTarget string, f formatt
 	return w, nil
 }
 
-// NewMegaDumpAddon creates a new dumper that creates a new log file for each request
-func NewMegaDumpAddon(
+// NewMegaTrafficDumperAddon creates a new dumper that creates a new log file for each request
+func NewMegaTrafficDumperAddon(
 	logger *slog.Logger, // the DI'd logger
 	logTarget string, // output directory
 	logFormatConfig config.LogFormat, // what file format to write the traffic logs
 	logSources config.LogSourceConfig, // which fields from the transaction to log
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
-) (*MegaDumpAddon, error) {
-	logger = logger.WithGroup("addons.MegaDumpAddon")
+) (*MegaTrafficDumper, error) {
+	logger = logger.WithGroup("addons.MegaTrafficDumper")
 	logger.Debug("Set log output directory", "logTarget", logTarget)
 
 	logDestinations, err := newLogDestinations(logTarget)
@@ -181,7 +181,7 @@ func NewMegaDumpAddon(
 		logger.Debug("Configured writer", "name", writer.String())
 	}
 
-	mda := &MegaDumpAddon{
+	mda := &MegaTrafficDumper{
 		formatter:         f,
 		logSources:        logSources,
 		writers:           w,

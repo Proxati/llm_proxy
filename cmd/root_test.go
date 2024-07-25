@@ -102,6 +102,7 @@ func TestSetupLogFormats(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err)
+				assert.Equal(t, config.LogFormat_TXT, cfg.GetTerminalOutputFormat())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedTermFmt, cfg.GetTerminalOutputFormat())

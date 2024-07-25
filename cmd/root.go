@@ -11,7 +11,7 @@ import (
 )
 
 // https://manytools.org/hacker-tools/ascii-banner/
-const intro = `
+const introSplashText = `
 ██████╗ ██████╗  ██████╗ ██╗  ██╗ █████╗ ████████╗██╗                                             
 ██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝██╔══██╗╚══██╔══╝██║                                             
 ██████╔╝██████╔╝██║   ██║ ╚███╔╝ ███████║   ██║   ██║                                             
@@ -47,44 +47,78 @@ This is useful for:
   * Fine-tuning: Use the stored logs to fine-tune your LLM models.
 `,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		setupTerminalOutputLevel(cfg, debugMode, verboseMode, traceMode)
 
-		// set log levels
-		if debugMode {
-			if traceMode {
-				cfg.EnableOutputTrace()
-			} else {
-				cfg.EnableOutputDebug()
-			}
-		} else if verboseMode {
-			cfg.EnableOutputVerbose()
-		}
-
-		// print the log splash screen
-		if cfg.IsVerboseOrHigher() {
-			if isatty.IsTerminal(os.Stdout.Fd()) {
-				fmt.Print(intro)
-			}
-		}
-
-		// set the terminal log format, json or txt
-		logFormat, err := cfg.SetTerminalOutputFormat(terminalLogFormat)
-		slog.Debug("Global logger setup completed", "TerminalSloggerFormat", logFormat.String())
-
-		if err != nil {
-			slog.Error("Could not setup terminal log", "error", err)
-		}
-
-		// set the traffic log (disk) format, json or txt
-		cfg.TrafficLogFmt, err = config.StringToLogFormat(trafficLogFormat)
-		if err != nil {
-			slog.Error("Could not setup traffic log", "error", err)
-		}
-
+		logFormat, err := setupLogFormats(cfg, terminalLogFormat, trafficLogFormat)
 		if err != nil {
 			os.Exit(1)
 		}
+
+		s := printSplash(
+			cfg.GetLoggerLevel(),
+			cfg.GetTerminalOutputFormat(),
+			isatty.IsTerminal(os.Stdout.Fd()),
+			introSplashText,
+		)
+		if s != "" {
+			fmt.Print(s)
+		}
+		cfg.GetLogger().Debug("Global logger setup completed", "TerminalSloggerFormat", logFormat.String())
 	},
 	SilenceUsage: true,
+}
+
+func setupTerminalOutputLevel(cfg *config.Config, debugMode, verboseMode, traceMode bool) {
+	if debugMode {
+		if traceMode {
+			cfg.EnableOutputTrace()
+		} else {
+			cfg.EnableOutputDebug()
+		}
+	} else if verboseMode {
+		cfg.EnableOutputVerbose()
+	}
+}
+
+// printSplash will only show the logo if verbose mode is enabled, on a real terminal, with text output mode
+func printSplash(logLevel slog.Level, logFormat config.LogFormat, isTTY bool, txt string) string {
+	if !isTTY {
+		return ""
+	}
+
+	if logFormat != config.LogFormat_TXT {
+		return ""
+	}
+
+	switch logLevel {
+	case slog.LevelDebug, slog.LevelInfo:
+		return txt
+	default:
+		return ""
+	}
+}
+
+// rootSetup always runs first, and configures the global logger and log formats
+func setupLogFormats(cfg *config.Config, terminalLogFormat, trafficLogFormat string) (config.LogFormat, error) {
+
+	// set the terminal log format, json or txt
+	termLogFormat, termOutErr := cfg.SetTerminalOutputFormat(terminalLogFormat)
+	if termOutErr != nil {
+		cfg.SetTerminalOutputFormat("txt") // default to txt if there's an error
+		slog.Error("Could not setup terminal log", "error", termOutErr)
+	}
+
+	// set the traffic log (to disk) format, json or txt
+	trafficOutErr := cfg.SetTrafficLogFormat(trafficLogFormat)
+	if trafficOutErr != nil {
+		slog.Error("Could not setup traffic log", "error", trafficOutErr)
+	}
+
+	if termOutErr != nil || trafficOutErr != nil {
+		return 0, fmt.Errorf("could not setup log formats")
+	}
+
+	return termLogFormat, nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

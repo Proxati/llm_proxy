@@ -89,7 +89,7 @@ func (aud *APIAuditorAddon) Close() error {
 func NewAPIAuditor(logger *slog.Logger) *APIAuditorAddon {
 	aud := &APIAuditorAddon{
 		costCounter: schema.NewCostCounterDefaults(),
-		logger:      logger.WithGroup("addons").With("name", "APIAuditorAddon"),
+		logger:      logger.WithGroup("addons.APIAuditorAddon"),
 	}
 	aud.closed.Store(false) // initialize as open
 	return aud

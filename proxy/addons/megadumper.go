@@ -156,7 +156,7 @@ func NewMegaDumpAddon(
 	logSources config.LogSourceConfig, // which fields from the transaction to log
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
 ) (*MegaDumpAddon, error) {
-	logger = logger.WithGroup("addons").With("name", "MegaDumpAddon")
+	logger = logger.WithGroup("addons.MegaDumpAddon")
 	logger.Debug("Set log output directory", "logTarget", logTarget)
 
 	logDestinations, err := newLogDestinations(logTarget)

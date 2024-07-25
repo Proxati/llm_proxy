@@ -98,7 +98,7 @@ func TestSetupLogFormats(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := config.NewDefaultConfig()
-			err := setupLogFormats(cfg, tt.terminalLogFormat, tt.trafficLogFormat)
+			logFmt, err := setupLogFormats(cfg, tt.terminalLogFormat, tt.trafficLogFormat)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -106,6 +106,7 @@ func TestSetupLogFormats(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedTermFmt, cfg.GetTerminalOutputFormat())
 				assert.Equal(t, tt.expectedTrafficFmt, cfg.TrafficLogFmt)
+				assert.Equal(t, tt.expectedTermFmt, logFmt)
 			}
 		})
 	}

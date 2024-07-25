@@ -92,6 +92,12 @@ func (cfg *Config) SetTerminalOutputFormat(terminalLogFormat string) (LogFormat,
 	return tlo.TerminalSloggerFormat, nil
 }
 
+func (cfg *Config) SetTrafficLogFormat(logfmt string) error {
+	var err error
+	cfg.trafficLogger.TrafficLogFmt, err = StringToLogFormat(logfmt)
+	return err
+}
+
 func (cfg *Config) GetTerminalOutputFormat() LogFormat {
 	return cfg.getTerminalLogger().TerminalSloggerFormat
 }

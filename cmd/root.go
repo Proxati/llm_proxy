@@ -49,6 +49,11 @@ This is useful for:
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		setupTerminalOutputLevel(cfg, debugMode, verboseMode, traceMode)
 
+		logFormat, err := setupLogFormats(cfg, terminalLogFormat, trafficLogFormat)
+		if err != nil {
+			os.Exit(1)
+		}
+
 		s := printSplash(
 			cfg.GetLoggerLevel(),
 			cfg.GetTerminalOutputFormat(),
@@ -58,12 +63,7 @@ This is useful for:
 		if s != "" {
 			fmt.Print(s)
 		}
-
-		err := setupLogFormats(cfg, terminalLogFormat, trafficLogFormat)
-
-		if err != nil {
-			os.Exit(1)
-		}
+		cfg.GetLogger().Debug("Global logger setup completed", "TerminalSloggerFormat", logFormat.String())
 	},
 	SilenceUsage: true,
 }
@@ -99,25 +99,25 @@ func printSplash(logLevel slog.Level, logFormat config.LogFormat, isTTY bool, tx
 }
 
 // rootSetup always runs first, and configures the global logger and log formats
-func setupLogFormats(cfg *config.Config, terminalLogFormat, trafficLogFormat string) error {
-	var returnErr error
-	// set the terminal log format, json or txt
-	logFormat, err := cfg.SetTerminalOutputFormat(terminalLogFormat)
-	slog.Debug("Global logger setup completed", "TerminalSloggerFormat", logFormat.String())
+func setupLogFormats(cfg *config.Config, terminalLogFormat, trafficLogFormat string) (config.LogFormat, error) {
 
-	if err != nil {
-		slog.Error("Could not setup terminal log", "error", err)
-		returnErr = err
+	// set the terminal log format, json or txt
+	termLogFormat, termOutErr := cfg.SetTerminalOutputFormat(terminalLogFormat)
+	if termOutErr != nil {
+		slog.Error("Could not setup terminal log", "error", termOutErr)
 	}
 
 	// set the traffic log (to disk) format, json or txt
-	cfg.TrafficLogFmt, err = config.StringToLogFormat(trafficLogFormat)
-	if err != nil {
-		slog.Error("Could not setup traffic log", "error", err)
-		returnErr = err
+	trafficOutErr := cfg.SetTrafficLogFormat(trafficLogFormat)
+	if trafficOutErr != nil {
+		slog.Error("Could not setup traffic log", "error", trafficOutErr)
 	}
 
-	return returnErr
+	if termOutErr != nil || trafficOutErr != nil {
+		return 0, fmt.Errorf("could not setup log formats")
+	}
+
+	return termLogFormat, nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

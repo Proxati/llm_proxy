@@ -1,0 +1,26 @@
+# Ignore the binary
+llm_proxy
+
+# Ignore the vendor directory
+vendor/
+
+# Ignore the git directory
+.git/
+.gitignore
+
+# Ignore the Dockerfile and .dockerignore itself
+Dockerfile
+.dockerignore
+
+# Ignore editor and IDE files
+*.swp
+*.swo
+*.idea/
+*.vscode/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore test files
+# *_test.go

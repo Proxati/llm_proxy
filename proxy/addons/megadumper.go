@@ -82,7 +82,7 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 }
 
 func (d *MegaTrafficDumper) String() string {
-	return "MegaDumpAddon"
+	return "MegaTrafficDumper"
 }
 
 func (d *MegaTrafficDumper) Close() error {

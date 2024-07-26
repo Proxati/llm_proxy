@@ -24,6 +24,7 @@ func TestSetupTerminalOutputLevel(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cfg := config.NewDefaultConfig()
 			cfg.SetLoggerLevel() // two constructors for the logger is annoying
 
@@ -74,6 +75,7 @@ func TestPrintSplash(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
+			t.Parallel()
 			sp := printSplash(tt.logLvl, tt.logFmt, tt.isTerminal, splashText)
 			assert.Equal(t, tt.expectedOutput, sp)
 		})
@@ -97,6 +99,7 @@ func TestSetupLogFormats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cfg := config.NewDefaultConfig()
 			logFmt, err := setupLogFormats(cfg, tt.terminalLogFormat, tt.trafficLogFormat)
 

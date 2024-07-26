@@ -70,12 +70,6 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		return nil, fmt.Errorf("failed to create proxy: %v", err)
 	}
 
-	if !cfg.NoHttpUpgrader {
-		// upgrade all http requests to https
-		sLogger.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
-		metaAdd.addAddon(addons.NewSchemeUpgrader(cfg.GetLogger()))
-	}
-
 	if cfg.IsVerboseOrHigher() {
 		// add the verbose logger to the proxy
 		metaAdd.addAddon(addons.NewStdOutLogger(cfg.GetLogger()))
@@ -105,8 +99,15 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 			// "filterRespHeaders", cfg.FilterRespHeaders,
 		)
 
-		// add the traffic log dumper to the proxy
+		// add the traffic log dumper to the metaAddon
 		metaAdd.addAddon(dumperAddon)
+	}
+
+	// upgrade the request after it's logged
+	if !cfg.NoHttpUpgrader {
+		// upgrade all http requests to https
+		sLogger.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
+		metaAdd.addAddon(addons.NewSchemeUpgrader(cfg.GetLogger()))
 	}
 
 	sLogger.Debug("Building proxy config", "AppMode", cfg.AppMode)

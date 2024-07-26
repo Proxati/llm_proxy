@@ -31,9 +31,10 @@ type MegaTrafficDumper struct {
 // Requestheaders is a callback that will receive a "flow" from the proxy, will create a
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
 func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
+	id := f.Id.String()
 	logger := d.logger.With(
 		"URL", f.Request.URL,
-		"ID", f.Id.String(),
+		"ID", id,
 	)
 
 	if d.closed.Load() {
@@ -55,8 +56,6 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 			logger.Error("Could not create LogDumpContainer", "error", err)
 			return
 		}
-
-		id := f.Id.String() // TODO: is the internal request ID unique enough?
 
 		// format the container object, reformatted into a byte array
 		formattedDump, err := d.formatter.Read(dumpContainer)

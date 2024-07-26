@@ -44,7 +44,7 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 
 	d.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	go func() {
-		logger.Debug("MegaTrafficDumper request starting...")
+		logger.Debug("Request starting...")
 		defer d.wg.Done()
 		start := time.Now()
 		<-f.Done() // block this goroutine until the entire flow is done
@@ -77,7 +77,7 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 				continue
 			}
 		}
-		logger.Debug("MegaTrafficDumper request completed")
+		logger.Debug("Request completed")
 	}()
 }
 

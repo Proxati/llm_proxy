@@ -4,19 +4,22 @@ APIs like OpenAI. With a single compiled binary and no external runtime dependen
 deploy and operate.
 
 
-## Features
+## Current Features
 
-✅ Easy Installation: Easy to deploy and run with a single compiled binary.
-✅ High Performance: Written in Go, the proxy is fast and efficient.
-✅ Exact Match Caching: If the request body has been previously processed, future responses will be dispatched from an embedded BoltDB database.
-✅ Logging: Save all API requests and responses to disk as JSON files.
+- [x] Easy Installation: Easy to deploy and run with a single compiled binary or Docker container.
+- [x] High Performance: Written in Go, the proxy is fast and efficient.
+- [x] Exact Match Caching: If the request body has been previously processed, future responses will be dispatched from an embedded BoltDB database.
+- [x] Logging: Save all API requests and responses disk (or stdout) as JSON.
 
 ### Upcoming Features
 
-🔲 OpenTelemetry trace exporting to various APM platforms
-🔲 Semantic Caching
-🔲 Grounding & Moderation
-🔲 Streaming Mode (currently only supports stream=false)
+- [ ] OpenTelemetry trace exporting to various APM platforms
+- [ ] Request/Response Modification (Headers, Body, etc.)
+- [ ] Semantic Caching
+- [ ] Grounding & Moderation
+- [ ] Rate Limiting
+- [ ] Export to Evaluation Platforms
+- [ ] Streaming Mode (currently only supports stream=false)
 
 ## How to install and run the proxy
 

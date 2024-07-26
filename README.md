@@ -6,13 +6,17 @@ deploy and operate.
 
 ## Features
 
-* Easy Installation: Easy to deploy and run with a single compiled binary.
-* High Performance: Written in Go, the proxy is fast and efficient.
-* Caching and Logging: Save all requests and responses for various use cases:
-  * Fine-tune Models
-  * Security Auditing
-  * Debugging
-  * Academic Reproducibility
+✅ Easy Installation: Easy to deploy and run with a single compiled binary.
+✅ High Performance: Written in Go, the proxy is fast and efficient.
+✅ Exact Match Caching: If the request body has been previously processed, future responses will be dispatched from an embedded BoltDB database.
+✅ Logging: Save all API requests and responses to disk as JSON files.
+
+### Upcoming Features
+
+🔲 OpenTelemetry trace exporting to various APM platforms
+🔲 Semantic Caching
+🔲 Grounding & Moderation
+🔲 Streaming Mode (currently only supports stream=false)
 
 ## How to install and run the proxy
 

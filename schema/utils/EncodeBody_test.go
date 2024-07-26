@@ -7,6 +7,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/andybalholm/brotli"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,19 +18,19 @@ func TestParseAcceptEncoding(t *testing.T) {
 		expected map[string]float64
 	}{
 		{
-			name:   "Single encoding without quality",
+			name:   "Single gzip encoding without quality",
 			header: "gzip",
 			expected: map[string]float64{
-				"gzip": 1.0,
+				"gzip": 1.0, // default quality
 			},
 		},
 		{
 			name:   "Multiple encodings with and without quality",
-			header: "gzip, deflate;q=0.5, br;q=0",
+			header: "gzip, deflate;q=0.5, br;q=99",
 			expected: map[string]float64{
-				"gzip":    1.0,
+				"gzip":    1.0, // default quality
 				"deflate": 0.5,
-				"br":      0.0,
+				"br":      99.0,
 			},
 		},
 		{
@@ -41,8 +42,22 @@ func TestParseAcceptEncoding(t *testing.T) {
 			name:   "Invalid quality value, defaults to 1.0",
 			header: "gzip;q=invalid, deflate",
 			expected: map[string]float64{
-				"gzip":    1.0,
-				"deflate": 1.0,
+				"gzip":    1.0, // default quality
+				"deflate": 1.0, // default quality
+			},
+		},
+		{
+			name:   "Single br encoding without quality",
+			header: "br",
+			expected: map[string]float64{
+				"br": 1.0, // default quality
+			},
+		},
+		{
+			name:   "Single br encoding with quality",
+			header: "br;q=5",
+			expected: map[string]float64{
+				"br": 5.0,
 			},
 		},
 	}
@@ -62,6 +77,11 @@ func TestChooseEncoding(t *testing.T) {
 		expected string
 	}{
 		{
+			name:     "Prefer br when both br, gzip, and deflate are available",
+			header:   "gzip, deflate, br",
+			expected: "br",
+		},
+		{
 			name:     "Prefer gzip when both gzip and deflate are available",
 			header:   "gzip, deflate",
 			expected: "gzip",
@@ -74,7 +94,7 @@ func TestChooseEncoding(t *testing.T) {
 		{
 			name:     "Return empty when no acceptable encodings are provided",
 			header:   "br",
-			expected: "",
+			expected: "br",
 		},
 		{
 			name:     "Return empty when quality is 0",
@@ -138,6 +158,11 @@ func TestGzipCompress(t *testing.T) {
 			input:   []byte(""),
 			wantErr: false,
 		},
+		{
+			name:    "Space case",
+			input:   []byte(" "),
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -184,6 +209,11 @@ func TestDeflateCompress(t *testing.T) {
 			input:   []byte(""),
 			wantErr: false,
 		},
+		{
+			name:    "Space case",
+			input:   []byte(" "),
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -205,7 +235,60 @@ func TestDeflateCompress(t *testing.T) {
 	}
 }
 
+func brotliDecompress(data []byte) ([]byte, error) {
+	reader := brotli.NewReader(bytes.NewReader(data))
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	return decompressed, nil
+}
+
+func TestBrotliCompress(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   []byte
+		wantErr bool
+	}{
+		{
+			name:    "Non-empty input",
+			input:   []byte("Hello, world!"),
+			wantErr: false,
+		},
+		{
+			name:    "Empty input",
+			input:   []byte(""),
+			wantErr: false,
+		},
+		{
+			name:    "Space case",
+			input:   []byte(" "),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, encoding, err := brotliCompress(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("brotliCompress() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			// If no error, verify the output by decompressing
+			if !tt.wantErr {
+				decompressed, err := brotliDecompress(got)
+				assert.NoError(t, err)
+				assert.Equal(t, tt.input, decompressed)
+				assert.Equal(t, "br", encoding)
+			}
+		})
+	}
+}
+
 func TestEncodeBody(t *testing.T) {
+	const bodyText = "Hello, world!"
+
 	tests := []struct {
 		name                 string
 		body                 string
@@ -216,43 +299,43 @@ func TestEncodeBody(t *testing.T) {
 	}{
 		{
 			name:                 "Encode with gzip",
-			body:                 "Hello, world!",
+			body:                 bodyText,
 			acceptEncodingHeader: "gzip",
 			wantErr:              false,
-			expectedOutput:       []byte("Hello, world!"),
+			expectedOutput:       []byte(bodyText),
 			expectedEncoding:     "gzip",
 		},
 		{
 			name:                 "Encode with deflate",
-			body:                 "Hello, world!",
+			body:                 bodyText,
 			acceptEncodingHeader: "deflate",
 			wantErr:              false,
-			expectedOutput:       []byte("Hello, world!"),
+			expectedOutput:       []byte(bodyText),
 			expectedEncoding:     "deflate",
 		},
 		{
 			name:                 "No encoding",
-			body:                 "Hello, world!",
+			body:                 bodyText,
 			acceptEncodingHeader: "",
 			wantErr:              false,
-			expectedOutput:       []byte("Hello, world!"),
+			expectedOutput:       []byte(bodyText),
 			expectedEncoding:     "",
 		},
 		{
 			name:                 "identity encoding",
-			body:                 "Hello, world!",
+			body:                 bodyText,
 			acceptEncodingHeader: "identity",
 			wantErr:              false,
-			expectedOutput:       []byte("Hello, world!"),
+			expectedOutput:       []byte(bodyText),
 			expectedEncoding:     "",
 		},
 		{
-			name:                 "Unsupported encoding",
-			body:                 "Hello, world!",
+			name:                 "Brotli encoding",
+			body:                 bodyText,
 			acceptEncodingHeader: "br",
 			wantErr:              false,
-			expectedOutput:       []byte("Hello, world!"),
-			expectedEncoding:     "",
+			expectedOutput:       []byte(bodyText),
+			expectedEncoding:     "br",
 		},
 		{
 			name:                 "Empty body with gzip",
@@ -284,20 +367,27 @@ func TestEncodeBody(t *testing.T) {
 			} else {
 				assert.Equal(t, tt.expectedEncoding, encoding)
 
-				if tt.acceptEncodingHeader == "gzip" || tt.acceptEncodingHeader == "deflate" {
-					// Decompress and compare
-					var decompressed []byte
-					var decompressErr error
-					if tt.acceptEncodingHeader == "gzip" {
-						decompressed, decompressErr = gzipDecompress(output)
-					} else if tt.acceptEncodingHeader == "deflate" {
-						decompressed, decompressErr = flateDecompress(output)
-					}
+				var decompressed []byte
+				var decompressErr error
+
+				switch tt.acceptEncodingHeader {
+				case "gzip":
+					assert.Equal(t, "gzip", encoding)
+					decompressed, decompressErr = gzipDecompress(output)
 					assert.NoError(t, decompressErr)
 					assert.Equal(t, tt.expectedOutput, decompressed)
-
-				} else {
-					// Directly compare the output
+				case "deflate":
+					assert.Equal(t, "deflate", encoding)
+					decompressed, decompressErr = flateDecompress(output)
+					assert.NoError(t, decompressErr)
+					assert.Equal(t, tt.expectedOutput, decompressed)
+				case "br":
+					assert.Equal(t, "br", encoding)
+					decompressed, decompressErr = brotliDecompress(output)
+					assert.NoError(t, decompressErr)
+					assert.Equal(t, tt.expectedOutput, decompressed)
+				default:
+					assert.Equal(t, "", encoding)
 					assert.Equal(t, tt.expectedOutput, output)
 				}
 			}

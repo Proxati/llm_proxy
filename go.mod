@@ -3,6 +3,7 @@ module github.com/proxati/llm_proxy/v2
 go 1.22.5
 
 require (
+	github.com/andybalholm/brotli v1.1.0
 	github.com/bojanz/currency v1.2.3
 	github.com/charmbracelet/log v0.4.0
 	github.com/hashicorp/go-version v1.7.0
@@ -18,7 +19,6 @@ require (
 )
 
 require (
-	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/lipgloss v0.10.0 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.1 // indirect

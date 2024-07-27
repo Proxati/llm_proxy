@@ -8,6 +8,7 @@ import (
 )
 
 func TestNewCacheStorageConfig(t *testing.T) {
+	t.Parallel()
 	testLogger := slog.Default()
 	tmpDir := t.TempDir()
 
@@ -36,6 +37,7 @@ func TestNewCacheStorageConfig(t *testing.T) {
 }
 
 func TestCacheStorageConfig_SaveAndLoad(t *testing.T) {
+	t.Parallel()
 	testLogger := slog.Default()
 	tmpDir := t.TempDir()
 

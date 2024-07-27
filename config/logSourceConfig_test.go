@@ -7,6 +7,7 @@ import (
 )
 
 func TestLogSourceConfig_String(t *testing.T) {
+	t.Parallel()
 	config := LogSourceConfig{
 		LogConnectionStats: true,
 		LogRequestHeaders:  true,

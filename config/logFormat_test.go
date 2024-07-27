@@ -7,6 +7,7 @@ import (
 )
 
 func TestStringToTrafficLogFormat(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		input          string
 		expected       LogFormat
@@ -36,11 +37,12 @@ func TestStringToTrafficLogFormat(t *testing.T) {
 			format, err := StringToLogFormat(test.input)
 			if test.err {
 				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.expected, format)
-				assert.Equal(t, test.expectedString, format.String())
+				return
 			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, test.expected, format)
+			assert.Equal(t, test.expectedString, format.String())
 		})
 	}
 }

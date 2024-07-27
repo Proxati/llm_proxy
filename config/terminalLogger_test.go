@@ -7,6 +7,7 @@ import (
 )
 
 func TestConfig_SetLoggerLevel_Debug(t *testing.T) {
+	t.Parallel()
 	cfg := &terminalLogger{
 		Debug: true,
 	}
@@ -19,6 +20,7 @@ func TestConfig_SetLoggerLevel_Debug(t *testing.T) {
 }
 
 func TestConfig_SetLoggerLevel_Verbose(t *testing.T) {
+	t.Parallel()
 	cfg := &terminalLogger{
 		Verbose: true,
 	}
@@ -31,6 +33,7 @@ func TestConfig_SetLoggerLevel_Verbose(t *testing.T) {
 }
 
 func TestConfig_SetLoggerLevel_Default(t *testing.T) {
+	t.Parallel()
 	cfg := &terminalLogger{}
 
 	assert.Equal(t, false, cfg.logLevelHasBeenSet)

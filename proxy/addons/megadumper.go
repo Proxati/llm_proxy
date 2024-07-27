@@ -87,7 +87,7 @@ func (d *MegaTrafficDumper) String() string {
 
 func (d *MegaTrafficDumper) Close() error {
 	if !d.closed.Swap(true) {
-		d.logger.Debug("Waiting for MegaDumpAddon shutdown...")
+		d.logger.Debug("Closing MegaDumpAddon")
 		d.wg.Wait()
 	}
 

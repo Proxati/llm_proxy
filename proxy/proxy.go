@@ -161,7 +161,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 			if !ok {
 				continue
 			}
-			sLogger.Debug("Closing", "addon", myAddon)
+			sLogger.Debug("Closing addon", "addonName", myAddon)
 			if err := myAddon.Close(); err != nil {
 				sLogger.Error("Could not close", "addon", myAddon, "error", err)
 			}

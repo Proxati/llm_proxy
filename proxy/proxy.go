@@ -179,7 +179,6 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 		if err := p.Shutdown(ctx); err != nil {
 			sLogger.Error("Unexpected error shutting down proxy server", "error", err)
 		}
-		sLogger.Info("Goodbye!")
 	}()
 
 	// block here while the proxy is running

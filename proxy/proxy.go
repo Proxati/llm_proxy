@@ -157,7 +157,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 
 		// Then close all of the addon connections
 		for _, addon := range p.Addons {
-			myAddon, ok := addon.(addons.LLM_Addon)
+			myAddon, ok := addon.(addons.ClosableAddon)
 			if !ok {
 				continue
 			}

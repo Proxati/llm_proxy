@@ -16,7 +16,7 @@ type metaAddon struct {
 	px.BaseAddon
 	cfg        *config.Config
 	mitmAddons []px.Addon
-	llmAddons  []addons.LLM_Addon
+	llmAddons  []addons.ClosableAddon
 }
 
 // NewMetaAddon creates a new MetaAddon with the given config and addons. The order of the addons
@@ -56,7 +56,7 @@ func (addon *metaAddon) addAddon(a any) error {
 		return nil
 	}
 
-	myAddon, ok := a.(addons.LLM_Addon)
+	myAddon, ok := a.(addons.ClosableAddon)
 	if ok {
 		sLogger.Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
 		addon.llmAddons = append(addon.llmAddons, myAddon) // for closing later

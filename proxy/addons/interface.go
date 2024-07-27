@@ -1,6 +1,7 @@
 package addons
 
-type LLM_Addon interface {
+// ClosableAddon is an interface that defines an addon that can be closed
+type ClosableAddon interface {
 	String() string
 	Close() error
 }

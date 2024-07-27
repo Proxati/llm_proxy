@@ -6,6 +6,7 @@ require (
 	github.com/andybalholm/brotli v1.1.0
 	github.com/bojanz/currency v1.2.3
 	github.com/charmbracelet/log v0.4.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mattn/go-isatty v0.0.20

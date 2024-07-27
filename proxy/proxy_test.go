@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons"
 	"github.com/proxati/llm_proxy/v2/schema"
@@ -28,12 +30,72 @@ import (
 
 const (
 	// ugly hack to wait for background async
-	defaultSleepTime = 1 * time.Second
+	defaultSleepTime = 500 * time.Millisecond
 	outputSubdir     = "output"
 	certSubdir       = "certs"
 	cacheSubdir      = "cache"
 	debugOutput      = false
 )
+
+func newWatcher(watchDir string) (*fsnotify.Watcher, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+
+	err = watcher.Add(watchDir)
+	if err != nil {
+		watcher.Close()
+		return nil, err
+	}
+	log.Printf("Watching directory: %s", watchDir)
+	return watcher, nil
+}
+
+func waitForFile(watcher *fsnotify.Watcher, timeout time.Duration) error {
+	defer watcher.Close()
+
+	// Channel to signal when a file event occurs
+	eventOccurred := make(chan string)
+	errorChannel := make(chan error)
+
+	// Goroutine to handle fsnotify events
+	go func() {
+		defer close(eventOccurred)
+		defer close(errorChannel)
+
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				log.Printf("Event received: %v", event)
+				if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Rename|fsnotify.Remove) != 0 {
+					log.Printf("Relevant event occurred: %s", event.Name)
+					eventOccurred <- event.Name
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Printf("Watcher error: %v", err)
+				errorChannel <- err
+			}
+		}
+	}()
+
+	// Wait for a relevant file event or timeout
+	select {
+	case <-eventOccurred:
+		log.Println("Relevant file event detected")
+		return nil
+	case err := <-errorChannel:
+		return fmt.Errorf("error from watcher: %w", err)
+	case <-time.After(timeout):
+		return errors.New("timeout waiting for file event")
+	}
+}
 
 // randomly finds an available port to bind to
 func getFreePort() (string, error) {
@@ -278,6 +340,11 @@ func TestProxyDirLoggerMode(t *testing.T) {
 
 	t.Run("TestDirLoggerNormal", func(t *testing.T) {
 		hitCounter.Store(0) // reset the counter
+
+		// setup a new watcher
+		watch, err := newWatcher(tmpDir + "/" + outputSubdir)
+		require.NoError(t, err)
+
 		// make a request using that client, through the proxy
 		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
 		require.NoError(t, err)
@@ -291,8 +358,9 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expectedResponse, body)
 
-		// sleep to allow the proxy to write the log file
-		time.Sleep(defaultSleepTime)
+		// wait for the proxy to write the log file
+		err = waitForFile(watch, defaultSleepTime)
+		require.NoError(t, err)
 
 		// check that the log file was created
 		logFiles, err := filepath.Glob(filepath.Join(tmpDir, outputSubdir, "*"))
@@ -310,6 +378,10 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		err = os.Remove(logFiles[0])
 		require.NoError(t, err)
 
+		// setup a new watcher
+		watch, err = newWatcher(tmpDir + "/" + outputSubdir)
+		require.NoError(t, err)
+
 		// make another request using that client, through the proxy
 		resp, err = client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello2"))
 		require.NoError(t, err)
@@ -317,7 +389,8 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.Equal(t, int32(2), hitCounter.Load())
 
 		// sleep to allow the proxy to write the log file
-		time.Sleep(defaultSleepTime)
+		err = waitForFile(watch, defaultSleepTime)
+		require.NoError(t, err)
 
 		// check the log
 		logFiles, err = filepath.Glob(filepath.Join(tmpDir, outputSubdir, "*"))
@@ -336,6 +409,9 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	t.Run("TestDirLoggerJSON", func(t *testing.T) {
 		hitCounter.Store(0) // reset the counter
 
+		watch, err := newWatcher(tmpDir + "/" + outputSubdir)
+		require.NoError(t, err)
+
 		// make another request using that client, through the proxy
 		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
 		require.NoError(t, err)
@@ -343,7 +419,8 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.Equal(t, int32(1), hitCounter.Load())
 
 		// sleep to allow the proxy to write the log file
-		time.Sleep(defaultSleepTime)
+		err = waitForFile(watch, defaultSleepTime)
+		require.NoError(t, err)
 
 		// check the log
 		logFiles, err := filepath.Glob(filepath.Join(tmpDir, outputSubdir, "*"))
@@ -439,7 +516,7 @@ func TestProxyCache(t *testing.T) {
 		assert.Equal(t, int32(1), hitCounter.Load())
 		assert.Equal(t, addons.CacheStatusMiss, resp.Header.Get(addons.CacheStatusHeader))
 
-		// wait for the cache to be written
+		// wait for the cache to be written, waiting for a file event is not reliable here
 		time.Sleep(defaultSleepTime)
 
 		// now, this should be a cache hit...
@@ -492,7 +569,7 @@ func TestProxyCache(t *testing.T) {
 		assert.Equal(t, int32(1), hitCounter.Load())
 		assert.Equal(t, addons.CacheStatusMiss, resp1.Header.Get(addons.CacheStatusHeader))
 
-		// wait for the cache to be written
+		// wait for the cache to be written, waiting for a file event is not reliable here
 		time.Sleep(defaultSleepTime)
 
 		// send another request without gzip, check that it's a cache hit (no gzip)
@@ -525,6 +602,8 @@ func TestProxyCache(t *testing.T) {
 
 // Testing imperative code is tough
 func TestNewProxy(t *testing.T) {
+	t.Parallel()
+
 	tempDir := t.TempDir()
 
 	ca, err := newCA(tempDir)
@@ -536,6 +615,8 @@ func TestNewProxy(t *testing.T) {
 }
 
 func TestNewCA(t *testing.T) {
+	t.Parallel()
+
 	tempDir := t.TempDir()
 
 	ca, err := newCA(tempDir)
@@ -544,6 +625,8 @@ func TestNewCA(t *testing.T) {
 }
 
 func TestConfigProxy(t *testing.T) {
+	t.Parallel()
+
 	t.Run("TestConfigProxy quiet mode", func(t *testing.T) {
 		// Create a mock configuration
 		cfg := config.NewDefaultConfig()

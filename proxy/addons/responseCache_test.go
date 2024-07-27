@@ -159,8 +159,12 @@ func TestRequest(t *testing.T) {
 		require.Error(t, err, "error expected when checking length of non-existent bucket")
 		require.Zero(t, len, "nothing in cache yet")
 
+		// convert the request to a RequestAccessor
+		reqAccessor, err := schema.NewRequestAccessor(flow.Request)
+		require.NoError(t, err)
+
 		// create traffic objects for the request and response, check header loading
-		tReq, err := schema.NewProxyRequestFromMITMRequest(flow.Request, filterReqHeaders)
+		tReq, err := schema.NewProxyRequest(reqAccessor, filterReqHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
@@ -222,8 +226,12 @@ func TestRequest(t *testing.T) {
 		require.NoError(t, err)
 		resp.Body = encodedBody
 
+		// convert the request to a RequestAccessor
+		reqAccessor, err := schema.NewRequestAccessor(flow.Request)
+		require.NoError(t, err)
+
 		// create traffic objects for the request and response, check header loading
-		tReq, err := schema.NewProxyRequestFromMITMRequest(flow.Request, filterReqHeaders)
+		tReq, err := schema.NewProxyRequest(reqAccessor, filterReqHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")

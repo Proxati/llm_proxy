@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/url"
 
-	px "github.com/proxati/mitmproxy/proxy"
-
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
@@ -152,23 +150,23 @@ func (pReq *ProxyRequest) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// NewFromMITMRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyRequestFromMITMRequest(req *px.Request, headersToFilter []string) (*ProxyRequest, error) {
+// NewProxyRequest creates a new ProxyRequest from a MITM proxy request object
+func NewProxyRequest(req RequestAccessor, headersToFilter []string) (*ProxyRequest, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request is nil, unable to create ProxyRequest")
 	}
 
 	pReq := &ProxyRequest{
-		Method: req.Method,
-		URL:    req.URL,
-		Proto:  req.Proto,
+		Method: req.GetMethod(),
+		URL:    req.GetURL(),
+		Proto:  req.GetProto(),
 	}
 
 	pReq.loadHeaderFilterIndex(headersToFilter)
-	pReq.loadHeaders(req.Header)
-	if err := pReq.loadBody(req.Body); err != nil {
-		if req.URL != nil {
-			getLogger().Warn("unable to load request body", "URL", req.URL.String())
+	pReq.loadHeaders(req.GetHeaders())
+	if err := pReq.loadBody(req.GetBodyBytes()); err != nil {
+		if pReq.URL != nil {
+			getLogger().Warn("unable to load request body", "URL", pReq.URL.String())
 		} else {
 			getLogger().Warn("unable to load request body")
 		}

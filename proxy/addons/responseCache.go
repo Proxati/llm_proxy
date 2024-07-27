@@ -137,7 +137,13 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		}
 
 		// convert the request to an internal TrafficObject
-		tObjReq, err := schema.NewProxyRequestFromMITMRequest(f.Request, c.filterReqHeaders)
+		reqAccessor, err := schema.NewRequestAccessor(f.Request) // generic wrapper for the mitm request
+		if err != nil {
+			logger.Error("could not create RequestAccessor", "error", err)
+			return
+		}
+
+		tObjReq, err := schema.NewProxyRequest(reqAccessor, c.filterReqHeaders)
 		if err != nil {
 			logger.Error("could not create TrafficObject from request", "error", err)
 			return

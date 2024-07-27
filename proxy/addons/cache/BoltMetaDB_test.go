@@ -39,7 +39,11 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 				Path:   "/test",
 			},
 		}
-		trafficObjReq, err := schema.NewProxyRequestFromMITMRequest(req, []string{})
+		// convert the request to a RequestAccessor
+		reqAccessor, err := schema.NewRequestAccessor(req)
+		require.NoError(t, err)
+
+		trafficObjReq, err := schema.NewProxyRequest(reqAccessor, []string{})
 		require.NoError(t, err)
 		require.NotNil(t, trafficObjReq)
 

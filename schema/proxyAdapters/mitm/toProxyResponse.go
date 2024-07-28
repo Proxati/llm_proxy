@@ -10,7 +10,6 @@ import (
 
 // ToProxyResponse converts a ProxyResponse into a MITM proxy response object (with content encoding matching the new req)
 // Because all responses are stored as uncompressed strings, the cached response might need to be encoded before being sent
-// TODO: move this out of the base schema package!
 func ToProxyResponse(pRes proxyAdapters.ResponseReaderAdapter, acceptEncodingHeader string) (*px.Response, error) {
 	resp := &px.Response{
 		StatusCode: pRes.GetStatusCode(),

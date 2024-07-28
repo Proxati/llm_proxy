@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 	px "github.com/proxati/mitmproxy/proxy"
 
@@ -159,14 +160,21 @@ func TestRequest(t *testing.T) {
 		require.Error(t, err, "error expected when checking length of non-existent bucket")
 		require.Zero(t, len, "nothing in cache yet")
 
+		// convert the request to a RequestAdapter
+		reqAdapter := mitm.NewProxyRequestAdapter(flow.Request)
+		require.NotNil(t, reqAdapter)
+
 		// create traffic objects for the request and response, check header loading
-		tReq, err := schema.NewProxyRequestFromMITMRequest(flow.Request, filterReqHeaders)
+		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
 		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
-		tResp, err := schema.NewProxyResponseFromMITMResponse(resp, filterRespHeaders)
+		respAdapter := mitm.NewProxyResponseAdapter(resp)
+		require.NotNil(t, respAdapter)
+
+		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tResp.Header.Get(CacheStatusHeader))
 		require.NotEmpty(t, tResp.Header.Get("header1"), "header should be deleted by factory function")
@@ -222,14 +230,21 @@ func TestRequest(t *testing.T) {
 		require.NoError(t, err)
 		resp.Body = encodedBody
 
+		// convert the request to a RequestAdapter
+		reqAdapter := mitm.NewProxyRequestAdapter(flow.Request)
+		require.NotNil(t, reqAdapter)
+
 		// create traffic objects for the request and response, check header loading
-		tReq, err := schema.NewProxyRequestFromMITMRequest(flow.Request, filterReqHeaders)
+		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
 		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
-		tResp, err := schema.NewProxyResponseFromMITMResponse(resp, filterRespHeaders)
+		respAdapter := mitm.NewProxyResponseAdapter(resp)
+		require.NotNil(t, respAdapter)
+
+		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tResp.Header.Get(CacheStatusHeader))
 		require.NotEmpty(t, tResp.Header.Get("header1"), "header should be deleted by factory function")

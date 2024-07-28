@@ -13,6 +13,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
@@ -137,7 +138,9 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		}
 
 		// convert the request to an internal TrafficObject
-		tObjReq, err := schema.NewProxyRequestFromMITMRequest(f.Request, c.filterReqHeaders)
+		reqAdapter := mitm.NewProxyRequestAdapter(f.Request) // generic wrapper for the mitm request
+
+		tObjReq, err := schema.NewProxyRequest(reqAdapter, c.filterReqHeaders)
 		if err != nil {
 			logger.Error("could not create TrafficObject from request", "error", err)
 			return
@@ -146,7 +149,8 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		tObjReq.Header.Del("Accept-Encoding")
 
 		// convert the response to an internal TrafficObject
-		tObjResp, err := schema.NewProxyResponseFromMITMResponse(f.Response, c.filterRespHeaders)
+		respAdapter := mitm.NewProxyResponseAdapter(f.Response) // generic wrapper for the mitm response
+		tObjResp, err := schema.NewProxyResponse(respAdapter, c.filterRespHeaders)
 		if err != nil {
 			logger.Error("could not create TrafficObject from response", "error", err)
 			return

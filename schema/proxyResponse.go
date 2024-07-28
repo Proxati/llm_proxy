@@ -8,6 +8,7 @@ import (
 
 	px "github.com/proxati/mitmproxy/proxy"
 
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
@@ -27,7 +28,7 @@ func (pReq *ProxyResponse) loadHeaderFilterIndex(headersToFilter []string) {
 }
 
 // loadHeaders resets and loads the new headers into the ProxyRequest object
-func (pReq *ProxyResponse) loadHeaders(headers map[string][]string) {
+func (pReq *ProxyResponse) loadHeaders(headers http.Header) {
 	pReq.Header = make(http.Header)
 	if pReq.headerFilterIndex == nil {
 		pReq.Header = headers
@@ -119,6 +120,7 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 
 // ToProxyResponse converts a ProxyResponse into a MITM proxy response object (with content encoding matching the new req)
 // Because all responses are stored as uncompressed strings, the cached response might need to be encoded before being sent
+// TODO: move this out of the base schema package!
 func (pRes *ProxyResponse) ToProxyResponse(acceptEncodingHeader string) (*px.Response, error) {
 	resp := &px.Response{
 		StatusCode: pRes.Status,
@@ -140,19 +142,20 @@ func (pRes *ProxyResponse) ToProxyResponse(acceptEncodingHeader string) (*px.Res
 }
 
 // NewFromMITMRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyResponseFromMITMResponse(req *px.Response, headersToFilter []string) (*ProxyResponse, error) {
+func NewProxyResponse(req proxyAdapters.ResponseReaderAdapter, headersToFilter []string) (*ProxyResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("response is nil, unable to create ProxyResponse")
 	}
 
 	pRes := &ProxyResponse{
-		Status: req.StatusCode,
+		Status: req.GetStatusCode(),
 	}
+	headers := req.GetHeaders()
 
 	pRes.loadHeaderFilterIndex(headersToFilter)
-	pRes.loadHeaders(req.Header)
+	pRes.loadHeaders(headers)
 
-	if err := pRes.loadBody(req.Body, req.Header.Get("Content-Encoding")); err != nil {
+	if err := pRes.loadBody(req.GetBodyBytes(), headers.Get("Content-Encoding")); err != nil {
 		getLogger().Warn("could not load ProxyResponse body", "error", err)
 	}
 

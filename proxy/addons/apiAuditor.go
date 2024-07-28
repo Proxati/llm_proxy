@@ -8,6 +8,7 @@ import (
 
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/providers"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
@@ -53,14 +54,18 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 		}
 
 		// convert the request to an internal TrafficObject
-		tObjReq, err := schema.NewProxyRequestFromMITMRequest(f.Request, []string{})
+		reqAdapter := mitm.NewProxyRequestAdapter(f.Request) // generic wrapper for the mitm request
+
+		tObjReq, err := schema.NewProxyRequest(reqAdapter, []string{})
 		if err != nil {
 			logger.Error("error creating TrafficObject from request", "error", err)
 			return
 		}
 
 		// convert the response to an internal TrafficObject
-		tObjResp, err := schema.NewProxyResponseFromMITMResponse(f.Response, []string{})
+		respAdapter := mitm.NewProxyResponseAdapter(f.Response) // generic wrapper for the mitm response
+
+		tObjResp, err := schema.NewProxyResponse(respAdapter, []string{})
 		if err != nil {
 			logger.Error("error creating TrafficObject from response", "error", err)
 			return

@@ -1,61 +1,92 @@
-package schema
+package schema_test
 
 import (
 	"net/http"
 	"net/url"
 	"testing"
 
-	px "github.com/proxati/mitmproxy/proxy"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
 )
 
-func getDefaultFlow() *px.Flow {
-	return &px.Flow{
-		Request: &px.Request{
-			Method: "GET",
-			URL: &url.URL{
-				Scheme: "http",
-				Host:   "example.com",
-				Path:   "/",
-			},
-			Proto: "HTTP/1.1",
-			Header: http.Header{
-				"Content-Type":      []string{"[application/json]"},
-				"Delete-Me-Request": []string{"too-many-secrets"},
-			},
-			Body: []byte(`{"key": "value"}`),
+type MockFlow struct {
+	Request         *MockProxyRequestReaderAdapter
+	Response        *MockProxyResponseReaderAdapter
+	ConnectionStats *MockConnectionStatsReaderAdapter
+	// ConnectionStats *Mock
+	Id uuid.UUID
+}
+
+func (m MockFlow) GetRequest() proxyAdapters.RequestReaderAdapter {
+	return m.Request
+}
+
+func (m MockFlow) GetResponse() proxyAdapters.ResponseReaderAdapter {
+	return m.Response
+}
+
+func (m MockFlow) GetConnectionStats() proxyAdapters.ConnectionStatsReaderAdapter {
+	return m.ConnectionStats
+}
+
+func getDefaultFlow() proxyAdapters.FlowReaderAdapter {
+	req := &MockProxyRequestReaderAdapter{
+		Method: "GET",
+		URL: &url.URL{
+			Scheme: "http",
+			Host:   "example.com",
+			Path:   "/",
 		},
-		Response: &px.Response{
-			StatusCode: http.StatusOK,
-			Header: http.Header{
-				"Content-Type":       []string{"[application/json]"},
-				"Delete-Me-Response": []string{"too-many-secrets"},
-			},
-			Body: []byte(`{"status": "success"}`),
+		Proto: "HTTP/1.1",
+		Headers: http.Header{
+			"Content-Type":      []string{"[application/json]"},
+			"Delete-Me-Request": []string{"too-many-secrets"},
 		},
+		Body: []byte(`{"key": "value"}`),
+	}
+
+	resp := &MockProxyResponseReaderAdapter{
+		StatusCode: http.StatusOK,
+		Headers: http.Header{
+			"Content-Type":       []string{"[application/json]"},
+			"Delete-Me-Response": []string{"too-many-secrets"},
+		},
+		Body: []byte(`{"status": "success"}`),
+	}
+
+	cs := &MockConnectionStatsReaderAdapter{}
+
+	return MockFlow{
+		Request:         req,
+		Response:        resp,
+		ConnectionStats: cs,
 	}
 }
 
-func getDefaultConnectionStats() *ConnectionStatsContainer {
-	return &ConnectionStatsContainer{
-		ClientAddress: "unknown",
-		URL:           "http://example.com/",
+func getDefaultConnectionStats() *schema.ProxyConnectionStats {
+	cs := &MockConnectionStatsReaderAdapter{}
+
+	return &schema.ProxyConnectionStats{
+		ClientAddress: cs.GetClientIP(),
+		URL:           cs.GetRequestURL(),
 		Duration:      0,
-		ProxyID:       "00000000-0000-0000-0000-000000000000",
+		ProxyID:       cs.GetProxyID(),
 	}
 }
 
 func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 	testCases := []struct {
 		name                    string
-		flow                    *px.Flow
+		flow                    proxyAdapters.FlowReaderAdapter
 		logSources              config.LogSourceConfig
 		filterReqHeaders        []string
 		filterRespHeaders       []string
-		expectedConnectionStats *ConnectionStatsContainer
+		expectedConnectionStats *schema.ProxyConnectionStats
 		expectedRequestMethod   string
 		expectedRequestURL      string
 		expectedRequestProto    string
@@ -99,7 +130,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        []string{},
 			filterRespHeaders:       []string{},
-			expectedConnectionStats: (*ConnectionStatsContainer)(nil), // weird way to assert nil
+			expectedConnectionStats: (*schema.ProxyConnectionStats)(nil), // weird way to assert nil
 		},
 		{
 			name: "all fields enabled, with filter",
@@ -211,7 +242,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			container, err := NewLogDumpContainer(tc.flow, tc.logSources, 0, tc.filterReqHeaders, tc.filterRespHeaders)
+			container, err := schema.NewLogDumpContainer(tc.flow, tc.logSources, 0, tc.filterReqHeaders, tc.filterRespHeaders)
 			require.Nil(t, err)
 			assert.Equal(t, tc.expectedConnectionStats, container.ConnectionStats)
 			assert.Equal(t, tc.expectedRequestMethod, container.Request.Method)

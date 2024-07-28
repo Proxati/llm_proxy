@@ -5,9 +5,8 @@ import (
 	"net/url"
 	"time"
 
-	px "github.com/proxati/mitmproxy/proxy"
-
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
 )
 
 const SchemaVersion string = "v2"
@@ -15,17 +14,17 @@ const ObjectTypeDefault string = "llm_proxy_traffic_log"
 
 // LogDumpContainer holds the request and response data for a given flow
 type LogDumpContainer struct {
-	ObjectType      string                    `json:"object_type,omitempty"`
-	SchemaVersion   string                    `json:"schema,omitempty"`
-	Timestamp       time.Time                 `json:"timestamp,omitempty"`
-	ConnectionStats *ConnectionStatsContainer `json:"connection_stats,omitempty"`
-	Request         *ProxyRequest             `json:"request,omitempty"`
-	Response        *ProxyResponse            `json:"response,omitempty"`
+	ObjectType      string                `json:"object_type,omitempty"`
+	SchemaVersion   string                `json:"schema,omitempty"`
+	Timestamp       time.Time             `json:"timestamp,omitempty"`
+	ConnectionStats *ProxyConnectionStats `json:"connection_stats,omitempty"`
+	Request         *ProxyRequest         `json:"request,omitempty"`
+	Response        *ProxyResponse        `json:"response,omitempty"`
 	logConfig       config.LogSourceConfig
 }
 
 // NewLogDumpContainer returns a LogDumpContainer with *only* the fields requested in logSources populated
-func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt int64, filterReqHeaders, filterRespHeaders []string) (*LogDumpContainer, error) {
+func NewLogDumpContainer(f proxyAdapters.FlowReaderAdapter, logSources config.LogSourceConfig, doneAt int64, filterReqHeaders, filterRespHeaders []string) (*LogDumpContainer, error) {
 	if f == nil {
 		return nil, errors.New("flow is nil")
 	}
@@ -45,7 +44,8 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogRequest {
-		ldc.Request, err = NewProxyRequestFromMITMRequest(f.Request, filterReqHeaders)
+		// convert the request to a request adapter
+		ldc.Request, err = NewProxyRequest(f.GetRequest(), filterReqHeaders)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -55,7 +55,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogResponse {
-		ldc.Response, err = NewProxyResponseFromMITMResponse(f.Response, filterRespHeaders)
+		ldc.Response, err = NewProxyResponse(f.GetResponse(), filterRespHeaders)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -65,7 +65,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogConnectionStats {
-		ldc.ConnectionStats = NewConnectionStatusContainerWithDuration(f, doneAt)
+		ldc.ConnectionStats = NewProxyConnectionStatsWithDuration(f.GetConnectionStats(), doneAt)
 	}
 
 	for _, err := range errs {

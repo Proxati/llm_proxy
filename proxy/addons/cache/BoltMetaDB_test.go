@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 	px "github.com/proxati/mitmproxy/proxy"
 
 	"github.com/stretchr/testify/assert"
@@ -39,7 +40,11 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 				Path:   "/test",
 			},
 		}
-		trafficObjReq, err := schema.NewProxyRequestFromMITMRequest(req, []string{})
+		// convert the request to a RequestAdapter
+		reqAdapter := mitm.NewProxyRequestAdapter(req)
+		require.NotNil(t, reqAdapter)
+
+		trafficObjReq, err := schema.NewProxyRequest(reqAdapter, []string{})
 		require.NoError(t, err)
 		require.NotNil(t, trafficObjReq)
 
@@ -48,7 +53,12 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 			Header:     map[string][]string{"Content-Type": {"text/plain"}},
 			Body:       []byte("hello"),
 		}
-		trafficObjResp, err := schema.NewProxyResponseFromMITMResponse(resp, []string{})
+
+		// convert the response to a ResponseAdapter
+		respAdapter := mitm.NewProxyResponseAdapter(resp)
+		require.NotNil(t, respAdapter)
+
+		trafficObjResp, err := schema.NewProxyResponse(respAdapter, []string{})
 		require.NoError(t, err)
 		require.NotNil(t, trafficObjResp)
 

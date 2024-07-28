@@ -11,14 +11,14 @@ import (
 )
 
 func TestLogStdOutLine_toJSONstr(t *testing.T) {
-	line := &ConnectionStats{
+	line := &ProxyConnectionStats{
 		ClientAddress: "127.0.0.1",
 		URL:           "http://example.com",
 		Duration:      100,
 	}
 
 	expected := `{"client_address":"127.0.0.1","url":"http://example.com","duration_ms":100}`
-	assert.Equal(t, expected, line.ToJSONstr())
+	assert.Equal(t, expected, line.toJSONstr())
 }
 
 func TestNewLogLine(t *testing.T) {
@@ -36,8 +36,8 @@ func TestNewLogLine(t *testing.T) {
 		Id: uuid.NewV4(),
 	}
 
-	csAdapter := NewConnectionStatsAdapter_MiTM(&f)
-	logLine := NewConnectionStatsWithDuration(csAdapter, 100)
+	csAdapter := newProxyConnectionStatsAdapter_MiTM(&f)
+	logLine := newProxyConnectionStatsWithDuration(csAdapter, 100)
 	assert.NotNil(t, logLine)
 	assert.Equal(t, "unknown", logLine.ClientAddress)
 	assert.Equal(t, "https://example.com/testpath", logLine.URL)

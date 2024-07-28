@@ -15,12 +15,12 @@ const ObjectTypeDefault string = "llm_proxy_traffic_log"
 
 // LogDumpContainer holds the request and response data for a given flow
 type LogDumpContainer struct {
-	ObjectType      string           `json:"object_type,omitempty"`
-	SchemaVersion   string           `json:"schema,omitempty"`
-	Timestamp       time.Time        `json:"timestamp,omitempty"`
-	ConnectionStats *ConnectionStats `json:"connection_stats,omitempty"`
-	Request         *ProxyRequest    `json:"request,omitempty"`
-	Response        *ProxyResponse   `json:"response,omitempty"`
+	ObjectType      string                `json:"object_type,omitempty"`
+	SchemaVersion   string                `json:"schema,omitempty"`
+	Timestamp       time.Time             `json:"timestamp,omitempty"`
+	ConnectionStats *ProxyConnectionStats `json:"connection_stats,omitempty"`
+	Request         *ProxyRequest         `json:"request,omitempty"`
+	Response        *ProxyResponse        `json:"response,omitempty"`
 	logConfig       config.LogSourceConfig
 }
 
@@ -68,8 +68,8 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogConnectionStats {
-		csAdapter := NewConnectionStatsAdapter_MiTM(f)
-		ldc.ConnectionStats = NewConnectionStatsWithDuration(csAdapter, doneAt)
+		csAdapter := newProxyConnectionStatsAdapter_MiTM(f)
+		ldc.ConnectionStats = newProxyConnectionStatsWithDuration(csAdapter, doneAt)
 	}
 
 	for _, err := range errs {

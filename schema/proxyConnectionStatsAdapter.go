@@ -12,7 +12,7 @@ type ConnectionStatsAdapter_MiTM struct {
 	f *px.Flow
 }
 
-func NewConnectionStatsAdapter_MiTM(f *px.Flow) *ConnectionStatsAdapter_MiTM {
+func newProxyConnectionStatsAdapter_MiTM(f *px.Flow) *ConnectionStatsAdapter_MiTM {
 	if f == nil {
 		return nil
 	}

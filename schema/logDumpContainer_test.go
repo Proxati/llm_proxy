@@ -39,8 +39,8 @@ func getDefaultFlow() *px.Flow {
 	}
 }
 
-func getDefaultConnectionStats() *ConnectionStats {
-	return &ConnectionStats{
+func getDefaultConnectionStats() *ProxyConnectionStats {
+	return &ProxyConnectionStats{
 		ClientAddress: "unknown",
 		URL:           "http://example.com/",
 		Duration:      0,
@@ -55,7 +55,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 		logSources              config.LogSourceConfig
 		filterReqHeaders        []string
 		filterRespHeaders       []string
-		expectedConnectionStats *ConnectionStats
+		expectedConnectionStats *ProxyConnectionStats
 		expectedRequestMethod   string
 		expectedRequestURL      string
 		expectedRequestProto    string
@@ -99,7 +99,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        []string{},
 			filterRespHeaders:       []string{},
-			expectedConnectionStats: (*ConnectionStats)(nil), // weird way to assert nil
+			expectedConnectionStats: (*ProxyConnectionStats)(nil), // weird way to assert nil
 		},
 		{
 			name: "all fields enabled, with filter",

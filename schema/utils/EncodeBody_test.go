@@ -12,6 +12,8 @@ import (
 )
 
 func TestParseAcceptEncoding(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		header   string
@@ -60,6 +62,43 @@ func TestParseAcceptEncoding(t *testing.T) {
 				"br": 5.0,
 			},
 		},
+		{
+			name:   "Invalid encoding type",
+			header: "invalid;q=2.0",
+			expected: map[string]float64{
+				"invalid": 2.0,
+			},
+		},
+		{
+			name:   "Invalid encoding and quality",
+			header: "invalid;q=number",
+			expected: map[string]float64{
+				"invalid": 1.0,
+			},
+		},
+		{
+			name:   "Mixed valid and invalid encoding types",
+			header: "gzip, invalid;q=0.5, br;q=99",
+			expected: map[string]float64{
+				"gzip":    1.0, // default quality
+				"invalid": 0.5,
+				"br":      99.0,
+			},
+		},
+		{
+			name:   "Quality value of 0",
+			header: "gzip;q=0",
+			expected: map[string]float64{
+				"gzip": 0.0,
+			},
+		},
+		{
+			name:   "Quality value greater than 1",
+			header: "gzip;q=1.5",
+			expected: map[string]float64{
+				"gzip": 1.5,
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -71,6 +110,7 @@ func TestParseAcceptEncoding(t *testing.T) {
 }
 
 func TestChooseEncoding(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		header   string
@@ -114,6 +154,21 @@ func TestChooseEncoding(t *testing.T) {
 		{
 			name:     "Handle invalid quality value, default to gzip",
 			header:   "gzip;q=invalid, deflate;q=0.8",
+			expected: "gzip",
+		},
+		{
+			name:     "Handle invalid encoding type",
+			header:   "invalid;q=1.0",
+			expected: "",
+		},
+		{
+			name:     "Mixed valid and invalid encoding types",
+			header:   "gzip, invalid;q=0.5, br;q=99",
+			expected: "br",
+		},
+		{
+			name:     "Quality value greater than 1",
+			header:   "gzip;q=1.5, deflate;q=0.8",
 			expected: "gzip",
 		},
 	}

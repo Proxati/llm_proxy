@@ -140,7 +140,7 @@ func (pRes *ProxyResponse) ToProxyResponse(acceptEncodingHeader string) (*px.Res
 }
 
 // NewFromMITMRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyResponse(req ResponseAdapter, headersToFilter []string) (*ProxyResponse, error) {
+func NewProxyResponse(req ProxyResponseReaderAdapter, headersToFilter []string) (*ProxyResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("response is nil, unable to create ProxyResponse")
 	}

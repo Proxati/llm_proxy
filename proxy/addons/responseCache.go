@@ -137,9 +137,9 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		}
 
 		// convert the request to an internal TrafficObject
-		reqAccessor := schema.NewRequestAdapter_MiTM(f.Request) // generic wrapper for the mitm request
+		reqAdapter := schema.NewProxyRequestAdapter_MiTM(f.Request) // generic wrapper for the mitm request
 
-		tObjReq, err := schema.NewProxyRequest(reqAccessor, c.filterReqHeaders)
+		tObjReq, err := schema.NewProxyRequest(reqAdapter, c.filterReqHeaders)
 		if err != nil {
 			logger.Error("could not create TrafficObject from request", "error", err)
 			return
@@ -148,8 +148,8 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		tObjReq.Header.Del("Accept-Encoding")
 
 		// convert the response to an internal TrafficObject
-		respAccessor := schema.NewResponseAdapter_MiTM(f.Response) // generic wrapper for the mitm response
-		tObjResp, err := schema.NewProxyResponse(respAccessor, c.filterRespHeaders)
+		respAdapter := schema.NewProxyResponseAdapter_MiTM(f.Response) // generic wrapper for the mitm response
+		tObjResp, err := schema.NewProxyResponse(respAdapter, c.filterRespHeaders)
 		if err != nil {
 			logger.Error("could not create TrafficObject from response", "error", err)
 			return

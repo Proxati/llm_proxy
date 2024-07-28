@@ -31,10 +31,10 @@ func Test_NewFromMITMRequest(t *testing.T) {
 			Proto:  "HTTP/1.1",
 		}
 
-		// convert the request to a RequestAccessor
-		reqAccessor := NewRequestAdapter_MiTM(request)
+		// convert the request to a RequestAdapter
+		reqAdapter := NewProxyRequestAdapter_MiTM(request)
 
-		trafficObject, err := NewProxyRequest(reqAccessor, headersToFilter)
+		trafficObject, err := NewProxyRequest(reqAdapter, headersToFilter)
 		require.NoError(t, err)
 		assert.Equal(t, "GET", trafficObject.Method)
 		assert.Equal(t, "http://example.com", trafficObject.URL.String())
@@ -47,10 +47,10 @@ func Test_NewFromMITMRequest(t *testing.T) {
 		request := &px.Request{
 			Body: []byte("\x01\x02\x03"),
 		}
-		// convert the request to a RequestAccessor
-		reqAccessor := NewRequestAdapter_MiTM(request)
+		// convert the request to a RequestAdapter
+		reqAdapter := NewProxyRequestAdapter_MiTM(request)
 
-		trafficObject, err := NewProxyRequest(reqAccessor, emptyStringSlice)
+		trafficObject, err := NewProxyRequest(reqAdapter, emptyStringSlice)
 		require.NoError(t, err)
 		assert.NotNil(t, trafficObject)
 		assert.Empty(t, trafficObject.Body)

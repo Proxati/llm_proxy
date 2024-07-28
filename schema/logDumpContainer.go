@@ -15,12 +15,12 @@ const ObjectTypeDefault string = "llm_proxy_traffic_log"
 
 // LogDumpContainer holds the request and response data for a given flow
 type LogDumpContainer struct {
-	ObjectType      string                    `json:"object_type,omitempty"`
-	SchemaVersion   string                    `json:"schema,omitempty"`
-	Timestamp       time.Time                 `json:"timestamp,omitempty"`
-	ConnectionStats *ConnectionStatsContainer `json:"connection_stats,omitempty"`
-	Request         *ProxyRequest             `json:"request,omitempty"`
-	Response        *ProxyResponse            `json:"response,omitempty"`
+	ObjectType      string           `json:"object_type,omitempty"`
+	SchemaVersion   string           `json:"schema,omitempty"`
+	Timestamp       time.Time        `json:"timestamp,omitempty"`
+	ConnectionStats *ConnectionStats `json:"connection_stats,omitempty"`
+	Request         *ProxyRequest    `json:"request,omitempty"`
+	Response        *ProxyResponse   `json:"response,omitempty"`
 	logConfig       config.LogSourceConfig
 }
 
@@ -45,10 +45,9 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogRequest {
-		// convert the request to a request accessor
-		reqAccessor := NewRequestAdapter_MiTM(f.Request)
-
-		ldc.Request, err = NewProxyRequest(reqAccessor, filterReqHeaders)
+		// convert the request to a request adapter
+		reqAdapter := NewProxyRequestAdapter_MiTM(f.Request)
+		ldc.Request, err = NewProxyRequest(reqAdapter, filterReqHeaders)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -58,8 +57,8 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogResponse {
-		respAccessor := NewResponseAdapter_MiTM(f.Response)
-		ldc.Response, err = NewProxyResponse(respAccessor, filterRespHeaders)
+		respAdapter := NewProxyResponseAdapter_MiTM(f.Response)
+		ldc.Response, err = NewProxyResponse(respAdapter, filterRespHeaders)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -69,7 +68,8 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogConnectionStats {
-		ldc.ConnectionStats = NewConnectionStatusContainerWithDuration(f, doneAt)
+		csAdapter := NewConnectionStatsAdapter_MiTM(f)
+		ldc.ConnectionStats = NewConnectionStatsWithDuration(csAdapter, doneAt)
 	}
 
 	for _, err := range errs {

@@ -25,8 +25,8 @@ func TestNewProxyResponseFromMITMResponse(t *testing.T) {
 	}
 	headersToFilter := []string{"Delete-Me"}
 
-	respAccessor := NewResponseAdapter_MiTM(req)
-	res, err := NewProxyResponse(respAccessor, headersToFilter)
+	respAdapter := NewProxyResponseAdapter_MiTM(req)
+	res, err := NewProxyResponse(respAdapter, headersToFilter)
 	require.NoError(t, err)
 
 	assert.Equal(t, 200, res.Status)

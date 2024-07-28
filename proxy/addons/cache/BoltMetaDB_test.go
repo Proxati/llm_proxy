@@ -39,11 +39,11 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 				Path:   "/test",
 			},
 		}
-		// convert the request to a RequestAccessor
-		reqAccessor := schema.NewRequestAdapter_MiTM(req)
-		require.NotNil(t, reqAccessor)
+		// convert the request to a RequestAdapter
+		reqAdapter := schema.NewProxyRequestAdapter_MiTM(req)
+		require.NotNil(t, reqAdapter)
 
-		trafficObjReq, err := schema.NewProxyRequest(reqAccessor, []string{})
+		trafficObjReq, err := schema.NewProxyRequest(reqAdapter, []string{})
 		require.NoError(t, err)
 		require.NotNil(t, trafficObjReq)
 
@@ -53,11 +53,11 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 			Body:       []byte("hello"),
 		}
 
-		// convert the response to a ResponseAccessor
-		respAccessor := schema.NewResponseAdapter_MiTM(resp)
-		require.NotNil(t, respAccessor)
+		// convert the response to a ResponseAdapter
+		respAdapter := schema.NewProxyResponseAdapter_MiTM(resp)
+		require.NotNil(t, respAdapter)
 
-		trafficObjResp, err := schema.NewProxyResponse(respAccessor, []string{})
+		trafficObjResp, err := schema.NewProxyResponse(respAdapter, []string{})
 		require.NoError(t, err)
 		require.NotNil(t, trafficObjResp)
 

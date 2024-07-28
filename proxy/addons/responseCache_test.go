@@ -159,21 +159,21 @@ func TestRequest(t *testing.T) {
 		require.Error(t, err, "error expected when checking length of non-existent bucket")
 		require.Zero(t, len, "nothing in cache yet")
 
-		// convert the request to a RequestAccessor
-		reqAccessor := schema.NewRequestAdapter_MiTM(flow.Request)
-		require.NotNil(t, reqAccessor)
+		// convert the request to a RequestAdapter
+		reqAdapter := schema.NewProxyRequestAdapter_MiTM(flow.Request)
+		require.NotNil(t, reqAdapter)
 
 		// create traffic objects for the request and response, check header loading
-		tReq, err := schema.NewProxyRequest(reqAccessor, filterReqHeaders)
+		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
 		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
-		respAccessor := schema.NewResponseAdapter_MiTM(resp)
-		require.NotNil(t, respAccessor)
+		respAdapter := schema.NewProxyResponseAdapter_MiTM(resp)
+		require.NotNil(t, respAdapter)
 
-		tResp, err := schema.NewProxyResponse(respAccessor, filterRespHeaders)
+		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tResp.Header.Get(CacheStatusHeader))
 		require.NotEmpty(t, tResp.Header.Get("header1"), "header should be deleted by factory function")
@@ -229,21 +229,21 @@ func TestRequest(t *testing.T) {
 		require.NoError(t, err)
 		resp.Body = encodedBody
 
-		// convert the request to a RequestAccessor
-		reqAccessor := schema.NewRequestAdapter_MiTM(flow.Request)
-		require.NotNil(t, reqAccessor)
+		// convert the request to a RequestAdapter
+		reqAdapter := schema.NewProxyRequestAdapter_MiTM(flow.Request)
+		require.NotNil(t, reqAdapter)
 
 		// create traffic objects for the request and response, check header loading
-		tReq, err := schema.NewProxyRequest(reqAccessor, filterReqHeaders)
+		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
 		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
-		respAccessor := schema.NewResponseAdapter_MiTM(resp)
-		require.NotNil(t, respAccessor)
+		respAdapter := schema.NewProxyResponseAdapter_MiTM(resp)
+		require.NotNil(t, respAdapter)
 
-		tResp, err := schema.NewProxyResponse(respAccessor, filterRespHeaders)
+		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tResp.Header.Get(CacheStatusHeader))
 		require.NotEmpty(t, tResp.Header.Get("header1"), "header should be deleted by factory function")

@@ -12,6 +12,8 @@ import (
 )
 
 // parseAcceptEncoding parses the Accept-Encoding header to find out what encodings are accepted.
+// no error management is done here, as the header encoding and quality is returned regardless of
+// the validity.
 func parseAcceptEncoding(headerValue *string) map[string]float64 {
 	encodings := make(map[string]float64)
 	if *headerValue == "" {
@@ -125,5 +127,5 @@ func EncodeBody(body []byte, acceptEncodingHeader string) (encodedBody []byte, e
 		// default to empty encoding for the "identity" accept-encoding header
 		return body, "", nil
 	}
-	return nil, "", fmt.Errorf("unsupported encoding: %s", selectedEncoding)
+	return nil, "", fmt.Errorf("could not determine encoding type: %s", selectedEncoding)
 }

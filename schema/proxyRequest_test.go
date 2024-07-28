@@ -32,8 +32,7 @@ func Test_NewFromMITMRequest(t *testing.T) {
 		}
 
 		// convert the request to a RequestAccessor
-		reqAccessor, err := NewRequestAccessor(request)
-		require.NoError(t, err)
+		reqAccessor := NewRequestAccessor_MiTM(request)
 
 		trafficObject, err := NewProxyRequest(reqAccessor, headersToFilter)
 		require.NoError(t, err)
@@ -49,8 +48,7 @@ func Test_NewFromMITMRequest(t *testing.T) {
 			Body: []byte("\x01\x02\x03"),
 		}
 		// convert the request to a RequestAccessor
-		reqAccessor, err := NewRequestAccessor(request)
-		require.NoError(t, err)
+		reqAccessor := NewRequestAccessor_MiTM(request)
 
 		trafficObject, err := NewProxyRequest(reqAccessor, emptyStringSlice)
 		require.NoError(t, err)

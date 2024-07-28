@@ -46,10 +46,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 
 	if logSources.LogRequest {
 		// convert the request to a request accessor
-		reqAccessor, err := NewRequestAccessor(f.Request)
-		if err != nil {
-			return nil, err
-		}
+		reqAccessor := NewRequestAccessor_MiTM(f.Request)
 
 		ldc.Request, err = NewProxyRequest(reqAccessor, filterReqHeaders)
 		if err != nil {

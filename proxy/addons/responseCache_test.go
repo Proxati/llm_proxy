@@ -160,8 +160,7 @@ func TestRequest(t *testing.T) {
 		require.Zero(t, len, "nothing in cache yet")
 
 		// convert the request to a RequestAccessor
-		reqAccessor, err := schema.NewRequestAccessor(flow.Request)
-		require.NoError(t, err)
+		reqAccessor := schema.NewRequestAccessor_MiTM(flow.Request)
 
 		// create traffic objects for the request and response, check header loading
 		tReq, err := schema.NewProxyRequest(reqAccessor, filterReqHeaders)
@@ -227,8 +226,7 @@ func TestRequest(t *testing.T) {
 		resp.Body = encodedBody
 
 		// convert the request to a RequestAccessor
-		reqAccessor, err := schema.NewRequestAccessor(flow.Request)
-		require.NoError(t, err)
+		reqAccessor := schema.NewRequestAccessor_MiTM(flow.Request)
 
 		// create traffic objects for the request and response, check header loading
 		tReq, err := schema.NewProxyRequest(reqAccessor, filterReqHeaders)

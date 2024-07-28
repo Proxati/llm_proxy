@@ -11,7 +11,7 @@ import (
 
 func TestNewRequestAccessor(t *testing.T) {
 	// Test case for mitmproxy request
-	pxReq := &px.Request{
+	request := &px.Request{
 		Method: "GET",
 		URL:    &url.URL{Scheme: "http", Host: "example.com", Path: "/"},
 		Proto:  "HTTP/1.1",
@@ -19,14 +19,8 @@ func TestNewRequestAccessor(t *testing.T) {
 		Body:   []byte(`{"key":"value"}`),
 	}
 
-	accessor, err := NewRequestAccessor(pxReq)
-	assert.NoError(t, err)
-	assert.NotNil(t, accessor)
-
-	// Test case for unsupported request type
-	invalid, err := NewRequestAccessor("unsupported type")
-	assert.Error(t, err)
-	assert.Nil(t, invalid)
+	reqAccessor := NewRequestAccessor_MiTM(request)
+	assert.NotNil(t, reqAccessor)
 }
 
 func TestRequestAccessorMiTM(t *testing.T) {

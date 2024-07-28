@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 
@@ -43,14 +42,4 @@ func (r *RequestAccessorMiTM) GetHeaders() http.Header {
 
 func (r *RequestAccessorMiTM) GetBodyBytes() []byte {
 	return r.pxReq.Body
-}
-
-// NewRequestAccessor returns a RequestAccessor for the given request object
-func NewRequestAccessor(req any) (RequestAccessor, error) {
-	switch req.(type) {
-	case *px.Request:
-		return NewRequestAccessor_MiTM(req.(*px.Request)), nil
-	default:
-		return nil, errors.New("unsupported request type")
-	}
 }

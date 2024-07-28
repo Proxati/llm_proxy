@@ -111,20 +111,19 @@ func brotliCompress(body []byte) ([]byte, string, error) {
 }
 
 // EncodeBody compresses a string (the response body) based on the content-encoding header
-func EncodeBody(body *string, acceptEncodingHeader string) (encodedBody []byte, encoding string, err error) {
+func EncodeBody(body []byte, acceptEncodingHeader string) (encodedBody []byte, encoding string, err error) {
 	selectedEncoding := chooseEncoding(&acceptEncodingHeader)
-	bodyBytes := []byte(*body)
 
 	switch selectedEncoding {
 	case gzipEncoding:
-		return gzipCompress(bodyBytes)
+		return gzipCompress(body)
 	case deflateEncoding:
-		return deflateCompress(bodyBytes)
+		return deflateCompress(body)
 	case brotliEncoding:
-		return brotliCompress(bodyBytes)
+		return brotliCompress(body)
 	case "", identityEncoding:
 		// default to empty encoding for the "identity" accept-encoding header
-		return bodyBytes, "", nil
+		return body, "", nil
 	}
 	return nil, "", fmt.Errorf("unsupported encoding: %s", selectedEncoding)
 }

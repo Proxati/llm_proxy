@@ -225,8 +225,8 @@ func TestRequest(t *testing.T) {
 			},
 		}
 		// compress the body to simulate a real response
-		respString := "resp2"
-		encodedBody, _, err := utils.EncodeBody(&respString, "gzip")
+		respBytes := []byte("resp2")
+		encodedBody, _, err := utils.EncodeBody(respBytes, "gzip")
 		require.NoError(t, err)
 		resp.Body = encodedBody
 

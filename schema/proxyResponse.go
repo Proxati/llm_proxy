@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	px "github.com/proxati/mitmproxy/proxy"
-
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
@@ -17,6 +15,18 @@ type ProxyResponse struct {
 	Header            http.Header    `json:"header"`
 	Body              string         `json:"body"`
 	headerFilterIndex map[string]any `json:"-"`
+}
+
+func (pRes *ProxyResponse) GetStatusCode() int {
+	return pRes.Status
+}
+
+func (pRes *ProxyResponse) GetHeaders() http.Header {
+	return pRes.Header
+}
+
+func (pRes *ProxyResponse) GetBodyBytes() []byte {
+	return []byte(pRes.Body)
 }
 
 // loadHeaderFilterIndex loads the headers to filter into a map, used by loadHeaders
@@ -116,29 +126,6 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 	}
 
 	return nil
-}
-
-// ToProxyResponse converts a ProxyResponse into a MITM proxy response object (with content encoding matching the new req)
-// Because all responses are stored as uncompressed strings, the cached response might need to be encoded before being sent
-// TODO: move this out of the base schema package!
-func (pRes *ProxyResponse) ToProxyResponse(acceptEncodingHeader string) (*px.Response, error) {
-	resp := &px.Response{
-		StatusCode: pRes.Status,
-		Header:     pRes.Header,
-	}
-
-	// encode the body based on the new request's accept encoding header
-	encodedBody, encoding, err := utils.EncodeBody(&pRes.Body, acceptEncodingHeader)
-	if err != nil {
-		return nil, fmt.Errorf("error encoding body: %v", err)
-	}
-
-	// set the new content encoding and length headers
-	resp.Header.Set("Content-Encoding", encoding)
-	resp.Header.Set("Content-Length", fmt.Sprintf("%d", len(encodedBody)))
-
-	resp.Body = encodedBody
-	return resp, nil
 }
 
 // NewFromMITMRequest creates a new ProxyRequest from a MITM proxy request object

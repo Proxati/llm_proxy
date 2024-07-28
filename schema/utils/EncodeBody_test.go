@@ -291,7 +291,7 @@ func TestEncodeBody(t *testing.T) {
 
 	tests := []struct {
 		name                 string
-		body                 string
+		body                 []byte
 		acceptEncodingHeader string
 		wantErr              bool
 		expectedOutput       []byte // nil when we expect an error
@@ -299,7 +299,7 @@ func TestEncodeBody(t *testing.T) {
 	}{
 		{
 			name:                 "Encode with gzip",
-			body:                 bodyText,
+			body:                 []byte(bodyText),
 			acceptEncodingHeader: "gzip",
 			wantErr:              false,
 			expectedOutput:       []byte(bodyText),
@@ -307,7 +307,7 @@ func TestEncodeBody(t *testing.T) {
 		},
 		{
 			name:                 "Encode with deflate",
-			body:                 bodyText,
+			body:                 []byte(bodyText),
 			acceptEncodingHeader: "deflate",
 			wantErr:              false,
 			expectedOutput:       []byte(bodyText),
@@ -315,7 +315,7 @@ func TestEncodeBody(t *testing.T) {
 		},
 		{
 			name:                 "No encoding",
-			body:                 bodyText,
+			body:                 []byte(bodyText),
 			acceptEncodingHeader: "",
 			wantErr:              false,
 			expectedOutput:       []byte(bodyText),
@@ -323,7 +323,7 @@ func TestEncodeBody(t *testing.T) {
 		},
 		{
 			name:                 "identity encoding",
-			body:                 bodyText,
+			body:                 []byte(bodyText),
 			acceptEncodingHeader: "identity",
 			wantErr:              false,
 			expectedOutput:       []byte(bodyText),
@@ -331,7 +331,7 @@ func TestEncodeBody(t *testing.T) {
 		},
 		{
 			name:                 "Brotli encoding",
-			body:                 bodyText,
+			body:                 []byte(bodyText),
 			acceptEncodingHeader: "br",
 			wantErr:              false,
 			expectedOutput:       []byte(bodyText),
@@ -339,7 +339,7 @@ func TestEncodeBody(t *testing.T) {
 		},
 		{
 			name:                 "Empty body with gzip",
-			body:                 "",
+			body:                 []byte(""),
 			acceptEncodingHeader: "gzip",
 			wantErr:              false,
 			expectedOutput:       []byte(""),
@@ -347,7 +347,7 @@ func TestEncodeBody(t *testing.T) {
 		},
 		{
 			name:                 "Empty body with no encoding",
-			body:                 "",
+			body:                 []byte(""),
 			acceptEncodingHeader: "",
 			wantErr:              false,
 			expectedOutput:       []byte(""),
@@ -357,7 +357,7 @@ func TestEncodeBody(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			output, encoding, err := EncodeBody(&tt.body, tt.acceptEncodingHeader)
+			output, encoding, err := EncodeBody(tt.body, tt.acceptEncodingHeader)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("EncodeBody() test = %s output = %s encoding = %s error = %v, wantErr %v", tt.name, output, encoding, err, tt.wantErr)
 				return

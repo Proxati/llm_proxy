@@ -148,8 +148,8 @@ func runWebServer(hitCounter *atomic.Int32, listenAddr string) (*http.Server, fu
 		// increment the counter
 		hitCounter.Add(1)
 
-		resp := string(respBuilder(hitCounter.Load(), r.Body))
-		encodedResp, encoding, err := utils.EncodeBody(&resp, r.Header.Get("Accept-Encoding"))
+		resp := respBuilder(hitCounter.Load(), r.Body)
+		encodedResp, encoding, err := utils.EncodeBody(resp, r.Header.Get("Accept-Encoding"))
 		if err != nil {
 			log.Printf("error encoding response: %v", err)
 			w.WriteHeader(http.StatusInternalServerError)

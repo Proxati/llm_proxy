@@ -7,12 +7,12 @@ require (
 	github.com/bojanz/currency v1.2.3
 	github.com/charmbracelet/log v0.4.0
 	github.com/fsnotify/fsnotify v1.7.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mattn/go-isatty v0.0.20
-	github.com/proxati/mitmproxy v0.0.0-20240723201132-fee9eb1c165d
+	github.com/proxati/mitmproxy v1.0.0
 	github.com/sashabaranov/go-openai v1.26.3
-	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/bbolt v1.3.10

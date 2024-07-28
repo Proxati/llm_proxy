@@ -14,9 +14,9 @@ import (
 // so the upstream library can be replaced with a different one in the future.
 type metaAddon struct {
 	px.BaseAddon
-	cfg        *config.Config
-	mitmAddons []px.Addon
-	llmAddons  []addons.ClosableAddon
+	cfg            *config.Config
+	mitmAddons     []px.Addon
+	closableAddons []addons.ClosableAddon
 }
 
 // NewMetaAddon creates a new MetaAddon with the given config and addons. The order of the addons
@@ -37,7 +37,7 @@ func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
 }
 
 func (addon *metaAddon) Close() error {
-	for _, a := range addon.llmAddons {
+	for _, a := range addon.closableAddons {
 		if err := a.Close(); err != nil {
 			sLogger.Error("could not close the addon", "error", err)
 		}
@@ -59,7 +59,7 @@ func (addon *metaAddon) addAddon(a any) error {
 	myAddon, ok := a.(addons.ClosableAddon)
 	if ok {
 		sLogger.Debug("Connecting addon to metaAddon", "addonName", myAddon.String())
-		addon.llmAddons = append(addon.llmAddons, myAddon) // for closing later
+		addon.closableAddons = append(addon.closableAddons, myAddon) // for closing later
 	}
 
 	mitmAddon, ok := a.(px.Addon)

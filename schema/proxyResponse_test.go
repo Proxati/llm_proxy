@@ -11,7 +11,7 @@ import (
 
 func TestNewProxyResponseFromMITMResponse(t *testing.T) {
 	// Test with nil input
-	_, err := NewProxyResponseFromMITMResponse(nil, nil)
+	_, err := NewProxyResponse(nil, nil)
 	assert.Error(t, err)
 
 	// Test with valid input
@@ -25,7 +25,8 @@ func TestNewProxyResponseFromMITMResponse(t *testing.T) {
 	}
 	headersToFilter := []string{"Delete-Me"}
 
-	res, err := NewProxyResponseFromMITMResponse(req, headersToFilter)
+	respAccessor := NewResponseAdapter_MiTM(req)
+	res, err := NewProxyResponse(respAccessor, headersToFilter)
 	require.NoError(t, err)
 
 	assert.Equal(t, 200, res.Status)

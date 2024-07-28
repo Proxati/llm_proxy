@@ -46,7 +46,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 
 	if logSources.LogRequest {
 		// convert the request to a request accessor
-		reqAccessor := NewRequestAccessor_MiTM(f.Request)
+		reqAccessor := NewRequestAdapter_MiTM(f.Request)
 
 		ldc.Request, err = NewProxyRequest(reqAccessor, filterReqHeaders)
 		if err != nil {
@@ -58,7 +58,8 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogResponse {
-		ldc.Response, err = NewProxyResponseFromMITMResponse(f.Response, filterRespHeaders)
+		respAccessor := NewResponseAdapter_MiTM(f.Response)
+		ldc.Response, err = NewProxyResponse(respAccessor, filterRespHeaders)
 		if err != nil {
 			errs = append(errs, err)
 		}

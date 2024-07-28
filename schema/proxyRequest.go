@@ -151,7 +151,7 @@ func (pReq *ProxyRequest) MarshalJSON() ([]byte, error) {
 }
 
 // NewProxyRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyRequest(req RequestAccessor, headersToFilter []string) (*ProxyRequest, error) {
+func NewProxyRequest(req RequestAdapter, headersToFilter []string) (*ProxyRequest, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request is nil, unable to create ProxyRequest")
 	}

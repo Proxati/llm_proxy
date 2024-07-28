@@ -53,7 +53,7 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 		}
 
 		// convert the request to an internal TrafficObject
-		reqAccessor := schema.NewRequestAccessor_MiTM(f.Request) // generic wrapper for the mitm request
+		reqAccessor := schema.NewRequestAdapter_MiTM(f.Request) // generic wrapper for the mitm request
 
 		tObjReq, err := schema.NewProxyRequest(reqAccessor, []string{})
 		if err != nil {
@@ -62,7 +62,9 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 		}
 
 		// convert the response to an internal TrafficObject
-		tObjResp, err := schema.NewProxyResponseFromMITMResponse(f.Response, []string{})
+		respAccessor := schema.NewResponseAdapter_MiTM(f.Response) // generic wrapper for the mitm response
+
+		tObjResp, err := schema.NewProxyResponse(respAccessor, []string{})
 		if err != nil {
 			logger.Error("error creating TrafficObject from response", "error", err)
 			return

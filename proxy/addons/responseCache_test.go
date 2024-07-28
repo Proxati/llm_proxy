@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 	px "github.com/proxati/mitmproxy/proxy"
 
@@ -160,7 +161,7 @@ func TestRequest(t *testing.T) {
 		require.Zero(t, len, "nothing in cache yet")
 
 		// convert the request to a RequestAdapter
-		reqAdapter := schema.NewProxyRequestAdapter_MiTM(flow.Request)
+		reqAdapter := mitm.NewProxyRequestAdapter(flow.Request)
 		require.NotNil(t, reqAdapter)
 
 		// create traffic objects for the request and response, check header loading
@@ -170,7 +171,7 @@ func TestRequest(t *testing.T) {
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
 		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
-		respAdapter := schema.NewProxyResponseAdapter_MiTM(resp)
+		respAdapter := mitm.NewProxyResponseAdapter(resp)
 		require.NotNil(t, respAdapter)
 
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
@@ -230,7 +231,7 @@ func TestRequest(t *testing.T) {
 		resp.Body = encodedBody
 
 		// convert the request to a RequestAdapter
-		reqAdapter := schema.NewProxyRequestAdapter_MiTM(flow.Request)
+		reqAdapter := mitm.NewProxyRequestAdapter(flow.Request)
 		require.NotNil(t, reqAdapter)
 
 		// create traffic objects for the request and response, check header loading
@@ -240,7 +241,7 @@ func TestRequest(t *testing.T) {
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
 		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
-		respAdapter := schema.NewProxyResponseAdapter_MiTM(resp)
+		respAdapter := mitm.NewProxyResponseAdapter(resp)
 		require.NotNil(t, respAdapter)
 
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)

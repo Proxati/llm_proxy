@@ -14,6 +14,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers"
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 )
 
 type MegaTrafficDumper struct {
@@ -51,7 +52,8 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		doneAt := time.Since(start).Milliseconds()
 
 		// load the selected fields into a container object
-		dumpContainer, err := schema.NewLogDumpContainer(f, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
+		flowAdapter := mitm.NewFlowAdapter(f)
+		dumpContainer, err := schema.NewLogDumpContainer(flowAdapter, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
 		if err != nil {
 			logger.Error("Could not create LogDumpContainer", "error", err)
 			return

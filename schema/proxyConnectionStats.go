@@ -2,9 +2,9 @@ package schema
 
 import (
 	"encoding/json"
-)
 
-const UnknownAddr = "unknown"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+)
 
 type ProxyConnectionStats struct {
 	ClientAddress string `json:"client_address"`
@@ -13,7 +13,7 @@ type ProxyConnectionStats struct {
 	ProxyID       string `json:"proxy_id,omitempty"`
 }
 
-func (obj *ProxyConnectionStats) toJSON() []byte {
+func (obj *ProxyConnectionStats) ToJSON() []byte {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {
 		getLogger().Error("Could not convert object to JSON", "error", err)
@@ -22,11 +22,11 @@ func (obj *ProxyConnectionStats) toJSON() []byte {
 	return jsonData
 }
 
-func (obj *ProxyConnectionStats) toJSONstr() string {
-	return string(obj.toJSON())
+func (obj *ProxyConnectionStats) ToJSONstr() string {
+	return string(obj.ToJSON())
 }
 
-func newConnectionStats(cs ConnectionStatsReaderAdapter) *ProxyConnectionStats {
+func newConnectionStats(cs proxyAdapters.ConnectionStatsReaderAdapter) *ProxyConnectionStats {
 	logOutput := &ProxyConnectionStats{
 		// ClientAddress: getClientAddr(f),
 		// ProxyID:       f.Id.String(),
@@ -38,9 +38,9 @@ func newConnectionStats(cs ConnectionStatsReaderAdapter) *ProxyConnectionStats {
 	return logOutput
 }
 
-// newProxyConnectionStatsWithDuration is a slightly leaky abstraction, the doneAt param is for logging
+// NewProxyConnectionStatsWithDuration is a slightly leaky abstraction, the doneAt param is for logging
 // the entire session length, and comes from the proxy addon layer.
-func newProxyConnectionStatsWithDuration(cs ConnectionStatsReaderAdapter, doneAt int64) *ProxyConnectionStats {
+func NewProxyConnectionStatsWithDuration(cs proxyAdapters.ConnectionStatsReaderAdapter, doneAt int64) *ProxyConnectionStats {
 	if cs == nil {
 		return nil
 	}

@@ -1,16 +1,45 @@
-package schema
+package schema_test
 
 import (
 	"net/http"
 	"net/url"
 	"testing"
 
-	px "github.com/proxati/mitmproxy/proxy"
+	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var emptyStringSlice = []string{}
+
+// Mock implementation of ProxyRequestReaderAdapter
+type MockProxyRequestReaderAdapter struct {
+	Method  string
+	URL     *url.URL
+	Proto   string
+	Headers http.Header
+	Body    []byte
+}
+
+func (m *MockProxyRequestReaderAdapter) GetMethod() string {
+	return m.Method
+}
+
+func (m *MockProxyRequestReaderAdapter) GetURL() *url.URL {
+	return m.URL
+}
+
+func (m *MockProxyRequestReaderAdapter) GetProto() string {
+	return m.Proto
+}
+
+func (m *MockProxyRequestReaderAdapter) GetHeaders() http.Header {
+	return m.Headers
+}
+
+func (m *MockProxyRequestReaderAdapter) GetBodyBytes() []byte {
+	return m.Body
+}
 
 func Test_NewFromMITMRequest(t *testing.T) {
 	t.Run("new from proxy request", func(t *testing.T) {
@@ -23,18 +52,15 @@ func Test_NewFromMITMRequest(t *testing.T) {
 		url, err := url.Parse("http://example.com")
 		require.NoError(t, err)
 
-		request := &px.Request{
-			Method: "GET",
-			URL:    url,
-			Header: headers,
-			Body:   []byte("hello"),
-			Proto:  "HTTP/1.1",
+		request := &MockProxyRequestReaderAdapter{
+			Method:  "GET",
+			URL:     url,
+			Headers: headers,
+			Body:    []byte("hello"),
+			Proto:   "HTTP/1.1",
 		}
 
-		// convert the request to a RequestAdapter
-		reqAdapter := NewProxyRequestAdapter_MiTM(request)
-
-		trafficObject, err := NewProxyRequest(reqAdapter, headersToFilter)
+		trafficObject, err := schema.NewProxyRequest(request, headersToFilter)
 		require.NoError(t, err)
 		assert.Equal(t, "GET", trafficObject.Method)
 		assert.Equal(t, "http://example.com", trafficObject.URL.String())
@@ -44,19 +70,17 @@ func Test_NewFromMITMRequest(t *testing.T) {
 		assert.Equal(t, "HTTP/1.1", trafficObject.Proto)
 	})
 	t.Run("new from proxy request with binary body", func(t *testing.T) {
-		request := &px.Request{
+		request := &MockProxyRequestReaderAdapter{
 			Body: []byte("\x01\x02\x03"),
 		}
-		// convert the request to a RequestAdapter
-		reqAdapter := NewProxyRequestAdapter_MiTM(request)
 
-		trafficObject, err := NewProxyRequest(reqAdapter, emptyStringSlice)
+		trafficObject, err := schema.NewProxyRequest(request, emptyStringSlice)
 		require.NoError(t, err)
 		assert.NotNil(t, trafficObject)
 		assert.Empty(t, trafficObject.Body)
 	})
 	t.Run("nil request", func(t *testing.T) {
-		trafficObject, err := NewProxyRequest(nil, emptyStringSlice)
+		trafficObject, err := schema.NewProxyRequest(nil, emptyStringSlice)
 		require.Error(t, err)
 		assert.Nil(t, trafficObject)
 	})
@@ -73,7 +97,7 @@ func TestProxyRequest_UnmarshalJSON(t *testing.T) {
 			"body": "hello",
 			"proto": "HTTP/1.1"
 		}`)
-		pReq := &ProxyRequest{}
+		pReq := &schema.ProxyRequest{}
 		err := pReq.UnmarshalJSON(data)
 		require.NoError(t, err)
 		assert.Equal(t, "GET", pReq.Method)
@@ -87,7 +111,7 @@ func TestProxyRequest_UnmarshalJSON(t *testing.T) {
 		data := []byte(`{
 			"url": "://invalid_url"
 		}`)
-		pReq := &ProxyRequest{}
+		pReq := &schema.ProxyRequest{}
 		err := pReq.UnmarshalJSON(data)
 		require.Error(t, err)
 	})
@@ -98,7 +122,7 @@ func TestProxyRequest_UnmarshalJSON(t *testing.T) {
 				"Content-Type": "invalid_header"
 			}
 		}`)
-		pReq := &ProxyRequest{}
+		pReq := &schema.ProxyRequest{}
 		err := pReq.UnmarshalJSON(data)
 		require.Error(t, err)
 	})
@@ -106,7 +130,7 @@ func TestProxyRequest_UnmarshalJSON(t *testing.T) {
 
 func TestProxyRequest_MarshalJSON(t *testing.T) {
 	t.Run("successful marshal", func(t *testing.T) {
-		pReq := &ProxyRequest{
+		pReq := &schema.ProxyRequest{
 			Method: "GET",
 			URL:    &url.URL{Scheme: "http", Host: "example.com"},
 			Header: http.Header{
@@ -124,7 +148,7 @@ func TestProxyRequest_MarshalJSON(t *testing.T) {
 	})
 
 	t.Run("marshal with nil URL", func(t *testing.T) {
-		pReq := &ProxyRequest{
+		pReq := &schema.ProxyRequest{
 			Method: "GET",
 			Header: http.Header{
 				"Content-Type": []string{"application/json"},

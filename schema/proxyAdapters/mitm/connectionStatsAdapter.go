@@ -1,26 +1,22 @@
-package schema
+package mitm
 
 import px "github.com/proxati/mitmproxy/proxy"
 
-type ConnectionStatsReaderAdapter interface {
-	GetClientIP() string
-	GetProxyID() string
-	GetRequestURL() string
-}
+const UnknownAddr = "unknown"
 
-type ConnectionStatsAdapter_MiTM struct {
+type ConnectionStatsAdapter struct {
 	f *px.Flow
 }
 
-func newProxyConnectionStatsAdapter_MiTM(f *px.Flow) *ConnectionStatsAdapter_MiTM {
+func NewProxyConnectionStatsAdapter(f *px.Flow) *ConnectionStatsAdapter {
 	if f == nil {
 		return nil
 	}
 
-	return &ConnectionStatsAdapter_MiTM{f: f}
+	return &ConnectionStatsAdapter{f: f}
 }
 
-func (cs *ConnectionStatsAdapter_MiTM) GetClientIP() string {
+func (cs *ConnectionStatsAdapter) GetClientIP() string {
 	if cs.f == nil || cs.f.ConnContext == nil || cs.f.ConnContext.ClientConn == nil || cs.f.ConnContext.ClientConn.Conn == nil {
 		// Ugh != nil
 		return UnknownAddr
@@ -32,14 +28,14 @@ func (cs *ConnectionStatsAdapter_MiTM) GetClientIP() string {
 	return remote.String()
 }
 
-func (cs *ConnectionStatsAdapter_MiTM) GetProxyID() string {
+func (cs *ConnectionStatsAdapter) GetProxyID() string {
 	if cs.f == nil {
 		return ""
 	}
 	return cs.f.Id.String()
 }
 
-func (cs *ConnectionStatsAdapter_MiTM) GetRequestURL() string {
+func (cs *ConnectionStatsAdapter) GetRequestURL() string {
 	if cs.f == nil || cs.f.Request == nil || cs.f.Request.URL == nil {
 		return ""
 	}

@@ -1,4 +1,4 @@
-package schema
+package mitm
 
 import (
 	"net/http"
@@ -15,7 +15,7 @@ func TestResponseAdapterMiTM(t *testing.T) {
 		Body:       []byte(`{"key":"value"}`),
 	}
 
-	respAdapter := NewProxyResponseAdapter_MiTM(pxResp)
+	respAdapter := NewProxyResponseAdapter(pxResp)
 
 	assert.NotNil(t, respAdapter)
 	assert.Equal(t, pxResp, respAdapter.pxResp)

@@ -5,9 +5,8 @@ import (
 	"net/url"
 	"time"
 
-	px "github.com/proxati/mitmproxy/proxy"
-
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
 )
 
 const SchemaVersion string = "v2"
@@ -25,7 +24,7 @@ type LogDumpContainer struct {
 }
 
 // NewLogDumpContainer returns a LogDumpContainer with *only* the fields requested in logSources populated
-func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt int64, filterReqHeaders, filterRespHeaders []string) (*LogDumpContainer, error) {
+func NewLogDumpContainer(f proxyAdapters.FlowReaderAdapter, logSources config.LogSourceConfig, doneAt int64, filterReqHeaders, filterRespHeaders []string) (*LogDumpContainer, error) {
 	if f == nil {
 		return nil, errors.New("flow is nil")
 	}
@@ -46,8 +45,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 
 	if logSources.LogRequest {
 		// convert the request to a request adapter
-		reqAdapter := NewProxyRequestAdapter_MiTM(f.Request)
-		ldc.Request, err = NewProxyRequest(reqAdapter, filterReqHeaders)
+		ldc.Request, err = NewProxyRequest(f.GetRequest(), filterReqHeaders)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -57,8 +55,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogResponse {
-		respAdapter := NewProxyResponseAdapter_MiTM(f.Response)
-		ldc.Response, err = NewProxyResponse(respAdapter, filterRespHeaders)
+		ldc.Response, err = NewProxyResponse(f.GetResponse(), filterRespHeaders)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -68,8 +65,7 @@ func NewLogDumpContainer(f *px.Flow, logSources config.LogSourceConfig, doneAt i
 	}
 
 	if logSources.LogConnectionStats {
-		csAdapter := newProxyConnectionStatsAdapter_MiTM(f)
-		ldc.ConnectionStats = newProxyConnectionStatsWithDuration(csAdapter, doneAt)
+		ldc.ConnectionStats = NewProxyConnectionStatsWithDuration(f.GetConnectionStats(), doneAt)
 	}
 
 	for _, err := range errs {

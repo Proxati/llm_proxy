@@ -1,4 +1,4 @@
-package schema
+package mitm
 
 import (
 	"net/http"
@@ -18,7 +18,7 @@ func TestRequestAdapterMiTM(t *testing.T) {
 		Body:   []byte(`{"data":"test"}`),
 	}
 
-	reqAdapter := NewProxyRequestAdapter_MiTM(pxReq)
+	reqAdapter := NewProxyRequestAdapter(pxReq)
 
 	assert.NotNil(t, reqAdapter)
 	assert.Equal(t, pxReq, reqAdapter.pxReq)

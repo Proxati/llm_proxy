@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/google/uuid"
 	px "github.com/proxati/mitmproxy/proxy"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +20,7 @@ func TestConnectionStatsAdapter(t *testing.T) {
 				Host:   "example.com",
 			},
 		},
-		Id: uuid.NewV4(),
+		Id: uuid.New(),
 	}
 
 	statsAdapter := NewProxyConnectionStatsAdapter(pxFlow)

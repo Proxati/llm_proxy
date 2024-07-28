@@ -91,7 +91,7 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// handle cache hit
 	logger.Info("cache hit")
 
-	cachedResp, err := cacheLookup.ToProxyResponse(f.Request.Header.Get("Accept-Encoding"))
+	cachedResp, err := mitm.ToProxyResponse(cacheLookup, f.Request.Header.Get("Accept-Encoding"))
 	if err != nil {
 		logger.Error("error converting cached response to ProxyResponse", "error", err)
 		return

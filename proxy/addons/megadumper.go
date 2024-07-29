@@ -18,7 +18,7 @@ import (
 type MegaTrafficDumper struct {
 	px.BaseAddon
 	logSources            config.LogSourceConfig
-	logDestinationConfigs []md.LogDestinationConfig
+	logDestinationConfigs []md.LogDestination
 	filterReqHeaders      []string
 	filterRespHeaders     []string
 	wg                    sync.WaitGroup
@@ -95,7 +95,7 @@ func NewMegaTrafficDumperAddon(
 	logger = logger.WithGroup("addons.MegaTrafficDumper")
 	logger.Debug("Set log output directory", "logTarget", logTarget)
 
-	logDestinationConfigs, err := md.NewLogDestinationConfigs(logger, logTarget, logFormatConfig)
+	logDestinationConfigs, err := md.NewLogDestinations(logger, logTarget, logFormatConfig)
 	if err != nil {
 		return nil, fmt.Errorf("log destination validation error: %v", err)
 	}

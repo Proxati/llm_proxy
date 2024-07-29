@@ -12,23 +12,23 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema"
 )
 
-// LogDestinationConfig is a struct that holds the configuration for a log destination.
+// LogDestination is a struct that holds the configuration for a log destination.
 // target: the target of the log destination (e.g., file path, rest API URL)
 // writer: the writer to use for the log destination (e.g., to a dir, to rest API)
 // formatter: the formatter to use for the log destination (e.g., JSON, TXT)
 // logger: the logger used to print status to the terminal
-type LogDestinationConfig struct {
+type LogDestination struct {
 	target    string
 	writer    writers.MegaDumpWriter
 	formatter formatters.MegaDumpFormatter
 	logger    *slog.Logger
 }
 
-func (ld *LogDestinationConfig) String() string {
+func (ld *LogDestination) String() string {
 	return fmt.Sprintf("%s.%s", ld.writer.String(), ld.formatter.GetFileExtension())
 }
 
-func (ld *LogDestinationConfig) Write(identifier string, logDumpContainer *schema.LogDumpContainer) (int, error) {
+func (ld *LogDestination) Write(identifier string, logDumpContainer *schema.LogDumpContainer) (int, error) {
 	bytes, err := ld.formatter.Read(logDumpContainer)
 	if err != nil {
 		return 0, fmt.Errorf("could not format log dump container: %w", err)
@@ -40,11 +40,11 @@ func (ld *LogDestinationConfig) Write(identifier string, logDumpContainer *schem
 // logger: the logger used to print status to the terminal
 // logTarget: the target of the log destination as a comma-delimited string (e.g., file path, rest API URL)
 // format: the format of the log destination (e.g., JSON, TXT)
-func NewLogDestinationConfigs(
+func NewLogDestinations(
 	logger *slog.Logger,
 	logTarget string,
 	format config.LogFormat,
-) ([]LogDestinationConfig, error) {
+) ([]LogDestination, error) {
 	formatter, err := formatters.NewMegaDumpFormatter(format)
 	if err != nil {
 		return nil, fmt.Errorf("could not load the formatter: %w", err)
@@ -58,17 +58,17 @@ func NewLogDestinationConfigs(
 		}
 
 		target := "stdout"
-		ldc := LogDestinationConfig{
+		ldc := LogDestination{
 			target:    target,
 			formatter: formatter,
 			writer:    writer,
 		}
 		ldc.logger = logger.With("logDestination", ldc.String())
-		return []LogDestinationConfig{ldc}, nil
+		return []LogDestination{ldc}, nil
 	}
 
 	targets := strings.Split(logTarget, ",")
-	LDCs := make([]LogDestinationConfig, len(targets))
+	LDCs := make([]LogDestination, len(targets))
 
 	for i, target := range targets {
 		target = strings.TrimPrefix(target, "file://")
@@ -77,7 +77,7 @@ func NewLogDestinationConfigs(
 			continue
 		}
 
-		ld := LogDestinationConfig{
+		ld := LogDestination{
 			target:    target,
 			formatter: formatter,
 		}

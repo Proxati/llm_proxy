@@ -25,7 +25,7 @@ type LogDestination struct {
 }
 
 func (ld *LogDestination) String() string {
-	return fmt.Sprintf("%s.%s", ld.writer.String(), ld.formatter.GetFileExtension())
+	return fmt.Sprintf("LogDestination: %s", ld.writer.String())
 }
 
 func (ld *LogDestination) Write(identifier string, logDumpContainer *schema.LogDumpContainer) (int, error) {

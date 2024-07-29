@@ -1,6 +1,7 @@
 package writers_test
 
 import (
+	"log/slog"
 	"os"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestToDir_Write(t *testing.T) {
 	defer os.RemoveAll(tempDir) // clean up
 
 	// Create a new ToDir instance with a pointer to PlainText to satisfy the interface
-	toDir, err := writers.NewToDir(tempDir, &formatters.PlainText{})
+	toDir, err := writers.NewToDir(slog.Default(), tempDir, &formatters.PlainText{})
 	assert.NoError(t, err)
 
 	// Write some data

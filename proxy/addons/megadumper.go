@@ -3,7 +3,6 @@ package addons
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,24 +10,20 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
 	md "github.com/proxati/llm_proxy/v2/proxy/addons/megadumper"
-	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
-	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 )
 
 type MegaTrafficDumper struct {
 	px.BaseAddon
-	formatter         formatters.MegaDumpFormatter
-	logSources        config.LogSourceConfig
-	writers           []writers.MegaDumpWriter
-	filterReqHeaders  []string
-	filterRespHeaders []string
-	wg                sync.WaitGroup
-	closed            atomic.Bool
-	logger            *slog.Logger
+	logSources            config.LogSourceConfig
+	logDestinationConfigs []md.LogDestinationConfig
+	filterReqHeaders      []string
+	filterRespHeaders     []string
+	wg                    sync.WaitGroup
+	closed                atomic.Bool
+	logger                *slog.Logger
 }
 
 // Requestheaders is a callback that will receive a "flow" from the proxy, will create a
@@ -61,28 +56,16 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 			return
 		}
 
-		// format the container object, reformatted into a byte array
-		formattedDump, err := d.formatter.Read(dumpContainer)
-		if err != nil {
-			logger.Error("Could not format LogDumpContainer", "error", err)
-			return
-		}
-
 		// write the formatted log data to... somewhere
-		for _, w := range d.writers {
-			if w == nil {
-				logger.Error("Writer is nil, skipping")
-				continue
-			}
+		for _, ldc := range d.logDestinationConfigs {
+			wLogger := logger.With("logDestinationConfig", ldc.String())
 
-			wLogger := logger.With("writer", w.String())
-			bytesWritten, err := w.Write(id, formattedDump)
-			wLogger.Info("Wrote log", "bytesWritten", bytesWritten)
+			bytesWritten, err := ldc.Write(id, dumpContainer)
 			if err != nil {
 				wLogger.Error("Could not write log", "error", err)
 				continue
 			}
-			wLogger.Debug("Done writing")
+			wLogger.Info("Wrote log", "bytesWritten", bytesWritten)
 		}
 		logger.Debug("Request completed")
 	}()
@@ -101,84 +84,6 @@ func (d *MegaTrafficDumper) Close() error {
 	return nil
 }
 
-// newLogDestinations parses the logTarget string and returns a slice of log destinations.
-// The actual validation of log destinations happens in formatter. No validation here!
-func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
-	if logTarget == "" {
-		// default to stdout if none selected
-		return []md.LogDestination{md.WriteToStdOut}, nil
-	}
-
-	var logDestinations []md.LogDestination
-	targets := strings.Split(logTarget, ",")
-	for _, target := range targets {
-		target = strings.TrimSpace(target)
-		if target == "" {
-			continue
-		}
-		if fileUtils.IsValidFilePathFormat(target) {
-			logDestinations = append(logDestinations, md.WriteToDir)
-			continue
-		}
-		if strings.HasPrefix(target, "file://") {
-			newTarget := strings.TrimPrefix(target, "file://")
-			if fileUtils.IsValidFilePathFormat(newTarget) {
-				logDestinations = append(logDestinations, md.WriteToDir)
-				continue
-			}
-		}
-		/*
-			if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-				logDestinations = append(logDestinations, md.WriteToAsyncREST)
-				continue
-			}
-		*/
-	}
-
-	return logDestinations, nil
-}
-
-// formatPicker will setup the log formatter object, which converts the config enum to a
-// local enum, which is used only inside this package
-func formatPicker(format config.LogFormat) (formatters.MegaDumpFormatter, error) {
-	var f formatters.MegaDumpFormatter
-
-	switch format {
-	case config.LogFormat_JSON:
-		f = &formatters.JSON{}
-	case config.LogFormat_TXT:
-		f = &formatters.PlainText{}
-	default:
-		return nil, fmt.Errorf("invalid log format: %v", format)
-	}
-
-	return f, nil
-}
-
-// newWriters creates and configured the writer objects based on the log destinations and other parameters
-func newWriters(logDestinations []md.LogDestination, logTarget string, f formatters.MegaDumpFormatter) ([]writers.MegaDumpWriter, error) {
-	var w = make([]writers.MegaDumpWriter, 0)
-	for _, logDest := range logDestinations {
-		switch logDest {
-		case md.WriteToDir:
-			dirWriter, err := writers.NewToDir(logTarget, f)
-			if err != nil {
-				return nil, err
-			}
-			w = append(w, dirWriter)
-		case md.WriteToStdOut:
-			stdoutWriter, err := writers.NewToStdOut()
-			if err != nil {
-				return nil, err
-			}
-			w = append(w, stdoutWriter)
-		default:
-			return nil, fmt.Errorf("invalid log destination: %v", logDest)
-		}
-	}
-	return w, nil
-}
-
 // NewMegaTrafficDumperAddon creates a new dumper that creates a new log file for each request
 func NewMegaTrafficDumperAddon(
 	logger *slog.Logger, // the DI'd logger
@@ -190,35 +95,20 @@ func NewMegaTrafficDumperAddon(
 	logger = logger.WithGroup("addons.MegaTrafficDumper")
 	logger.Debug("Set log output directory", "logTarget", logTarget)
 
-	logDestinations, err := newLogDestinations(logTarget)
+	logDestinationConfigs, err := md.NewLogDestinationConfigs(logger, logTarget, logFormatConfig)
 	if err != nil {
 		return nil, fmt.Errorf("log destination validation error: %v", err)
 	}
-	for _, dest := range logDestinations {
+	for _, dest := range logDestinationConfigs {
 		logger.Debug("Configured log destination", "destination", dest.String())
 	}
 
-	f, err := formatPicker(logFormatConfig)
-	if err != nil {
-		return nil, fmt.Errorf("log format validation error: %v", err)
-	}
-	logger.Debug("Set log format", "logFormat", f.String())
-
-	w, err := newWriters(logDestinations, logTarget, f)
-	if err != nil {
-		return nil, fmt.Errorf("writer creation error: %v", err)
-	}
-	for _, writer := range w {
-		logger.Debug("Configured writer", "name", writer.String())
-	}
-
 	mda := &MegaTrafficDumper{
-		formatter:         f,
-		logSources:        logSources,
-		writers:           w,
-		filterReqHeaders:  filterReqHeaders,
-		filterRespHeaders: filterRespHeaders,
-		logger:            logger,
+		logSources:            logSources,
+		logDestinationConfigs: logDestinationConfigs,
+		filterReqHeaders:      filterReqHeaders,
+		filterRespHeaders:     filterRespHeaders,
+		logger:                logger,
 	}
 
 	mda.closed.Store(false) // initialize the atomic bool with closed = false

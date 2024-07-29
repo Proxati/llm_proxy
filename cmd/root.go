@@ -161,10 +161,12 @@ func init() {
 	// Logging Settings
 	rootCmd.PersistentFlags().StringVarP(
 		&cfg.Output, "output", "o", "",
-		`Comma-delimited list of log destinations. Can be a directory or HTTP(s) REST API.
-If unset, and verbose/debug is enabled, traffic logs will be sent to the terminal.
-Examples: "/tmp/out", "file:///tmp/out", "http://my-api.com/log,/tmp/out"
-See the documentation for more information on the REST API format.
+		`Comma-delimited list of log destinations. This can be a directory, or a
+HTTP(s) REST API. If unset, and verbose/debug is enabled, traffic logs will be
+sent to the terminal. See the documentation for more information.
+
+Examples:
+"/tmp/out", "file:///tmp/out", "http://my-api.com/log,/tmp/out"
 `,
 	)
 	rootCmd.PersistentFlags().StringVar(

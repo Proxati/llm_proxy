@@ -35,7 +35,7 @@ func TestIsValidFilePathFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isValidFilePathFormat(tt.path)
+			result := IsValidFilePathFormat(tt.path)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

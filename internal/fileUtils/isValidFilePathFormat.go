@@ -2,8 +2,8 @@ package fileUtils
 
 import "regexp"
 
-// isValidFilePathFormat checks if the given string is formatted like a file path.
-func isValidFilePathFormat(path string) bool {
+// IsValidFilePathFormat checks if the given string is formatted like a file path.
+func IsValidFilePathFormat(path string) bool {
 	if path == "" {
 		return false
 	}

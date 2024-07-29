@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/proxati/llm_proxy/v2/fileUtils"
+	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
 )
 
 const (

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRelocateExistingFileIfExists(t *testing.T) {
@@ -23,7 +24,7 @@ func TestRelocateExistingFileIfExists(t *testing.T) {
 
 	// Test with a file that does not exist
 	err = RelocateExistingFileIfExists(fileName)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Create the file again
 	file, err = os.Create(fileName)
@@ -32,7 +33,7 @@ func TestRelocateExistingFileIfExists(t *testing.T) {
 
 	// Test with a file that does exist
 	err = RelocateExistingFileIfExists(fileName)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Check that the original file does not exist
 	assert.False(t, FileExists(fileName))

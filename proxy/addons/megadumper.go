@@ -3,6 +3,7 @@ package addons
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,6 +11,7 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
 	md "github.com/proxati/llm_proxy/v2/proxy/addons/megadumper"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers"
@@ -103,11 +105,35 @@ func (d *MegaTrafficDumper) Close() error {
 // The actual validation of log destinations happens in formatter. No validation here!
 func newLogDestinations(logTarget string) ([]md.LogDestination, error) {
 	if logTarget == "" {
+		// default to stdout if none selected
 		return []md.LogDestination{md.WriteToStdOut}, nil
 	}
 
 	var logDestinations []md.LogDestination
-	logDestinations = append(logDestinations, md.WriteToDir)
+	targets := strings.Split(logTarget, ",")
+	for _, target := range targets {
+		target = strings.TrimSpace(target)
+		if target == "" {
+			continue
+		}
+		if fileUtils.IsValidFilePathFormat(target) {
+			logDestinations = append(logDestinations, md.WriteToDir)
+			continue
+		}
+		if strings.HasPrefix(target, "file://") {
+			newTarget := strings.TrimPrefix(target, "file://")
+			if fileUtils.IsValidFilePathFormat(newTarget) {
+				logDestinations = append(logDestinations, md.WriteToDir)
+				continue
+			}
+		}
+		/*
+			if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
+				logDestinations = append(logDestinations, md.WriteToAsyncREST)
+				continue
+			}
+		*/
+	}
 
 	return logDestinations, nil
 }

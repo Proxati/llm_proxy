@@ -13,15 +13,23 @@ type StdOutLogger struct {
 }
 
 func (a *StdOutLogger) ClientConnected(client *px.ClientConn) {
-	a.logger.Info("client connect", "clientAddress", client.Conn.RemoteAddr(), "ID", client.ID)
+	a.logger.Debug(
+		"client connect",
+		"clientAddress", client.Conn.RemoteAddr(),
+		"ID", client.ID,
+	)
 }
 
 func (a *StdOutLogger) ClientDisconnected(client *px.ClientConn) {
-	a.logger.Info("client disconnect", "clientAddress", client.Conn.RemoteAddr(), "ID", client.ID)
+	a.logger.Debug(
+		"client disconnect",
+		"clientAddress", client.Conn.RemoteAddr(),
+		"ID", client.ID,
+	)
 }
 
 func (a *StdOutLogger) ServerConnected(connCtx *px.ConnContext) {
-	a.logger.Info(
+	a.logger.Debug(
 		"server connect",
 		"serverAddress", connCtx.ServerConn.Address,
 		"localAddress", connCtx.ServerConn.Conn.LocalAddr(),
@@ -31,7 +39,7 @@ func (a *StdOutLogger) ServerConnected(connCtx *px.ConnContext) {
 }
 
 func (a *StdOutLogger) ServerDisconnected(connCtx *px.ConnContext) {
-	a.logger.Info(
+	a.logger.Debug(
 		"server disconnect",
 		"serverAddress", connCtx.ServerConn.Address,
 		"localAddress", connCtx.ServerConn.Conn.LocalAddr(),

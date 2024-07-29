@@ -44,6 +44,35 @@ func TestNewLogDestinations(t *testing.T) {
 		assert.Equal(t, tmpDir, configs[0].target)
 	})
 
+	t.Run("Valid file path with http:// prefix creates writer for an asyncREST", func(t *testing.T) {
+		exampleURL := "http://example.com"
+
+		configs, err := NewLogDestinations(logger, exampleURL, config.LogFormat_JSON)
+		require.NoError(t, err)
+		require.Len(t, configs, 1)
+		assert.Equal(t, exampleURL, configs[0].target)
+	})
+
+	t.Run("Valid file path with https:// prefix creates writer for an asyncREST", func(t *testing.T) {
+		exampleURL := "https://example.com"
+
+		configs, err := NewLogDestinations(logger, exampleURL, config.LogFormat_JSON)
+		require.NoError(t, err)
+		require.Len(t, configs, 1)
+		assert.Equal(t, exampleURL, configs[0].target)
+	})
+
+	t.Run("Valid file paths with a mix of file:// http:// prefixes creates multiple writers", func(t *testing.T) {
+		exampleURL := "https://example.com"
+		tmpDir := t.TempDir()
+
+		configs, err := NewLogDestinations(logger, exampleURL+","+tmpDir, config.LogFormat_JSON)
+		require.NoError(t, err)
+		require.Len(t, configs, 2)
+		assert.Equal(t, exampleURL, configs[0].target)
+		assert.Equal(t, tmpDir, configs[1].target)
+	})
+
 	t.Run("Multiple file paths without file:// prefix creates writers for directory", func(t *testing.T) {
 		tmpDir1 := t.TempDir()
 		tmpDir2 := t.TempDir()

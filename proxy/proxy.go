@@ -59,14 +59,14 @@ func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, erro
 // no output target is requested (or when verbose is disabled)
 func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*addons.MegaTrafficDumper, error) {
 	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
-	if cfg.OutputDir == "" && !cfg.IsVerboseOrHigher() {
+	if cfg.Output == "" && !cfg.IsVerboseOrHigher() {
 		// no output dir specified and verbose is disabled
 		return nil, nil
 	}
 
 	dumperAddon, err := addons.NewMegaTrafficDumperAddon(
 		cfg.GetLogger(),
-		cfg.OutputDir,
+		cfg.Output,
 		cfg.TrafficLogFmt,
 		logSources,
 		cfg.FilterReqHeaders, cfg.FilterRespHeaders,
@@ -109,7 +109,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	if dumperAddon != nil {
 		sLogger.Debug(
 			"Created "+dumperAddon.String(),
-			"outputDir", cfg.OutputDir,
+			"outputDir", cfg.Output,
 			"logFormat", cfg.TrafficLogFmt,
 			"logSources", logSources,
 			// "filterReqHeaders", cfg.FilterReqHeaders,

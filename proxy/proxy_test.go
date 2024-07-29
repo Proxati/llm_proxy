@@ -183,7 +183,7 @@ func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...
 	cfg := config.NewDefaultConfig()
 	cfg.Listen = proxyPort
 	cfg.CertDir = filepath.Join(tempDir, certSubdir)
-	cfg.OutputDir = filepath.Join(tempDir, outputSubdir)
+	cfg.Output = filepath.Join(tempDir, outputSubdir)
 	cfg.Cache.Dir = filepath.Join(tempDir, cacheSubdir)
 	cfg.AppMode = proxyAppMode
 	cfg.NoHttpUpgrader = true // disable TLS because our test server doesn't support it
@@ -691,7 +691,7 @@ func TestConfigProxy(t *testing.T) {
 		cfg := config.NewDefaultConfig()
 		cfg.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
-		cfg.OutputDir = t.TempDir() // Set the output directory, which should enable the logger addon
+		cfg.Output = t.TempDir() // Set the output directory, which should enable the logger addon
 
 		// Call the function with the mock configuration
 		p, err := configProxy(cfg)

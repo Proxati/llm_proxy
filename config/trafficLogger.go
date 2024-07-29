@@ -2,7 +2,7 @@ package config
 
 // trafficLogger handles config related to the *output* of the proxy traffic, for writing request/response logs
 type trafficLogger struct {
-	OutputDir         string    // Directory to write logs
+	Output            string    // Directory or Address to write logs
 	TrafficLogFmt     LogFormat // Traffic log output format (json, txt)
 	NoLogConnStats    bool      // if true, do not log connection stats
 	NoLogReqHeaders   bool      // if true, log request headers

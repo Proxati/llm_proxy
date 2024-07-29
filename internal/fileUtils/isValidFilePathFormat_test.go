@@ -7,6 +7,7 @@ import (
 )
 
 func TestIsValidFilePathFormat(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name     string
 		path     string
@@ -31,6 +32,10 @@ func TestIsValidFilePathFormat(t *testing.T) {
 		{"Valid Path with Plus Sign", "/valid/path+with+plus/file.txt", true},
 		{"Invalid Path with Colon", "invalid:path", false},
 		{"Invalid Path with Double Quote", "invalid\"path", false},
+		{"Http URI", "http://example.com", false},
+		{"Https URI", "https://example.com", false},
+		{"gRPC URI", "grpc://example.com", false},
+		{"file URI", "file://example.com", false},
 	}
 
 	for _, tt := range tests {

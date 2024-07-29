@@ -16,7 +16,6 @@ import (
 )
 
 func TestNewLogDestinations(t *testing.T) {
-	t.Parallel()
 	logger := slog.Default()
 	invalidPath := `/c:\/../*^`
 

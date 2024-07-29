@@ -9,7 +9,7 @@ deploy and operate.
 - [x] Easy Installation: Easy to deploy and run with a single compiled binary or Docker container.
 - [x] High Performance: Written in Go, the proxy is fast and efficient.
 - [x] Exact Match Caching: If the request body has been previously processed, future responses will be dispatched from an embedded BoltDB database.
-- [x] Logging: Save all API requests and responses disk (or stdout) as JSON.
+- [x] Logging: Save all API requests and responses to disk (or stdout) as JSON.
 
 ### Upcoming Features
 

@@ -160,8 +160,12 @@ func init() {
 	)
 	// Logging Settings
 	rootCmd.PersistentFlags().StringVarP(
-		&cfg.OutputDir, "output", "o", "",
-		"Directory to write request/response traffic logs (unset will write to stdout)",
+		&cfg.Output, "output", "o", "",
+		`Comma-delimited list of log destinations. Can be a directory or HTTP(s) REST API.
+If unset, and verbose/debug is enabled, traffic logs will be sent to the terminal.
+Examples: "/tmp/out", "file:///tmp/out", "http://my-api.com/log,/tmp/out"
+See the documentation for more information on the REST API format.
+`,
 	)
 	rootCmd.PersistentFlags().StringVar(
 		&terminalLogFormat, "terminal-log-format", "txt",

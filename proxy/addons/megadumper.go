@@ -93,7 +93,7 @@ func NewMegaTrafficDumperAddon(
 	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
 ) (*MegaTrafficDumper, error) {
 	logger = logger.WithGroup("addons.MegaTrafficDumper")
-	logger.Debug("Set log output directory", "logTarget", logTarget)
+	logger.Debug("Set log output", "logTarget", logTarget)
 
 	logDestinationConfigs, err := md.NewLogDestinations(logger, logTarget, logFormatConfig)
 	if err != nil {

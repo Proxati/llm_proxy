@@ -25,6 +25,10 @@ type LogDestination struct {
 }
 
 func (ld *LogDestination) String() string {
+	if ld.writer == nil {
+		return fmt.Sprintf("LogDestination: %s", ld.target)
+	}
+
 	return fmt.Sprintf("LogDestination: %s", ld.writer.String())
 }
 
@@ -93,12 +97,15 @@ func NewLogDestinations(
 			continue
 		}
 
-		/*
-			if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-				logDestinations = append(logDestinations, md.WriteToAsyncREST)
-				continue
+		if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
+			ld.writer, err = writers.NewToAsyncREST(logger, target, formatter)
+			if err != nil {
+				return nil, fmt.Errorf("could not create writer: %w", err)
 			}
-		*/
+			ld.logger = logger.With("logDestination", ld.String())
+			LDCs[i] = ld
+			continue
+		}
 		return nil, fmt.Errorf("target unhandled by log destination conditionals: %s", target)
 	}
 

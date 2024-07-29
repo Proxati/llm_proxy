@@ -72,12 +72,15 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 				logger.Error("Writer is nil, skipping")
 				continue
 			}
+
+			wLogger := logger.With("writer", w.String())
 			bytesWritten, err := w.Write(id, formattedDump)
-			logger.Info("Wrote log", "writer", w.String(), "bytesWritten", bytesWritten)
+			wLogger.Info("Wrote log", "bytesWritten", bytesWritten)
 			if err != nil {
-				logger.Error("Could not write log", "error", err)
+				wLogger.Error("Could not write log", "error", err)
 				continue
 			}
+			wLogger.Debug("Done writing")
 		}
 		logger.Debug("Request completed")
 	}()

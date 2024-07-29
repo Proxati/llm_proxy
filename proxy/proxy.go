@@ -55,6 +55,29 @@ func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, erro
 	return p, nil
 }
 
+// configureDumper creates and configure MegaDirDumper addon object, but bypass traffic logs when
+// no output target is requested (or when verbose is disabled)
+func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*addons.MegaTrafficDumper, error) {
+	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
+	if cfg.OutputDir == "" && !cfg.IsVerboseOrHigher() {
+		// no output dir specified and verbose is disabled
+		return nil, nil
+	}
+
+	dumperAddon, err := addons.NewMegaTrafficDumperAddon(
+		cfg.GetLogger(),
+		cfg.OutputDir,
+		cfg.TrafficLogFmt,
+		logSources,
+		cfg.FilterReqHeaders, cfg.FilterRespHeaders,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
+	}
+
+	return dumperAddon, nil
+}
+
 // configProxy returns a configured proxy object w/ addons. This proxy still needs to be "started"
 // with a blocking call to .Start() (which is handled elsewhere)
 func configProxy(cfg *config.Config) (*px.Proxy, error) {
@@ -75,21 +98,15 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(addons.NewStdOutLogger(cfg.GetLogger()))
 	}
 
-	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
-	if (cfg.OutputDir == "" && cfg.IsVerboseOrHigher()) || cfg.OutputDir != "" {
-		// struct of bools to toggle the various traffic log outputs
-		logSources := config.NewLogSourceConfig(cfg)
+	// struct of bools to toggle the various traffic log outputs
+	logSources := config.NewLogSourceConfig(cfg)
 
-		dumperAddon, err := addons.NewMegaTrafficDumperAddon(
-			cfg.GetLogger(),
-			cfg.OutputDir,
-			cfg.TrafficLogFmt,
-			logSources,
-			cfg.FilterReqHeaders, cfg.FilterRespHeaders,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
-		}
+	// create the mega traffic dumper addon
+	dumperAddon, err := configureDumper(cfg, logSources)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
+	}
+	if dumperAddon != nil {
 		sLogger.Debug(
 			"Created "+dumperAddon.String(),
 			"outputDir", cfg.OutputDir,

@@ -1,6 +1,8 @@
 package writers
 
 import (
+	"log/slog"
+
 	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 )
@@ -8,6 +10,7 @@ import (
 type ToDir struct {
 	targetDir     string
 	fileExtension string
+	logger        *slog.Logger
 }
 
 // Write writes the bytes to a new file in the target directory
@@ -27,7 +30,7 @@ func (t *ToDir) String() string {
 	return "ToDir: " + t.targetDir
 }
 
-func newToDir(target string, formatter formatters.MegaDumpFormatter) (*ToDir, error) {
+func newToDir(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (*ToDir, error) {
 	err := fileUtils.DirExistsOrCreate(target)
 	if err != nil {
 		return nil, err
@@ -36,9 +39,10 @@ func newToDir(target string, formatter formatters.MegaDumpFormatter) (*ToDir, er
 	return &ToDir{
 		targetDir:     target,
 		fileExtension: formatter.GetFileExtension(),
+		logger:        logger,
 	}, nil
 }
 
-func NewToDir(target string, formatter formatters.MegaDumpFormatter) (MegaDumpWriter, error) {
-	return newToDir(target, formatter)
+func NewToDir(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (MegaDumpWriter, error) {
+	return newToDir(logger, target, formatter)
 }

@@ -29,7 +29,7 @@ func TestToStdOut_Write(t *testing.T) {
 	slog.SetDefault(logger)
 
 	// Create a new ToStdOut instance
-	toStdOut, err := writers.NewToStdOut()
+	toStdOut, err := writers.NewToStdOut(slog.Default(), "", nil)
 	assert.NoError(t, err)
 
 	// Write some data

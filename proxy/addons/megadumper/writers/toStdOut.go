@@ -1,11 +1,17 @@
 package writers
 
-import "log/slog"
+import (
+	"log/slog"
 
-type ToStdOut struct{}
+	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
+)
+
+type ToStdOut struct {
+	logger *slog.Logger
+}
 
 func (t *ToStdOut) Write(identifier string, bytes []byte) (int, error) {
-	slog.Info(string(bytes), "identifier", identifier)
+	t.logger.Info(string(bytes), "identifier", identifier)
 	return len(bytes), nil
 }
 
@@ -13,10 +19,12 @@ func (t *ToStdOut) String() string {
 	return "ToStdOut"
 }
 
-func newToStdOut() (*ToStdOut, error) {
-	return &ToStdOut{}, nil
+func newToStdOut(logger *slog.Logger) (*ToStdOut, error) {
+	return &ToStdOut{
+		logger: logger.With("writer", "ToStdOut"),
+	}, nil
 }
 
-func NewToStdOut() (MegaDumpWriter, error) {
-	return newToStdOut()
+func NewToStdOut(logger *slog.Logger, _ string, _ formatters.MegaDumpFormatter) (MegaDumpWriter, error) {
+	return newToStdOut(logger)
 }

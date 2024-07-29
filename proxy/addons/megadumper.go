@@ -103,7 +103,7 @@ func NewMegaTrafficDumperAddon(
 		logger.Debug("Configured log destination", "destination", dest.String())
 	}
 
-	mda := &MegaTrafficDumper{
+	mTD := &MegaTrafficDumper{
 		logSources:            logSources,
 		logDestinationConfigs: logDestinationConfigs,
 		filterReqHeaders:      filterReqHeaders,
@@ -111,6 +111,6 @@ func NewMegaTrafficDumperAddon(
 		logger:                logger,
 	}
 
-	mda.closed.Store(false) // initialize the atomic bool with closed = false
-	return mda, nil
+	mTD.closed.Store(false) // initialize the atomic bool with closed = false
+	return mTD, nil
 }

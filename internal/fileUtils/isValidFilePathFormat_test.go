@@ -18,7 +18,8 @@ func TestIsValidFilePathFormat(t *testing.T) {
 		{"Invalid Path with Special Characters", "invalid<>path", false},
 		{"Invalid Path with Pipe", "another/invalid|path", false},
 		{"Valid Path with Dots", "valid/path/with/dots.ext", true},
-		{"Mixed Slashes Path", "C:/mixed\\slashes/path.txt", false}, // Adjusted expected result
+		{"Mixed Slashes Path", "C:/mixed\\slashes/path.txt", false},
+		{"Spaces Paths", "some random words with spaces", true},
 		{"Empty Path", "", false},
 		{"Root Path", "/", true},
 		{"Windows Root Path", "C:\\", true},

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/proxati/llm_proxy/v2/fileUtils"
+	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/key"
 	bolt "go.etcd.io/bbolt"
 )

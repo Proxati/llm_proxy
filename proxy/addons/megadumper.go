@@ -49,24 +49,11 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		doneAt := time.Since(start).Milliseconds()
 
 		// load the selected fields into a container object
-		flowAdapter := mitm.NewFlowAdapter(f)
-		dumpContainer, err := schema.NewLogDumpContainer(flowAdapter, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
-		if err != nil {
-			logger.Error("Could not create LogDumpContainer", "error", err)
-			return
-		}
+		dumpContainer := d.convertFlowToLogDump(logger, f, doneAt)
 
 		// write the formatted log data to... somewhere
-		for _, ldc := range d.logDestinationConfigs {
-			wLogger := logger.With("logDestinationConfig", ldc.String())
+		d.sendToLogDestinations(logger, id, dumpContainer)
 
-			bytesWritten, err := ldc.Write(id, dumpContainer)
-			if err != nil {
-				wLogger.Error("Could not write log", "error", err)
-				continue
-			}
-			wLogger.Info("Wrote log", "bytesWritten", bytesWritten)
-		}
 		logger.Debug("Request completed")
 	}()
 }
@@ -82,6 +69,32 @@ func (d *MegaTrafficDumper) Close() error {
 	}
 
 	return nil
+}
+
+// convertFlowToLogDump creates a LogDumpContainer from a px.Flow object
+func (d *MegaTrafficDumper) convertFlowToLogDump(logger *slog.Logger, f *px.Flow, doneAt int64) *schema.LogDumpContainer {
+	// load the selected fields into a container object
+	flowAdapter := mitm.NewFlowAdapter(f)
+	dumpContainer, err := schema.NewLogDumpContainer(flowAdapter, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
+	if err != nil {
+		logger.Error("Could not create LogDumpContainer", "error", err)
+		return nil
+	}
+	return dumpContainer
+}
+
+// sendToLogDestinations writes the log data to the configured log destinations
+func (d *MegaTrafficDumper) sendToLogDestinations(logger *slog.Logger, id string, dumpContainer *schema.LogDumpContainer) {
+	for _, ldc := range d.logDestinationConfigs {
+		wLogger := logger.With("logDestinationConfig", ldc.String())
+
+		bytesWritten, err := ldc.Write(id, dumpContainer)
+		if err != nil {
+			wLogger.Error("Could not write log", "error", err)
+			continue
+		}
+		wLogger.Info("Wrote log", "bytesWritten", bytesWritten)
+	}
 }
 
 // NewMegaTrafficDumperAddon creates a new dumper that creates a new log file for each request

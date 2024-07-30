@@ -51,17 +51,15 @@ type ResponseCacheAddon struct {
 	logger            *slog.Logger
 }
 
-var errorResponse = &px.Response{
-	StatusCode: http.StatusServiceUnavailable,
-	Body:       []byte("LLM_Proxy is not available"),
-}
-
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	logger := c.logger.With("URL", f.Request.URL, "ID", f.Id.String())
 
 	if c.closed.Load() {
 		logger.Warn("ResponseCacheAddon is being closed, skipping request")
-		f.Response = errorResponse
+		f.Response = &px.Response{
+			StatusCode: http.StatusServiceUnavailable,
+			Body:       []byte("LLM_Proxy is not available"),
+		}
 		f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
 		return
 	}

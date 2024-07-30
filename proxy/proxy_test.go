@@ -218,6 +218,9 @@ func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...
 	time.Sleep(defaultSleepTime)
 
 	return func() {
+		// sleep while waiting for the proxy to settle before shutdown
+		time.Sleep(defaultSleepTime)
+
 		// returns a function that can be called to shutdown the proxy goroutine
 		shutdownChan <- os.Interrupt
 	}, nil

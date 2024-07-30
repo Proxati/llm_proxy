@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	px "github.com/proxati/mitmproxy/proxy"
 
@@ -45,12 +46,26 @@ type ResponseCacheAddon struct {
 	filterRespHeaders []string
 	formatter         formatters.MegaDumpFormatter
 	cache             cache.DB
-	closeOnce         sync.Once
+	wg                sync.WaitGroup
+	closed            atomic.Bool
 	logger            *slog.Logger
 }
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	logger := c.logger.With("URL", f.Request.URL, "ID", f.Id.String())
+
+	if c.closed.Load() {
+		logger.Warn("ResponseCacheAddon is being closed, skipping request")
+		f.Response = &px.Response{
+			StatusCode: http.StatusServiceUnavailable,
+			Body:       []byte("LLM_Proxy is not available"),
+		}
+		f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
+		return
+	}
+
+	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+	defer c.wg.Done()
 
 	if f.Request.URL == nil || f.Request.URL.String() == "" {
 		logger.Error("request URL is nil or empty")
@@ -105,7 +120,11 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 }
 
 func (c *ResponseCacheAddon) Response(f *px.Flow) {
-	logger := c.logger.With("URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
+	logger := c.logger.With(
+		"URL", f.Request.URL,
+		"StatusCode", f.Response.StatusCode,
+		"ID", f.Id.String(),
+	)
 
 	// if the response is nil, don't even try to cache it
 	if f.Response == nil {
@@ -121,13 +140,16 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		}
 	}
 
+	if c.closed.Load() {
+		logger.Warn("ResponseCacheAddon is being closed, not storing response in cache")
+		return
+	}
+
+	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	go func() {
+		logger.Debug("Request starting...")
+		defer c.wg.Done()
 		<-f.Done()
-		// if the response is nil, don't even try to cache it
-		if f.Response == nil {
-			logger.Debug("skipping cache storage for nil response")
-			return
-		}
 
 		// Only cache good response codes
 		_, shouldCache := cacheOnlyResponseCodes[f.Response.StatusCode]
@@ -169,12 +191,17 @@ func (d *ResponseCacheAddon) String() string {
 	return "ResponseCacheAddon"
 }
 
-func (d *ResponseCacheAddon) Close() (err error) {
-	d.closeOnce.Do(func() {
+func (d *ResponseCacheAddon) Close() error {
+	if !d.closed.Swap(true) {
 		d.logger.Debug("Closing ResponseCacheAddon")
-		err = d.cache.Close()
-	})
-	return
+		err := d.cache.Close()
+		if err != nil {
+			d.logger.Error("error closing cacheDB", "error", err)
+		}
+		d.wg.Wait()
+	}
+
+	return nil
 }
 
 func cleanCacheDir(cacheDir string) (string, error) {
@@ -231,5 +258,6 @@ func NewCacheAddon(
 		formatter: &formatters.JSON{},
 		cache:     cacheDB,
 		logger:    logger,
+		closed:    atomic.Bool{},
 	}, nil
 }

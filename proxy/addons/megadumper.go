@@ -47,7 +47,7 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 
 	// store a copy of the request in a FlowAdapter right away
 	fa := &mitm.FlowAdapter{}
-	fa.SetRequest(*f.Request)
+	fa.SetRequest(f.Request)
 
 	d.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	go func() {

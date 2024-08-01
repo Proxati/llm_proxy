@@ -1,21 +1,32 @@
 package mitm
 
 import (
+	"maps"
 	"net/http"
 
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
 type ProxyResponseAdapter struct {
-	pxResp *px.Response
+	pxResp     *px.Response
+	headerCopy http.Header
 }
 
 func NewProxyResponseAdapter(pxResp *px.Response) *ProxyResponseAdapter {
 	if pxResp == nil {
-		return nil
+		pxResp = &px.Response{
+			Header: http.Header{},
+		}
+	}
+	if pxResp.Header == nil {
+		pxResp.Header = http.Header{}
 	}
 
-	return &ProxyResponseAdapter{pxResp: pxResp}
+	// deep copy of the headers to prevent race conditions
+	headerCopy := http.Header{}
+	maps.Copy(headerCopy, pxResp.Header)
+
+	return &ProxyResponseAdapter{pxResp: pxResp, headerCopy: headerCopy}
 }
 
 func (r *ProxyResponseAdapter) GetStatusCode() int {
@@ -23,7 +34,7 @@ func (r *ProxyResponseAdapter) GetStatusCode() int {
 }
 
 func (r *ProxyResponseAdapter) GetHeaders() http.Header {
-	return r.pxResp.Header
+	return r.headerCopy
 }
 
 func (r *ProxyResponseAdapter) GetBodyBytes() []byte {

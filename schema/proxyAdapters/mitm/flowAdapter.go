@@ -1,7 +1,6 @@
 package mitm
 
 import (
-	"maps"
 	"net/url"
 
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
@@ -10,70 +9,61 @@ import (
 
 // FlowAdapter implements the proxyAdapters.ProxyFlowReaderAdapter interface
 type FlowAdapter struct {
-	f   *px.Flow
-	req *px.Request
-	res *px.Response
+	connectionStats *ConnectionStatsAdapter
+	req             *ProxyRequestAdapter
+	res             *ProxyResponseAdapter
 }
 
 func NewFlowAdapter(flow *px.Flow) *FlowAdapter {
 	if flow == nil {
 		return nil
 	}
+	if flow.Request == nil {
+		flow.Request = &px.Request{
+			Header: map[string][]string{},
+			URL:    &url.URL{},
+		}
+	}
+	if flow.Response == nil {
+		flow.Response = &px.Response{
+			Header: map[string][]string{},
+		}
+	}
+
 	newAdapter := &FlowAdapter{}
 	newAdapter.SetFlow(flow)
 	return newAdapter
 }
 
 // SetRequest copies the request, to keep the original flow
-func (fa *FlowAdapter) SetRequest(req px.Request) {
-	fa.req = &req
-
-	// make a deep copy of the original request headers
-	headerCopy := make(map[string][]string)
-	maps.Copy(headerCopy, req.Header)
-	fa.req.Header = headerCopy
+func (fa *FlowAdapter) SetRequest(req *px.Request) {
+	fa.req = NewProxyRequestAdapter(req)
 }
 
-func (fa *FlowAdapter) SetResponse(res px.Response) {
-	fa.res = &res
+func (fa *FlowAdapter) SetResponse(res *px.Response) {
+	fa.res = NewProxyResponseAdapter(res)
 }
 
 func (fa *FlowAdapter) SetFlow(flow *px.Flow) {
-	fa.f = flow
+	fa.connectionStats = NewProxyConnectionStatsAdapter(flow)
 
 	// Only set these if they're not already set
 	if fa.req == nil {
-		if flow.Request != nil {
-			fa.SetRequest(*flow.Request)
-		} else {
-			// Set an empty request if flow.Request is nil
-			fa.SetRequest(px.Request{
-				Header: make(map[string][]string),
-				URL:    &url.URL{},
-			})
-		}
+		fa.SetRequest(flow.Request)
 	}
-
 	if fa.res == nil {
-		if flow.Response != nil {
-			fa.SetResponse(*flow.Response)
-		} else {
-			// Set an empty response if flow.Response is nil
-			fa.SetResponse(px.Response{
-				Header: make(map[string][]string),
-			})
-		}
+		fa.SetResponse(flow.Response)
 	}
 }
 
 func (fa *FlowAdapter) GetRequest() proxyAdapters.RequestReaderAdapter {
-	return NewProxyRequestAdapter(fa.req)
+	return fa.req
 }
 
 func (fa *FlowAdapter) GetResponse() proxyAdapters.ResponseReaderAdapter {
-	return NewProxyResponseAdapter(fa.res)
+	return fa.res
 }
 
 func (fa *FlowAdapter) GetConnectionStats() proxyAdapters.ConnectionStatsReaderAdapter {
-	return NewProxyConnectionStatsAdapter(fa.f)
+	return fa.connectionStats
 }

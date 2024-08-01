@@ -1,6 +1,7 @@
 package mitm
 
 import (
+	"maps"
 	"net/http"
 	"net/url"
 
@@ -9,15 +10,28 @@ import (
 
 // ProxyRequestAdapter is a RequestAdapter implementation for mitmproxy requests
 type ProxyRequestAdapter struct {
-	pxReq *px.Request
+	pxReq      *px.Request
+	headerCopy http.Header
 }
 
 func NewProxyRequestAdapter(pxReq *px.Request) *ProxyRequestAdapter {
 	if pxReq == nil {
-		return nil
+		pxReq = &px.Request{
+			Header: http.Header{},
+			URL:    &url.URL{},
+		}
 	}
+	if pxReq.Header == nil {
+		pxReq.Header = http.Header{}
+	}
+	if pxReq.URL == nil {
+		pxReq.URL = &url.URL{}
+	}
+	// deep copy of the headers to prevent race conditions
+	headerCopy := http.Header{}
+	maps.Copy(headerCopy, pxReq.Header)
 
-	return &ProxyRequestAdapter{pxReq: pxReq}
+	return &ProxyRequestAdapter{pxReq: pxReq, headerCopy: headerCopy}
 }
 
 func (r *ProxyRequestAdapter) GetMethod() string {
@@ -33,7 +47,7 @@ func (r *ProxyRequestAdapter) GetProto() string {
 }
 
 func (r *ProxyRequestAdapter) GetHeaders() http.Header {
-	return r.pxReq.Header
+	return r.headerCopy
 }
 
 func (r *ProxyRequestAdapter) GetBodyBytes() []byte {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,25 +30,29 @@ func (m *MockProxyResponseReaderAdapter) GetBodyBytes() []byte {
 }
 
 func TestNewProxyResponseFromMITMResponse(t *testing.T) {
-	// Test with nil input
-	_, err := schema.NewProxyResponse(nil, nil)
-	assert.Error(t, err)
+	t.Parallel()
 
-	// Test with valid input
-	headers := make(http.Header)
-	headers.Add("Content-Type", "application/json")
-	headers.Add("Delete-Me", "too-many-secrets")
-	mockAdapter := &MockProxyResponseReaderAdapter{
-		StatusCode: 200,
-		Headers:    headers,
-		Body:       []byte(`{"key":"value"}`),
-	}
-	headersToFilter := []string{"Delete-Me"}
+	t.Run("NilInput", func(t *testing.T) {
+		_, err := schema.NewProxyResponse(nil, nil)
+		assert.Error(t, err)
+	})
 
-	res, err := schema.NewProxyResponse(mockAdapter, headersToFilter)
-	require.NoError(t, err)
+	t.Run("ValidInput", func(t *testing.T) {
+		headers := make(http.Header)
+		headers.Add("Content-Type", "application/json")
+		headers.Add("Delete-Me", "too-many-secrets")
+		mockAdapter := &MockProxyResponseReaderAdapter{
+			StatusCode: 200,
+			Headers:    headers,
+			Body:       []byte(`{"key":"value"}`),
+		}
+		headersToFilter := config.NewHeaderFilterGroup([]string{"Delete-Me"})
 
-	assert.Equal(t, 200, res.Status)
-	assert.Contains(t, res.Header, "Content-Type")
-	assert.NotContains(t, res.Header, "Delete-Me")
+		res, err := schema.NewProxyResponse(mockAdapter, headersToFilter)
+		require.NoError(t, err)
+
+		assert.Equal(t, 200, res.Status)
+		assert.Contains(t, res.Header, "Content-Type")
+		assert.NotContains(t, res.Header, "Delete-Me")
+	})
 }

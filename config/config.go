@@ -14,6 +14,7 @@ type Config struct {
 	AppMode        AppMode
 	Cache          *cacheBehavior
 	terminalLogger *terminalLogger
+	HeaderFilters  *HeaderFiltersContainer
 }
 
 func (cfg *Config) getTerminalLogger() *terminalLogger {
@@ -121,11 +122,10 @@ func NewDefaultConfig() *Config {
 			},
 		},
 		trafficLogger: &trafficLogger{
-			Output:            "",
-			TrafficLogFmt:     LogFormat_JSON,
-			FilterReqHeaders:  append([]string{}, defaultFilterHeaders...), // append empty to deep copy the source slice
-			FilterRespHeaders: append([]string{}, defaultFilterHeaders...),
+			Output:        "",
+			TrafficLogFmt: LogFormat_JSON,
 		},
+		HeaderFilters: NewHeaderFiltersContainer(),
 		Cache: &cacheBehavior{
 			Dir: DefaultCacheDir,
 			TTL: 0,

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 	px "github.com/proxati/mitmproxy/proxy"
@@ -14,9 +15,11 @@ import (
 )
 
 func TestNewBoltMetaDB(t *testing.T) {
+	respHeaderFilter := config.NewHeaderFilterGroup([]string{})
+
 	t.Run("valid db file", func(t *testing.T) {
 		dbFileDir := t.TempDir()
-		bMeta, err := NewBoltMetaDB(dbFileDir, []string{})
+		bMeta, err := NewBoltMetaDB(dbFileDir, respHeaderFilter)
 
 		require.NoError(t, err)
 		assert.Equal(t, dbFileDir, bMeta.dbFileDir)
@@ -26,14 +29,20 @@ func TestNewBoltMetaDB(t *testing.T) {
 }
 
 func TestBoltMetaDB_PutAndGet(t *testing.T) {
+	reqHeaderFilter := config.NewHeaderFilterGroup([]string{"Authorization"})
+	respHeaderFilter := config.NewHeaderFilterGroup([]string{"Set-Cookie"})
+
 	t.Run("put and get a request and response", func(t *testing.T) {
 		dbFileDir := t.TempDir()
-		bMeta, err := NewBoltMetaDB(dbFileDir, []string{})
+		bMeta, err := NewBoltMetaDB(dbFileDir, respHeaderFilter)
 		require.NoError(t, err)
 		defer bMeta.Close()
 
 		req := &px.Request{
 			Method: "GET",
+			Header: http.Header{
+				"Authorization": {"Bearer"},
+			},
 			URL: &url.URL{
 				Scheme: "http",
 				Host:   "example.com",
@@ -44,21 +53,25 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 		reqAdapter := mitm.NewProxyRequestAdapter(req)
 		require.NotNil(t, reqAdapter)
 
-		trafficObjReq, err := schema.NewProxyRequest(reqAdapter, []string{})
+		trafficObjReq, err := schema.NewProxyRequest(reqAdapter, reqHeaderFilter)
 		require.NoError(t, err)
 		require.NotNil(t, trafficObjReq)
+		require.Empty(t, trafficObjReq.Header)
 
 		resp := &px.Response{
 			StatusCode: http.StatusOK,
-			Header:     map[string][]string{"Content-Type": {"text/plain"}},
-			Body:       []byte("hello"),
+			Header: http.Header{
+				"Content-Type": {"text/plain"},
+				"Set-Cookie":   {"cookie1=123; cookie2=456"},
+			},
+			Body: []byte("hello"),
 		}
 
 		// convert the response to a ResponseAdapter
 		respAdapter := mitm.NewProxyResponseAdapter(resp)
 		require.NotNil(t, respAdapter)
 
-		trafficObjResp, err := schema.NewProxyResponse(respAdapter, []string{})
+		trafficObjResp, err := schema.NewProxyResponse(respAdapter, respHeaderFilter)
 		require.NoError(t, err)
 		require.NotNil(t, trafficObjResp)
 

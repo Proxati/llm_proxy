@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,12 +43,14 @@ func (m *MockProxyRequestReaderAdapter) GetBodyBytes() []byte {
 }
 
 func Test_NewFromMITMRequest(t *testing.T) {
+	headersToFilter := config.NewHeaderFilterGroup([]string{})
+
 	t.Run("new from proxy request", func(t *testing.T) {
 		headers := http.Header{
 			"Content-Type": []string{"application/json"},
 			"Delete-Me":    []string{"too-many-secrets"},
 		}
-		headersToFilter := []string{"Delete-Me"}
+		headersToFilter = config.NewHeaderFilterGroup([]string{"Delete-Me"})
 
 		url, err := url.Parse("http://example.com")
 		require.NoError(t, err)
@@ -74,13 +77,13 @@ func Test_NewFromMITMRequest(t *testing.T) {
 			Body: []byte("\x01\x02\x03"),
 		}
 
-		trafficObject, err := schema.NewProxyRequest(request, emptyStringSlice)
+		trafficObject, err := schema.NewProxyRequest(request, headersToFilter)
 		require.NoError(t, err)
 		assert.NotNil(t, trafficObject)
 		assert.Empty(t, trafficObject.Body)
 	})
 	t.Run("nil request", func(t *testing.T) {
-		trafficObject, err := schema.NewProxyRequest(nil, emptyStringSlice)
+		trafficObject, err := schema.NewProxyRequest(nil, headersToFilter)
 		require.Error(t, err)
 		assert.Nil(t, trafficObject)
 	})

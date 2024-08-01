@@ -7,42 +7,26 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
 type ProxyRequest struct {
-	Method            string         `json:"method,omitempty"`
-	URL               *url.URL       `json:"url,omitempty"`
-	Proto             string         `json:"proto,omitempty"`
-	Header            http.Header    `json:"header"`
-	Body              string         `json:"body"`
-	headerFilterIndex map[string]any `json:"-"`
+	Method        string      `json:"method,omitempty"`
+	URL           *url.URL    `json:"url,omitempty"`
+	Proto         string      `json:"proto,omitempty"`
+	Header        http.Header `json:"header"`
+	Body          string      `json:"body"`
+	headerFilters *config.HeaderFilterGroup
 }
 
-// loadHeaderFilterIndex loads the headers to filter into a map, used by loadHeaders
-func (pReq *ProxyRequest) loadHeaderFilterIndex(headersToFilter []string) {
-	pReq.headerFilterIndex = make(map[string]any)
-	for _, header := range headersToFilter {
-		pReq.headerFilterIndex[header] = nil
+// filterHeaders filters the headers in the ProxyResponse object using the headerFilters object
+func (pReq *ProxyRequest) filterHeaders() {
+	if pReq.headerFilters == nil {
+		return
 	}
-}
-
-// loadHeaders resets and loads the new headers into the ProxyRequest object
-func (pReq *ProxyRequest) loadHeaders(headers map[string][]string) {
-	pReq.Header = make(http.Header)
-	if pReq.headerFilterIndex == nil {
-		pReq.Header = headers
-		return // no headers to filter
-	}
-
-	for key, values := range headers {
-		if _, found := pReq.headerFilterIndex[key]; !found {
-			for _, value := range values {
-				pReq.Header.Add(key, value)
-			}
-		}
-	}
+	pReq.Header = pReq.headerFilters.FilterHeaders(pReq.Header)
 }
 
 // loadBody loads the request body into the ProxyRequest object
@@ -111,7 +95,8 @@ func (pReq *ProxyRequest) UnmarshalJSON(data []byte) error {
 			header[k] = svals
 		}
 		// load and filter headers
-		pReq.loadHeaders(header)
+		pReq.Header = header
+		pReq.filterHeaders()
 	}
 
 	// handle body
@@ -152,19 +137,19 @@ func (pReq *ProxyRequest) MarshalJSON() ([]byte, error) {
 }
 
 // NewProxyRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyRequest(req proxyAdapters.RequestReaderAdapter, headersToFilter []string) (*ProxyRequest, error) {
+func NewProxyRequest(req proxyAdapters.RequestReaderAdapter, headerFilters *config.HeaderFilterGroup) (*ProxyRequest, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request is nil, unable to create ProxyRequest")
 	}
 
 	pReq := &ProxyRequest{
-		Method: req.GetMethod(),
-		URL:    req.GetURL(),
-		Proto:  req.GetProto(),
+		Method:        req.GetMethod(),
+		URL:           req.GetURL(),
+		Proto:         req.GetProto(),
+		Header:        req.GetHeaders(),
+		headerFilters: headerFilters,
 	}
 
-	pReq.loadHeaderFilterIndex(headersToFilter)
-	pReq.loadHeaders(req.GetHeaders())
 	if err := pReq.loadBody(req.GetBodyBytes()); err != nil {
 		if pReq.URL != nil {
 			getLogger().Warn("unable to load request body", "URL", pReq.URL.String())
@@ -173,5 +158,10 @@ func NewProxyRequest(req proxyAdapters.RequestReaderAdapter, headersToFilter []s
 		}
 	}
 
+	if pReq.Header == nil {
+		pReq.Header = make(http.Header)
+	}
+
+	pReq.filterHeaders()
 	return pReq, nil
 }

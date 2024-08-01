@@ -58,7 +58,6 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		doneAt := time.Since(start).Milliseconds()
 
 		// save the other fields in the FlowAdapter
-		fa.SetResponse(*f.Response)
 		fa.SetFlow(f)
 
 		// load the selected fields into a container object

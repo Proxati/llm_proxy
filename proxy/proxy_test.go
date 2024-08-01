@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,8 +18,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
@@ -36,66 +36,6 @@ const (
 	cacheSubdir      = "cache"
 	debugOutput      = false
 )
-
-func newWatcher(watchDir string) (*fsnotify.Watcher, error) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, err
-	}
-
-	err = watcher.Add(watchDir)
-	if err != nil {
-		watcher.Close()
-		return nil, err
-	}
-	log.Printf("Watching directory: %s", watchDir)
-	return watcher, nil
-}
-
-func waitForFile(watcher *fsnotify.Watcher, timeout time.Duration) error {
-	defer watcher.Close()
-
-	// Channel to signal when a file event occurs
-	eventOccurred := make(chan string)
-	errorChannel := make(chan error)
-
-	// Goroutine to handle fsnotify events
-	go func() {
-		defer close(eventOccurred)
-		defer close(errorChannel)
-
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				log.Printf("Event received: %v", event)
-				if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Rename|fsnotify.Remove) != 0 {
-					log.Printf("Relevant event occurred: %s", event.Name)
-					eventOccurred <- event.Name
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Printf("Watcher error: %v", err)
-				errorChannel <- err
-			}
-		}
-	}()
-
-	// Wait for a relevant file event or timeout
-	select {
-	case <-eventOccurred:
-		log.Println("Relevant file event detected")
-		return nil
-	case err := <-errorChannel:
-		return fmt.Errorf("error from watcher: %w", err)
-	case <-time.After(timeout):
-		return errors.New("timeout waiting for file event")
-	}
-}
 
 // randomly finds an available port to bind to
 func getFreePort() (string, error) {
@@ -322,6 +262,8 @@ func TestProxySimple(t *testing.T) {
 }
 
 func TestProxyDirLoggerMode(t *testing.T) {
+	logger := slog.Default()
+
 	// create a proxy with a test config
 	proxyPort, err := getFreePort()
 	require.NoError(t, err)
@@ -345,7 +287,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		hitCounter.Store(0) // reset the counter
 
 		// setup a new watcher
-		watch, err := newWatcher(tmpDir + "/" + outputSubdir)
+		watch, err := fileUtils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
 		require.NoError(t, err)
 
 		// make a request using that client, through the proxy
@@ -362,7 +304,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		assert.Equal(t, expectedResponse, body)
 
 		// wait for the proxy to write the log file
-		err = waitForFile(watch, defaultSleepTime)
+		err = fileUtils.WaitForFile(logger, watch, defaultSleepTime)
 		require.NoError(t, err)
 
 		// check that the log file was created
@@ -382,7 +324,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.NoError(t, err)
 
 		// setup a new watcher
-		watch, err = newWatcher(tmpDir + "/" + outputSubdir)
+		watch, err = fileUtils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
 		require.NoError(t, err)
 
 		// make another request using that client, through the proxy
@@ -392,7 +334,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.Equal(t, int32(2), hitCounter.Load())
 
 		// sleep to allow the proxy to write the log file
-		err = waitForFile(watch, defaultSleepTime)
+		err = fileUtils.WaitForFile(logger, watch, defaultSleepTime)
 		require.NoError(t, err)
 
 		// check the log
@@ -412,7 +354,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	t.Run("TestDirLoggerJSON", func(t *testing.T) {
 		hitCounter.Store(0) // reset the counter
 
-		watch, err := newWatcher(tmpDir + "/" + outputSubdir)
+		watch, err := fileUtils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
 		require.NoError(t, err)
 
 		// make another request using that client, through the proxy
@@ -422,7 +364,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.Equal(t, int32(1), hitCounter.Load())
 
 		// sleep to allow the proxy to write the log file
-		err = waitForFile(watch, defaultSleepTime)
+		err = fileUtils.WaitForFile(logger, watch, defaultSleepTime)
 		require.NoError(t, err)
 
 		// check the log

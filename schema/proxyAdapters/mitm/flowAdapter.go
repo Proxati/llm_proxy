@@ -1,6 +1,7 @@
 package mitm
 
 import (
+	"maps"
 	"net/url"
 
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
@@ -26,6 +27,11 @@ func NewFlowAdapter(flow *px.Flow) *FlowAdapter {
 // SetRequest copies the request, to keep the original flow
 func (fa *FlowAdapter) SetRequest(req px.Request) {
 	fa.req = &req
+
+	// make a deep copy of the original request headers
+	headerCopy := make(map[string][]string)
+	maps.Copy(headerCopy, req.Header)
+	fa.req.Header = headerCopy
 }
 
 func (fa *FlowAdapter) SetResponse(res px.Response) {

@@ -29,6 +29,11 @@ type MegaTrafficDumper struct {
 // Requestheaders is a callback that will receive a "flow" from the proxy, will create a
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
 func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
+	if f.Request == nil {
+		d.logger.Error("Request is nil, not logging")
+		return
+	}
+
 	id := f.Id.String()
 	logger := d.logger.With(
 		"URL", f.Request.URL,
@@ -40,6 +45,10 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		return
 	}
 
+	// store a copy of the request in a FlowAdapter right away
+	fa := &mitm.FlowAdapter{}
+	fa.SetRequest(*f.Request)
+
 	d.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	go func() {
 		logger.Debug("Request starting...")
@@ -48,8 +57,12 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		<-f.Done() // block this goroutine until the entire flow is done
 		doneAt := time.Since(start).Milliseconds()
 
+		// save the other fields in the FlowAdapter
+		fa.SetResponse(*f.Response)
+		fa.SetFlow(f)
+
 		// load the selected fields into a container object
-		dumpContainer := d.convertFlowToLogDump(logger, f, doneAt)
+		dumpContainer := d.convertFlowToLogDump(logger, fa, doneAt)
 
 		// write the formatted log data to... somewhere
 		d.sendToLogDestinations(logger, id, dumpContainer)
@@ -72,9 +85,8 @@ func (d *MegaTrafficDumper) Close() error {
 }
 
 // convertFlowToLogDump creates a LogDumpContainer from a px.Flow object
-func (d *MegaTrafficDumper) convertFlowToLogDump(logger *slog.Logger, f *px.Flow, doneAt int64) *schema.LogDumpContainer {
+func (d *MegaTrafficDumper) convertFlowToLogDump(logger *slog.Logger, flowAdapter *mitm.FlowAdapter, doneAt int64) *schema.LogDumpContainer {
 	// load the selected fields into a container object
-	flowAdapter := mitm.NewFlowAdapter(f)
 	dumpContainer, err := schema.NewLogDumpContainer(flowAdapter, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
 	if err != nil {
 		logger.Error("Could not create LogDumpContainer", "error", err)

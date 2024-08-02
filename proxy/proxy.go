@@ -140,6 +140,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 			cfg.GetLogger(),
 			cacheConfig.StorageEngine,
 			cacheConfig.StoragePath,
+			cfg.HeaderFilters.RequestToLogs,
 			cfg.HeaderFilters.ResponseToLogs,
 		)
 		if err != nil {

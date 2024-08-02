@@ -62,7 +62,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 	t.Run("empty storage engine", func(t *testing.T) {
 		storageEngineName := ""
 		cacheDir := t.TempDir()
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup, emptyHeaderFilterGroup)
 		assert.Error(t, err, "Expected error for empty storage engine")
 		assert.Nil(t, cache)
 	})
@@ -70,7 +70,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 	t.Run("unknown storage engine", func(t *testing.T) {
 		storageEngineName := "unknown"
 		cacheDir := t.TempDir()
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup, emptyHeaderFilterGroup)
 		assert.Error(t, err, "Expected error for unknown storage engine")
 		assert.Nil(t, cache)
 	})
@@ -78,7 +78,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 	t.Run("bolt storage engine with invalid cacheDir", func(t *testing.T) {
 		storageEngineName := "bolt"
 		cacheDir := "\\\\invalid\\path"
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup, emptyHeaderFilterGroup)
 		assert.Error(t, err, "Expected error for invalid cacheDir")
 		assert.Nil(t, cache)
 	})
@@ -86,7 +86,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 	t.Run("bolt storage engine with valid cacheDir", func(t *testing.T) {
 		storageEngineName := "bolt"
 		cacheDir := t.TempDir()
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup, emptyHeaderFilterGroup)
 		assert.NoError(t, err, "Expected no error for valid cacheDir")
 		assert.NotNil(t, cache)
 		assert.Equal(t, "ResponseCacheAddon", cache.String())
@@ -103,6 +103,7 @@ func TestRequest(t *testing.T) {
 		testLogger,
 		"bolt", tmpDir,
 		filterReqHeaders,
+		filterRespHeaders,
 	)
 	require.Nil(t, err, "No error creating cache addon")
 

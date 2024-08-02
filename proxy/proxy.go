@@ -69,7 +69,8 @@ func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*ad
 		cfg.Output,
 		cfg.TrafficLogFmt,
 		logSources,
-		cfg.HeaderFilters,
+		cfg.HeaderFilters.RequestToLogs,
+		cfg.HeaderFilters.ResponseToLogs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)

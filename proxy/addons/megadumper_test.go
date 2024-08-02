@@ -18,7 +18,8 @@ func TestNewMegaDumpAddon(t *testing.T) {
 	t.Run("JSON", func(t *testing.T) {
 		logTarget := "/tmp/logs"
 		logFormat := config.LogFormat_JSON
-		mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, hfc)
+		mda, err := NewMegaTrafficDumperAddon(
+			testLogger, logTarget, logFormat, logSources, hfc.RequestToLogs, hfc.ResponseToLogs)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, mda)
@@ -30,7 +31,8 @@ func TestNewMegaDumpAddon(t *testing.T) {
 		logTarget := "/tmp/logs"
 		logFormat := config.LogFormat_TXT
 
-		mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, hfc)
+		mda, err := NewMegaTrafficDumperAddon(
+			testLogger, logTarget, logFormat, logSources, hfc.RequestToLogs, hfc.ResponseToLogs)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, mda)
@@ -42,7 +44,8 @@ func TestNewMegaDumpAddon(t *testing.T) {
 		logTarget := ""
 		logFormat := config.LogFormat_TXT
 
-		mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, hfc)
+		mda, err := NewMegaTrafficDumperAddon(
+			testLogger, logTarget, logFormat, logSources, hfc.RequestToLogs, hfc.ResponseToLogs)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, mda)
@@ -60,7 +63,8 @@ func TestMegaTrafficDumper_Requestheaders_NilFlow(t *testing.T) {
 	logSources := config.LogSourceConfig{}
 	filterHeaders := config.NewHeaderFiltersContainer()
 
-	mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, filterHeaders)
+	mda, err := NewMegaTrafficDumperAddon(
+		testLogger, logTarget, logFormat, logSources, filterHeaders.RequestToLogs, filterHeaders.ResponseToLogs)
 	assert.NoError(t, err)
 	assert.NotNil(t, mda)
 
@@ -85,7 +89,8 @@ func TestMegaTrafficDumper_Requestheaders_ValidFlow(t *testing.T) {
 	logSources := config.LogSourceConfig{}
 	filterHeaders := config.NewHeaderFiltersContainer()
 
-	mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, filterHeaders)
+	mda, err := NewMegaTrafficDumperAddon(
+		testLogger, logTarget, logFormat, logSources, filterHeaders.RequestToLogs, filterHeaders.ResponseToLogs)
 	assert.NoError(t, err)
 	assert.NotNil(t, mda)
 
@@ -110,7 +115,8 @@ func TestMegaTrafficDumper_Close(t *testing.T) {
 	logSources := config.LogSourceConfig{}
 	filterHeaders := config.NewHeaderFiltersContainer()
 
-	mda, err := NewMegaTrafficDumperAddon(testLogger, logTarget, logFormat, logSources, filterHeaders)
+	mda, err := NewMegaTrafficDumperAddon(
+		testLogger, logTarget, logFormat, logSources, filterHeaders.RequestToLogs, filterHeaders.ResponseToLogs)
 	assert.NoError(t, err)
 	assert.NotNil(t, mda)
 

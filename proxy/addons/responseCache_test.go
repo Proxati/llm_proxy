@@ -57,11 +57,10 @@ func TestCleanCachePath(t *testing.T) {
 
 func TestNewCacheAddonErr(t *testing.T) {
 	testLogger := slog.Default()
-	filterReqHeaders := config.NewHeaderFilterGroup([]string{"header1", "header2"})
-	filterRespHeaders := config.NewHeaderFilterGroup([]string{"header1", "header2"})
+	emptyHeaderFilterGroup := config.NewHeaderFilterGroup([]string{})
 	fhc := &config.HeaderFiltersContainer{
-		RequestToLogs:  filterReqHeaders,
-		ResponseToLogs: filterRespHeaders,
+		RequestToLogs:  emptyHeaderFilterGroup,
+		ResponseToLogs: emptyHeaderFilterGroup,
 	}
 
 	t.Run("empty storage engine", func(t *testing.T) {
@@ -123,7 +122,7 @@ func TestRequest(t *testing.T) {
 				URL:    &url.URL{Path: "/test"},
 				Header: http.Header{
 					"Host":    []string{"example.com"},
-					"header1": []string{"value1"},
+					"Header1": []string{"value1"},
 				},
 				Body: []byte("req"),
 			},
@@ -184,6 +183,7 @@ func TestRequest(t *testing.T) {
 		respAdapter := mitm.NewProxyResponseAdapter(resp)
 		require.NotNil(t, respAdapter)
 
+		// create traffic objects for the request and response, check header loading
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tResp.Header.Get(CacheStatusHeader))

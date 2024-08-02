@@ -29,7 +29,7 @@ func TestNewBoltMetaDB(t *testing.T) {
 }
 
 func TestBoltMetaDB_PutAndGet(t *testing.T) {
-	reqHeaderFilter := config.NewHeaderFilterGroup([]string{"Authorization"})
+	reqHeaderFilter := config.NewHeaderFilterGroup([]string{})
 	respHeaderFilter := config.NewHeaderFilterGroup([]string{"Set-Cookie"})
 
 	t.Run("put and get a request and response", func(t *testing.T) {
@@ -40,9 +40,7 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 
 		req := &px.Request{
 			Method: "GET",
-			Header: http.Header{
-				"Authorization": {"Bearer"},
-			},
+			Header: http.Header{},
 			URL: &url.URL{
 				Scheme: "http",
 				Host:   "example.com",
@@ -61,8 +59,8 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 		resp := &px.Response{
 			StatusCode: http.StatusOK,
 			Header: http.Header{
-				"Content-Type": {"text/plain"},
-				"Set-Cookie":   {"cookie1=123; cookie2=456"},
+				"Set-Cookie":   {"cookie1=123; cookie2=456"}, // this should be filtered out
+				"Content-Type": {"text/plain"},               // this should be kept
 			},
 			Body: []byte("hello"),
 		}
@@ -93,7 +91,11 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 		gotResp, err = bMeta.Get(trafficObjReq.URL.String(), []byte{})
 		require.NoError(t, err)
 		assert.Equal(t, resp.StatusCode, gotResp.Status)
-		assert.Equal(t, resp.Header, gotResp.Header)
 		assert.Equal(t, resp.Body, []byte(gotResp.Body))
+
+		// headers are filtered
+		assert.NotEqual(t, resp.Header, gotResp.Header)
+		assert.Equal(t, http.Header{"Content-Type": {"text/plain"}}, gotResp.Header)
+
 	})
 }

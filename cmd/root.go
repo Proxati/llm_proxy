@@ -216,17 +216,19 @@ logging or caching purposes but will still forward to the client. For example,
 "Set-Cookie" headers sent from the server should not be stored in logs or cache.`,
 	)
 
-	rootCmd.PersistentFlags().StringSliceVar(
-		&cfg.HeaderFilters.RequestToUpstream.Headers, "filter-request-headers-to-upstream", cfg.HeaderFilters.RequestToUpstream.Headers,
-		`A comma-separated list of request headers the proxy not send upstream. For example, you may want to include
-additional internal metadata about requests for log storage, but do not want that metadata to be sent to a 3rd party API.`,
-	)
+	/* still in development:
+		rootCmd.PersistentFlags().StringSliceVar(
+			&cfg.HeaderFilters.RequestToUpstream.Headers, "filter-request-headers-to-upstream", cfg.HeaderFilters.RequestToUpstream.Headers,
+			`A comma-separated list of request headers the proxy not send upstream. For example, you may want to include
+	additional internal metadata about requests for log storage, but do not want that metadata to be sent to a 3rd party API.`,
+		)
 
-	rootCmd.PersistentFlags().StringSliceVar(
-		&cfg.HeaderFilters.ResponseToClient.Headers, "filter-response-headers-to-client", cfg.HeaderFilters.ResponseToClient.Headers,
-		`A comma-separated list of response headers that the proxy will log or
-cache, but will not send to the client. For example, the proxy may receive
-metadata about token counts or other internal data that should not be sent to
-the client.`,
-	)
+		rootCmd.PersistentFlags().StringSliceVar(
+			&cfg.HeaderFilters.ResponseToClient.Headers, "filter-response-headers-to-client", cfg.HeaderFilters.ResponseToClient.Headers,
+			`A comma-separated list of response headers that the proxy will log or
+	cache, but will not send to the client. For example, the proxy may receive
+	metadata about token counts or other internal data that should not be sent to
+	the client.`,
+		)
+	*/
 }

@@ -12,10 +12,10 @@ import (
 )
 
 type ProxyResponse struct {
-	Status        int         `json:"status,omitempty"`
-	Header        http.Header `json:"header"`
-	Body          string      `json:"body"`
-	headerFilters *config.HeaderFilterGroup
+	Status       int         `json:"status,omitempty"`
+	Header       http.Header `json:"header"`
+	Body         string      `json:"body"`
+	headerFilter *config.HeaderFilterGroup
 }
 
 func (pRes *ProxyResponse) GetStatusCode() int {
@@ -30,12 +30,12 @@ func (pRes *ProxyResponse) GetBodyBytes() []byte {
 	return []byte(pRes.Body)
 }
 
-// filterHeaders filters the headers in the ProxyResponse object using the headerFilters object
+// filterHeaders filters the headers in the ProxyResponse object using the headerFilter object
 func (pRes *ProxyResponse) filterHeaders() {
-	if pRes.headerFilters == nil {
+	if pRes.headerFilter == nil {
 		return
 	}
-	pRes.Header = pRes.headerFilters.FilterHeaders(pRes.Header)
+	pRes.Header = pRes.headerFilter.FilterHeaders(pRes.Header)
 }
 
 // loadBody loads the request body into the ProxyRequest object
@@ -114,15 +114,15 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 }
 
 // NewFromMITMRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyResponse(req proxyAdapters.ResponseReaderAdapter, headerFilters *config.HeaderFilterGroup) (*ProxyResponse, error) {
+func NewProxyResponse(req proxyAdapters.ResponseReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("response is nil, unable to create ProxyResponse")
 	}
 
 	pRes := &ProxyResponse{
-		Status:        req.GetStatusCode(),
-		Header:        req.GetHeaders(),
-		headerFilters: headerFilters,
+		Status:       req.GetStatusCode(),
+		Header:       req.GetHeaders(),
+		headerFilter: headerFilter,
 	}
 	if err := pRes.loadBody(req.GetBodyBytes(), pRes.Header.Get("Content-Encoding")); err != nil {
 		getLogger().Warn("could not load ProxyResponse body", "error", err)
@@ -134,7 +134,7 @@ func NewProxyResponse(req proxyAdapters.ResponseReaderAdapter, headerFilters *co
 }
 
 // NewFromJSONBytes unmarshals a JSON object into a TrafficObject
-func NewProxyResponseFromJSONBytes(data []byte, headerFilters *config.HeaderFilterGroup) (*ProxyResponse, error) {
+func NewProxyResponseFromJSONBytes(data []byte, headerFilter *config.HeaderFilterGroup) (*ProxyResponse, error) {
 	pRes := &ProxyResponse{}
 	err := json.Unmarshal(data, pRes)
 	if err != nil {
@@ -145,7 +145,7 @@ func NewProxyResponseFromJSONBytes(data []byte, headerFilters *config.HeaderFilt
 		pRes.Header = make(http.Header)
 	}
 
-	pRes.headerFilters = headerFilters
+	pRes.headerFilter = headerFilter
 	pRes.filterHeaders()
 
 	return pRes, nil

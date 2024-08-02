@@ -233,7 +233,7 @@ func cleanCacheDir(cacheDir string) (string, error) {
 //   - logger: the DI'd logger
 //   - storageEngineName: name of the storage engine to use
 //   - cacheDir: output & cache storage directory
-//   - headerFilters: which headers to filter out
+//   - headerFilter: which headers to filter out
 //
 // Returns:
 //

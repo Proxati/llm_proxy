@@ -13,20 +13,20 @@ import (
 )
 
 type ProxyRequest struct {
-	Method        string      `json:"method,omitempty"`
-	URL           *url.URL    `json:"url,omitempty"`
-	Proto         string      `json:"proto,omitempty"`
-	Header        http.Header `json:"header"`
-	Body          string      `json:"body"`
-	headerFilters *config.HeaderFilterGroup
+	Method       string      `json:"method,omitempty"`
+	URL          *url.URL    `json:"url,omitempty"`
+	Proto        string      `json:"proto,omitempty"`
+	Header       http.Header `json:"header"`
+	Body         string      `json:"body"`
+	headerFilter *config.HeaderFilterGroup
 }
 
-// filterHeaders filters the headers in the ProxyResponse object using the headerFilters object
+// filterHeaders filters the headers in the ProxyResponse object using the headerFilter object
 func (pReq *ProxyRequest) filterHeaders() {
-	if pReq.headerFilters == nil {
+	if pReq.headerFilter == nil {
 		return
 	}
-	pReq.Header = pReq.headerFilters.FilterHeaders(pReq.Header)
+	pReq.Header = pReq.headerFilter.FilterHeaders(pReq.Header)
 }
 
 // loadBody loads the request body into the ProxyRequest object
@@ -137,17 +137,17 @@ func (pReq *ProxyRequest) MarshalJSON() ([]byte, error) {
 }
 
 // NewProxyRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyRequest(req proxyAdapters.RequestReaderAdapter, headerFilters *config.HeaderFilterGroup) (*ProxyRequest, error) {
+func NewProxyRequest(req proxyAdapters.RequestReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyRequest, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request is nil, unable to create ProxyRequest")
 	}
 
 	pReq := &ProxyRequest{
-		Method:        req.GetMethod(),
-		URL:           req.GetURL(),
-		Proto:         req.GetProto(),
-		Header:        req.GetHeaders(),
-		headerFilters: headerFilters,
+		Method:       req.GetMethod(),
+		URL:          req.GetURL(),
+		Proto:        req.GetProto(),
+		Header:       req.GetHeaders(),
+		headerFilter: headerFilter,
 	}
 
 	if err := pReq.loadBody(req.GetBodyBytes()); err != nil {

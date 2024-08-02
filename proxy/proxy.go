@@ -139,7 +139,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 			cfg.GetLogger(),
 			cacheConfig.StorageEngine,
 			cacheConfig.StoragePath,
-			cfg.HeaderFilters,
+			cfg.HeaderFilters.ResponseToLogs,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load cache addon: %v", err)

@@ -43,12 +43,12 @@ var cacheOnlyResponseCodes = map[int]struct{}{
 
 type ResponseCacheAddon struct {
 	px.BaseAddon
-	headerFilters *config.HeaderFiltersContainer
-	formatter     formatters.MegaDumpFormatter
-	cache         cache.DB
-	wg            sync.WaitGroup
-	closed        atomic.Bool
-	logger        *slog.Logger
+	headerFilter *config.HeaderFilterGroup
+	formatter    formatters.MegaDumpFormatter
+	cache        cache.DB
+	wg           sync.WaitGroup
+	closed       atomic.Bool
+	logger       *slog.Logger
 }
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
@@ -162,7 +162,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		// convert the request to an internal TrafficObject
 		reqAdapter := mitm.NewProxyRequestAdapter(f.Request) // generic wrapper for the mitm request
 
-		tObjReq, err := schema.NewProxyRequest(reqAdapter, c.headerFilters.RequestToLogs)
+		tObjReq, err := schema.NewProxyRequest(reqAdapter, c.headerFilter)
 		if err != nil {
 			logger.Error("could not create TrafficObject from request", "error", err)
 			return
@@ -173,7 +173,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 
 		// convert the response to an internal TrafficObject
 		respAdapter := mitm.NewProxyResponseAdapter(f.Response) // generic wrapper for the mitm response
-		tObjResp, err := schema.NewProxyResponse(respAdapter, c.headerFilters.ResponseToLogs)
+		tObjResp, err := schema.NewProxyResponse(respAdapter, c.headerFilter)
 		if err != nil {
 			logger.Error("could not create TrafficObject from response", "error", err)
 			return
@@ -242,7 +242,7 @@ func NewCacheAddon(
 	logger *slog.Logger,
 	storageEngineName string,
 	cacheDir string,
-	headerFilters *config.HeaderFiltersContainer,
+	headerFilter *config.HeaderFilterGroup,
 ) (*ResponseCacheAddon, error) {
 	var cacheDB cache.DB
 	var err error
@@ -259,7 +259,7 @@ func NewCacheAddon(
 		panic("badger storage engine is disabled")
 	case "bolt":
 		// pass in the header filters for removing specific headers from the objects stored in cache
-		cacheDB, err = cache.NewBoltMetaDB(cacheDir, headerFilters.ResponseToLogs)
+		cacheDB, err = cache.NewBoltMetaDB(cacheDir, headerFilter)
 		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
 	default:
 		return nil, fmt.Errorf("unknown storage engine: %s", storageEngineName)
@@ -270,10 +270,10 @@ func NewCacheAddon(
 	}
 
 	return &ResponseCacheAddon{
-		formatter:     &formatters.JSON{},
-		cache:         cacheDB,
-		logger:        logger,
-		closed:        atomic.Bool{},
-		headerFilters: headerFilters,
+		formatter:    &formatters.JSON{},
+		cache:        cacheDB,
+		logger:       logger,
+		closed:       atomic.Bool{},
+		headerFilter: headerFilter,
 	}, nil
 }

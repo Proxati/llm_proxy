@@ -83,7 +83,7 @@ func TestAddAddon(t *testing.T) {
 
 func TestAllMethods(t *testing.T) {
 	// create a proxy with a test config
-	proxyPort, err := getFreePort()
+	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
 
@@ -92,19 +92,19 @@ func TestAllMethods(t *testing.T) {
 	mock := &mockAddon{}
 	meta.addAddon(mock)
 
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.ProxyRunMode, meta)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, meta)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
 	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort()
+	testServerPort, err := getFreePort(t)
 	require.NoError(t, err)
-	srv, srvShutdown := runWebServer(hitCounter, testServerPort)
+	srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
 	require.NotNil(t, srv)
 	require.NotNil(t, srvShutdown)
 
 	// Create an http client that will use the proxy to connect to the web server
-	client, err := httpClient("http://" + proxyPort)
+	client, err := httpClient(t, "http://"+proxyPort)
 	require.NoError(t, err)
 
 	t.Run("TestAddonMethodsCalled", func(t *testing.T) {

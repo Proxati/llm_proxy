@@ -38,7 +38,8 @@ const (
 )
 
 // randomly finds an available port to bind to
-func getFreePort() (string, error) {
+func getFreePort(t testing.TB) (string, error) {
+	t.Helper()
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
 		return "", err
@@ -53,7 +54,8 @@ func getFreePort() (string, error) {
 	return fmt.Sprintf("localhost:%d", port), nil
 }
 
-func httpClient(proxyAddr string) (*http.Client, error) {
+func httpClient(t testing.TB, proxyAddr string) (*http.Client, error) {
+	t.Helper()
 	proxyURL, err := url.Parse(proxyAddr)
 	if err != nil {
 		return nil, err
@@ -70,7 +72,8 @@ func httpClient(proxyAddr string) (*http.Client, error) {
 }
 
 // respBuilder builds a response body test message from the original request body and the hit counter
-func respBuilder(hits int32, body io.Reader) []byte {
+func respBuilder(t testing.TB, hits int32, body io.Reader) []byte {
+	t.Helper()
 	bodyBytes, err := io.ReadAll(body)
 	if err != nil {
 		bodyBytes = []byte("")
@@ -78,7 +81,8 @@ func respBuilder(hits int32, body io.Reader) []byte {
 	return []byte(fmt.Sprintf("counter: %d request_body: %s", hits, string(bodyBytes)))
 }
 
-func runWebServer(hitCounter *atomic.Int32, listenAddr string) (*http.Server, func()) {
+func runWebServer(t testing.TB, hitCounter *atomic.Int32, listenAddr string) (*http.Server, func()) {
+	t.Helper()
 	if hitCounter == nil {
 		panic("hitCounter must be non-nil")
 	}
@@ -88,7 +92,7 @@ func runWebServer(hitCounter *atomic.Int32, listenAddr string) (*http.Server, fu
 		// increment the counter
 		hitCounter.Add(1)
 
-		resp := respBuilder(hitCounter.Load(), r.Body)
+		resp := respBuilder(t, hitCounter.Load(), r.Body)
 		encodedResp, encoding, err := utils.EncodeBody(resp, r.Header.Get("Accept-Encoding"))
 		if err != nil {
 			log.Printf("error encoding response: %v", err)
@@ -118,7 +122,8 @@ func runWebServer(hitCounter *atomic.Int32, listenAddr string) (*http.Server, fu
 	}
 }
 
-func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...px.Addon) (shutdownFunc func(), err error) {
+func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...px.Addon) (shutdownFunc func(), err error) {
+	t.Helper()
 	// Create a simple proxy config
 	cfg := config.NewDefaultConfig()
 	cfg.Listen = proxyPort
@@ -168,22 +173,22 @@ func runProxy(proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...
 
 func BenchmarkProxySimple(b *testing.B) {
 	// create a proxy with a test config
-	proxyPort, err := getFreePort()
+	proxyPort, err := getFreePort(b)
 	require.NoError(b, err)
 	tmpDir := b.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.ProxyRunMode)
+	proxyShutdown, err := runProxy(b, proxyPort, tmpDir, config.ProxyRunMode)
 	require.NoError(b, err)
 
 	// Start a basic web server on another port
 	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort()
+	testServerPort, err := getFreePort(b)
 	require.NoError(b, err)
-	srv, srvShutdown := runWebServer(hitCounter, testServerPort)
+	srv, srvShutdown := runWebServer(b, hitCounter, testServerPort)
 	require.NotNil(b, srv)
 	require.NotNil(b, srvShutdown)
 
 	// Create an http client that will use the proxy to connect to the web server
-	client, err := httpClient("http://" + proxyPort)
+	client, err := httpClient(b, "http://"+proxyPort)
 	require.NoError(b, err)
 	b.ResetTimer()
 
@@ -204,22 +209,22 @@ func BenchmarkProxySimple(b *testing.B) {
 
 func TestProxySimple(t *testing.T) {
 	// create a proxy with a test config
-	proxyPort, err := getFreePort()
+	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.ProxyRunMode)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
 	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort()
+	testServerPort, err := getFreePort(t)
 	require.NoError(t, err)
-	srv, srvShutdown := runWebServer(hitCounter, testServerPort)
+	srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
 	require.NotNil(t, srv)
 	require.NotNil(t, srvShutdown)
 
 	// Create an http client that will use the proxy to connect to the web server
-	client, err := httpClient("http://" + proxyPort)
+	client, err := httpClient(t, "http://"+proxyPort)
 	require.NoError(t, err)
 
 	t.Run("TestSimpleProxy", func(t *testing.T) {
@@ -229,7 +234,7 @@ func TestProxySimple(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode)
 
-		expectedResponse := respBuilder(1, strings.NewReader("hello"))
+		expectedResponse := respBuilder(t, 1, strings.NewReader("hello"))
 
 		// check the response body from req1
 		body, err := io.ReadAll(resp.Body)
@@ -245,7 +250,7 @@ func TestProxySimple(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 200, resp.StatusCode)
 
-		expectedResponse := respBuilder(6, strings.NewReader("hello"))
+		expectedResponse := respBuilder(t, 6, strings.NewReader("hello"))
 
 		// check the response body from req2
 		body, err := io.ReadAll(resp.Body)
@@ -265,22 +270,22 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	logger := slog.Default()
 
 	// create a proxy with a test config
-	proxyPort, err := getFreePort()
+	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.ProxyRunMode)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
 	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort()
+	testServerPort, err := getFreePort(t)
 	require.NoError(t, err)
-	srv, srvShutdown := runWebServer(hitCounter, testServerPort)
+	srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
 	require.NotNil(t, srv)
 	require.NotNil(t, srvShutdown)
 
 	// Create an http client that will use the proxy to connect to the web server
-	client, err := httpClient("http://" + proxyPort)
+	client, err := httpClient(t, "http://"+proxyPort)
 	require.NoError(t, err)
 
 	t.Run("TestDirLoggerNormal", func(t *testing.T) {
@@ -296,7 +301,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.Equal(t, 200, resp.StatusCode)
 		require.Equal(t, int32(1), hitCounter.Load())
 
-		expectedResponse := respBuilder(1, strings.NewReader(t.Name()))
+		expectedResponse := respBuilder(t, 1, strings.NewReader(t.Name()))
 
 		// check the response body from req1
 		body, err := io.ReadAll(resp.Body)
@@ -312,7 +317,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 1, len(logFiles))
 
-		expectedResponse = respBuilder(1, strings.NewReader(t.Name()))
+		expectedResponse = respBuilder(t, 1, strings.NewReader(t.Name()))
 
 		// read the log file, and check that it contains the expected content
 		logFile, err := os.ReadFile(logFiles[0])
@@ -342,7 +347,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, 1, len(logFiles))
 
-		expectedResponse = respBuilder(2, strings.NewReader("hello2"))
+		expectedResponse = respBuilder(t, 2, strings.NewReader("hello2"))
 
 		// read the log file, and check that it contains the expected content
 		logFile, err = os.ReadFile(logFiles[0])
@@ -390,7 +395,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.NotNil(t, lDump.Request)
 		assert.Equal(t, "POST", lDump.Request.Method)
 
-		expectedResponse := respBuilder(1, strings.NewReader("hello"))
+		expectedResponse := respBuilder(t, 1, strings.NewReader("hello"))
 
 		require.NotNil(t, lDump.Response)
 		assert.Equal(t, http.StatusOK, lDump.Response.Status)
@@ -407,22 +412,22 @@ func TestProxyDirLoggerMode(t *testing.T) {
 
 func TestProxyCache(t *testing.T) {
 	// create a proxy with a test config
-	proxyPort, err := getFreePort()
+	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(proxyPort, tmpDir, config.CacheMode)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.CacheMode)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
 	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort()
+	testServerPort, err := getFreePort(t)
 	require.NoError(t, err)
-	srv, srvShutdown := runWebServer(hitCounter, testServerPort)
+	srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
 	require.NotNil(t, srv)
 	require.NotNil(t, srvShutdown)
 
 	// Create a client that will use the proxy
-	client, err := httpClient("http://" + proxyPort)
+	client, err := httpClient(t, "http://"+proxyPort)
 	require.NoError(t, err)
 
 	t.Run("TestCacheMiss", func(t *testing.T) {
@@ -436,7 +441,7 @@ func TestProxyCache(t *testing.T) {
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
-		expectedResponse := respBuilder(1, strings.NewReader(t.Name()))
+		expectedResponse := respBuilder(t, 1, strings.NewReader(t.Name()))
 
 		assert.Equal(t, expectedResponse, body)
 		assert.Equal(t, int32(1), hitCounter.Load())
@@ -455,7 +460,7 @@ func TestProxyCache(t *testing.T) {
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
-		expectedResponse := respBuilder(1, strings.NewReader(t.Name()))
+		expectedResponse := respBuilder(t, 1, strings.NewReader(t.Name()))
 
 		assert.Equal(t, expectedResponse, body)
 		assert.Equal(t, int32(1), hitCounter.Load())
@@ -475,7 +480,7 @@ func TestProxyCache(t *testing.T) {
 		body, err = io.ReadAll(resp.Body)
 		require.NoError(t, err)
 
-		expectedResponse = respBuilder(1, strings.NewReader(t.Name()))
+		expectedResponse = respBuilder(t, 1, strings.NewReader(t.Name()))
 
 		assert.Equal(t, expectedResponse, body)
 		assert.Equal(t, int32(1), hitCounter.Load()) // the counter should not be 6, because we got a cache hit
@@ -509,7 +514,7 @@ func TestProxyCache(t *testing.T) {
 		require.NoError(t, err)
 
 		// check the response and counter state
-		expectedResponseBody := respBuilder(1, strings.NewReader(t.Name()))
+		expectedResponseBody := respBuilder(t, 1, strings.NewReader(t.Name()))
 		assert.Equal(t, expectedResponseBody, decodedBody)
 		assert.Equal(t, int32(1), hitCounter.Load())
 		assert.Equal(t, addons.CacheStatusMiss, resp1.Header.Get(addons.CacheStatusHeader))
@@ -528,7 +533,7 @@ func TestProxyCache(t *testing.T) {
 		// check the response body from this request
 		body2, err := io.ReadAll(resp2.Body)
 		require.NoError(t, err)
-		expectedResponseBody = respBuilder(1, strings.NewReader(t.Name()))
+		expectedResponseBody = respBuilder(t, 1, strings.NewReader(t.Name()))
 
 		// no decoding for this body check, because it should be plain-text (no gzip)
 		assert.Equal(t, expectedResponseBody, body2)

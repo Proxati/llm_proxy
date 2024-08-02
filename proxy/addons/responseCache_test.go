@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
@@ -56,13 +57,12 @@ func TestCleanCachePath(t *testing.T) {
 
 func TestNewCacheAddonErr(t *testing.T) {
 	testLogger := slog.Default()
-	filterReqHeaders := []string{"header1", "header2"}
-	filterRespHeaders := []string{"header1", "header2"}
+	emptyHeaderFilterGroup := config.NewHeaderFilterGroup(t.Name(), []string{})
 
 	t.Run("empty storage engine", func(t *testing.T) {
 		storageEngineName := ""
 		cacheDir := t.TempDir()
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, filterReqHeaders, filterRespHeaders)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
 		assert.Error(t, err, "Expected error for empty storage engine")
 		assert.Nil(t, cache)
 	})
@@ -70,7 +70,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 	t.Run("unknown storage engine", func(t *testing.T) {
 		storageEngineName := "unknown"
 		cacheDir := t.TempDir()
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, filterReqHeaders, filterRespHeaders)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
 		assert.Error(t, err, "Expected error for unknown storage engine")
 		assert.Nil(t, cache)
 	})
@@ -78,7 +78,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 	t.Run("bolt storage engine with invalid cacheDir", func(t *testing.T) {
 		storageEngineName := "bolt"
 		cacheDir := "\\\\invalid\\path"
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, filterReqHeaders, filterRespHeaders)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
 		assert.Error(t, err, "Expected error for invalid cacheDir")
 		assert.Nil(t, cache)
 	})
@@ -86,7 +86,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 	t.Run("bolt storage engine with valid cacheDir", func(t *testing.T) {
 		storageEngineName := "bolt"
 		cacheDir := t.TempDir()
-		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, filterReqHeaders, filterRespHeaders)
+		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup)
 		assert.NoError(t, err, "Expected no error for valid cacheDir")
 		assert.NotNil(t, cache)
 		assert.Equal(t, "ResponseCacheAddon", cache.String())
@@ -96,12 +96,13 @@ func TestNewCacheAddonErr(t *testing.T) {
 func TestRequest(t *testing.T) {
 	testLogger := slog.Default()
 	tmpDir := t.TempDir()
-	filterReqHeaders := []string{"Header1"}
-	filterRespHeaders := []string{"Header2"}
+	filterReqHeaders := config.NewHeaderFilterGroup(t.Name()+"req", []string{"Header1"})
+	filterRespHeaders := config.NewHeaderFilterGroup(t.Name()+"resp", []string{"Header2"})
+
 	respCacheAddon, err := NewCacheAddon(
 		testLogger,
 		"bolt", tmpDir,
-		filterReqHeaders, filterRespHeaders,
+		filterReqHeaders,
 	)
 	require.Nil(t, err, "No error creating cache addon")
 
@@ -113,7 +114,7 @@ func TestRequest(t *testing.T) {
 				URL:    &url.URL{Path: "/test"},
 				Header: http.Header{
 					"Host":    []string{"example.com"},
-					"header1": []string{"value1"},
+					"Header1": []string{"value1"},
 				},
 				Body: []byte("req"),
 			},
@@ -174,6 +175,7 @@ func TestRequest(t *testing.T) {
 		respAdapter := mitm.NewProxyResponseAdapter(resp)
 		require.NotNil(t, respAdapter)
 
+		// create traffic objects for the request and response, check header loading
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tResp.Header.Get(CacheStatusHeader))

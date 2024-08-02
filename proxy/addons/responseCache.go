@@ -11,6 +11,7 @@ import (
 
 	px "github.com/proxati/mitmproxy/proxy"
 
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/v2/schema"
@@ -42,13 +43,12 @@ var cacheOnlyResponseCodes = map[int]struct{}{
 
 type ResponseCacheAddon struct {
 	px.BaseAddon
-	filterReqHeaders  []string
-	filterRespHeaders []string
-	formatter         formatters.MegaDumpFormatter
-	cache             cache.DB
-	wg                sync.WaitGroup
-	closed            atomic.Bool
-	logger            *slog.Logger
+	headerFilter *config.HeaderFilterGroup
+	formatter    formatters.MegaDumpFormatter
+	cache        cache.DB
+	wg           sync.WaitGroup
+	closed       atomic.Bool
+	logger       *slog.Logger
 }
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
@@ -162,24 +162,27 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		// convert the request to an internal TrafficObject
 		reqAdapter := mitm.NewProxyRequestAdapter(f.Request) // generic wrapper for the mitm request
 
-		tObjReq, err := schema.NewProxyRequest(reqAdapter, c.filterReqHeaders)
+		tObjReq, err := schema.NewProxyRequest(reqAdapter, c.headerFilter)
 		if err != nil {
 			logger.Error("could not create TrafficObject from request", "error", err)
 			return
 		}
 		// remove the Accept-Encoding header to avoid storing this in the cache
-		tObjReq.Header.Del("Accept-Encoding")
+		originalAcceptEncoding := tObjReq.Header.Get("Accept-Encoding")
+		logger.Debug("removing Accept-Encoding header from request", "Accept-Encoding", originalAcceptEncoding)
 
 		// convert the response to an internal TrafficObject
 		respAdapter := mitm.NewProxyResponseAdapter(f.Response) // generic wrapper for the mitm response
-		tObjResp, err := schema.NewProxyResponse(respAdapter, c.filterRespHeaders)
+		tObjResp, err := schema.NewProxyResponse(respAdapter, c.headerFilter)
 		if err != nil {
 			logger.Error("could not create TrafficObject from response", "error", err)
 			return
 		}
+
 		// remove the Content-Encoding header to avoid storing this in the cache
 		tObjResp.Header.Del("Content-Encoding")
 
+		// store the response in the cache
 		if err := c.cache.Put(tObjReq, tObjResp); err != nil {
 			logger.Error("could not store response in cache", "error", err)
 		}
@@ -224,11 +227,22 @@ func cleanCacheDir(cacheDir string) (string, error) {
 	return cacheDir, nil
 }
 
+// NewCacheAddon creates a new ResponseCacheAddon.
+//
+// Parameters:
+//   - logger: the DI'd logger
+//   - storageEngineName: name of the storage engine to use
+//   - cacheDir: output & cache storage directory
+//   - headerFilter: which headers to filter out
+//
+// Returns:
+//
+//	A new instance of ResponseCacheAddon (or error if one occurred)
 func NewCacheAddon(
 	logger *slog.Logger,
-	storageEngineName string, // name of the storage engine to use
-	cacheDir string, // output & cache storage directory
-	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
+	storageEngineName string,
+	cacheDir string,
+	headerFilter *config.HeaderFilterGroup,
 ) (*ResponseCacheAddon, error) {
 	var cacheDB cache.DB
 	var err error
@@ -244,7 +258,8 @@ func NewCacheAddon(
 		// cacheDB, err = cache.NewBadgerMetaDB(cacheDir)
 		panic("badger storage engine is disabled")
 	case "bolt":
-		cacheDB, err = cache.NewBoltMetaDB(cacheDir, filterRespHeaders)
+		// pass in the header filters for removing specific headers from the objects stored in cache
+		cacheDB, err = cache.NewBoltMetaDB(cacheDir, headerFilter)
 		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
 	default:
 		return nil, fmt.Errorf("unknown storage engine: %s", storageEngineName)
@@ -255,9 +270,10 @@ func NewCacheAddon(
 	}
 
 	return &ResponseCacheAddon{
-		formatter: &formatters.JSON{},
-		cache:     cacheDB,
-		logger:    logger,
-		closed:    atomic.Bool{},
+		formatter:    &formatters.JSON{},
+		cache:        cacheDB,
+		logger:       logger,
+		closed:       atomic.Bool{},
+		headerFilter: headerFilter,
 	}, nil
 }

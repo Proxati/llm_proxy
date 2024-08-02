@@ -69,7 +69,8 @@ func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*ad
 		cfg.Output,
 		cfg.TrafficLogFmt,
 		logSources,
-		cfg.FilterReqHeaders, cfg.FilterRespHeaders,
+		cfg.HeaderFilters.RequestToLogs,
+		cfg.HeaderFilters.ResponseToLogs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
@@ -139,8 +140,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 			cfg.GetLogger(),
 			cacheConfig.StorageEngine,
 			cacheConfig.StoragePath,
-			cfg.FilterReqHeaders, // filters from logging, bc we want to filter cache same as the logs
-			cfg.FilterRespHeaders,
+			cfg.HeaderFilters.ResponseToLogs,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load cache addon: %v", err)

@@ -19,8 +19,8 @@ type MegaTrafficDumper struct {
 	px.BaseAddon
 	logSources            config.LogSourceConfig
 	logDestinationConfigs []md.LogDestination
-	filterReqHeaders      []string
-	filterRespHeaders     []string
+	filterReqHeaders      *config.HeaderFilterGroup
+	filterRespHeaders     *config.HeaderFilterGroup
 	wg                    sync.WaitGroup
 	closed                atomic.Bool
 	logger                *slog.Logger
@@ -114,7 +114,8 @@ func NewMegaTrafficDumperAddon(
 	logTarget string, // output directory
 	logFormatConfig config.LogFormat, // what file format to write the traffic logs
 	logSources config.LogSourceConfig, // which fields from the transaction to log
-	filterReqHeaders, filterRespHeaders []string, // which headers to filter out
+	filterReqHeaders *config.HeaderFilterGroup, // which headers to filter out from the request before logging
+	filterRespHeaders *config.HeaderFilterGroup, // which headers to filter out from the response before logging
 ) (*MegaTrafficDumper, error) {
 	logger = logger.WithGroup("addons.MegaTrafficDumper")
 	logger.Debug("Set log output", "logTarget", logTarget)

@@ -6,8 +6,7 @@ import (
 	"sync"
 )
 
-var defaultRequestFilterHeaders = []string{
-	"Accept-Encoding",
+var defaultFiltersRequestLogs = []string{
 	"Authorization",
 	"Authorization-Info",
 	"Cookie",
@@ -28,25 +27,45 @@ var defaultRequestFilterHeaders = []string{
 	"X-User-Secret",
 }
 
-var defaultResponseFilterHeaders = []string{
+var defaultFiltersResponseLogs = []string{
 	"Proxy-Authenticate",
 	"Set-Cookie",
 	"WWW-Authenticate",
 }
+
+const (
+	// FlagTitle_FilterRequestHeadersToLogs is the name of the filter group for headers to be filtered from requests to logs
+	FlagTitle_FilterRequestHeadersToLogs = "filter-request-headers-to-logs"
+
+	// FlagTitle_FilterResponseHeadersToLogs is the name of the filter group for headers to be filtered from responses to logs
+	FlagTitle_FilterResponseHeadersToLogs = "filter-response-headers-to-logs"
+
+	// FlagTitle_FilterRequestHeadersToUpstream is the name of the filter group for headers to be filtered from requests to upstream
+	FlagTitle_FilterRequestHeadersToUpstream = "filter-request-headers-to-upstream"
+
+	// FlagTitle_FilterResponseHeadersToClient is the name of the filter group for headers to be filtered from responses to the client
+	FlagTitle_FilterResponseHeadersToClient = "filter-response-headers-to-client"
+)
 
 type headerIndex map[string]any
 
 type HeaderFilterGroup struct {
 	Headers []string
 	index   headerIndex
+	name    string
 }
 
-func NewHeaderFilterGroup(headers []string) *HeaderFilterGroup {
+func NewHeaderFilterGroup(name string, headers []string) *HeaderFilterGroup {
 	hfg := &HeaderFilterGroup{
-		Headers: headers,
+		Headers: append([]string{}, headers...), // shallow copy the slice
+		name:    name,
 	}
 	hfg.buildIndex()
 	return hfg
+}
+
+func (hfg *HeaderFilterGroup) String() string {
+	return hfg.name
 }
 
 func (hfg *HeaderFilterGroup) buildIndex() {
@@ -63,12 +82,13 @@ func (hg *HeaderFilterGroup) IsHeaderInGroup(header string) bool {
 }
 
 func (hg *HeaderFilterGroup) FilterHeaders(headers http.Header) http.Header {
-	for header := range headers {
-		if hg.IsHeaderInGroup(header) {
-			headers.Del(header)
+	filteredHeaders := make(http.Header)
+	for header, values := range headers {
+		if !hg.IsHeaderInGroup(header) {
+			filteredHeaders[header] = values
 		}
 	}
-	return headers
+	return filteredHeaders
 }
 
 // HeaderFiltersContainer holds the configuration for filtering headers
@@ -89,17 +109,15 @@ type HeaderFiltersContainer struct {
 // NewHeaderFiltersContainer creates a new HeaderFiltersContainer with default values
 func NewHeaderFiltersContainer() *HeaderFiltersContainer {
 	hfc := &HeaderFiltersContainer{
-		RequestToLogs: &HeaderFilterGroup{
-			Headers: append([]string{}, defaultRequestFilterHeaders...),
-		},
-		ResponseToLogs: &HeaderFilterGroup{
-			Headers: append([]string{}, defaultResponseFilterHeaders...),
-		},
-		RequestToUpstream: &HeaderFilterGroup{},
-		ResponseToClient:  &HeaderFilterGroup{},
+		RequestToLogs: NewHeaderFilterGroup(
+			FlagTitle_FilterRequestHeadersToLogs, defaultFiltersRequestLogs),
+		ResponseToLogs: NewHeaderFilterGroup(
+			FlagTitle_FilterResponseHeadersToLogs, defaultFiltersResponseLogs),
+		RequestToUpstream: NewHeaderFilterGroup(
+			FlagTitle_FilterRequestHeadersToUpstream, []string{}),
+		ResponseToClient: NewHeaderFilterGroup(
+			FlagTitle_FilterResponseHeadersToClient, []string{}),
 	}
-	hfc.BuildIndexes()
-
 	return hfc
 }
 

@@ -201,16 +201,18 @@ Examples:
 		"Don't write response body or details to traffic logs",
 	)
 
+	// "filter-request-headers-to-logs"
 	rootCmd.PersistentFlags().StringSliceVar(
-		&cfg.HeaderFilters.RequestToLogs.Headers, "filter-request-headers-to-logs", cfg.HeaderFilters.RequestToLogs.Headers,
+		&cfg.HeaderFilters.RequestToLogs.Headers, cfg.HeaderFilters.RequestToLogs.String(), cfg.HeaderFilters.RequestToLogs.Headers,
 		`A comma-separated list of request headers that the proxy will ignore for
 logging or caching purposes but will still forward upstream. For example,
 "Authorization" headers sent from the client should not be stored in logs
 or cache.`,
 	)
 
+	// "filter-response-headers-to-logs"
 	rootCmd.PersistentFlags().StringSliceVar(
-		&cfg.HeaderFilters.ResponseToLogs.Headers, "filter-response-headers-to-logs", cfg.HeaderFilters.ResponseToLogs.Headers,
+		&cfg.HeaderFilters.ResponseToLogs.Headers, cfg.HeaderFilters.ResponseToLogs.String(), cfg.HeaderFilters.ResponseToLogs.Headers,
 		`A comma-separated list of response headers that the proxy will ignore for
 logging or caching purposes but will still forward to the client. For example,
 "Set-Cookie" headers sent from the server should not be stored in logs or cache.`,

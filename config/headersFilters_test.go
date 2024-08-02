@@ -9,7 +9,7 @@ import (
 func TestNewHeaderFilterGroup(t *testing.T) {
 	t.Parallel()
 	headers := []string{"Authorization", "Cookie"}
-	hfg := NewHeaderFilterGroup(headers)
+	hfg := NewHeaderFilterGroup(t.Name(), headers)
 
 	assert.Equal(t, headers, hfg.Headers, "Headers should be initialized correctly")
 	assert.NotNil(t, hfg.index, "Index should be initialized")
@@ -21,7 +21,7 @@ func TestNewHeaderFilterGroup(t *testing.T) {
 func TestIsHeaderInGroup(t *testing.T) {
 	t.Parallel()
 	headers := []string{"Authorization", "Cookie"}
-	hfg := NewHeaderFilterGroup(headers)
+	hfg := NewHeaderFilterGroup(t.Name(), headers)
 
 	assert.True(t, hfg.IsHeaderInGroup("Authorization"), "Authorization header should be in the index")
 	assert.True(t, hfg.IsHeaderInGroup("Cookie"), "Cookie header should be in the index")

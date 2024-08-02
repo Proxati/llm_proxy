@@ -43,14 +43,14 @@ func (m *MockProxyRequestReaderAdapter) GetBodyBytes() []byte {
 }
 
 func Test_NewFromMITMRequest(t *testing.T) {
-	headersToFilter := config.NewHeaderFilterGroup([]string{})
+	headersToFilter := config.NewHeaderFilterGroup(t.Name(), []string{})
 
 	t.Run("new from proxy request", func(t *testing.T) {
 		headers := http.Header{
 			"Content-Type": []string{"application/json"},
 			"Delete-Me":    []string{"too-many-secrets"},
 		}
-		headersToFilter = config.NewHeaderFilterGroup([]string{"Delete-Me"})
+		headersToFilter = config.NewHeaderFilterGroup(t.Name(), []string{"Delete-Me"})
 
 		url, err := url.Parse("http://example.com")
 		require.NoError(t, err)

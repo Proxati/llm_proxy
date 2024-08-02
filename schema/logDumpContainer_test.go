@@ -80,6 +80,11 @@ func getDefaultConnectionStats() *schema.ProxyConnectionStats {
 }
 
 func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
+	t.Parallel()
+	emptyHeaderFilterGroup := config.NewHeaderFilterGroup("empty", []string{})
+	basicHeaderFilterGroupReq := config.NewHeaderFilterGroup("basic-req", []string{"Delete-Me-Request"})
+	basicHeaderFilterGroupResp := config.NewHeaderFilterGroup("basic-req", []string{"Delete-Me-Response"})
+
 	testCases := []struct {
 		name                    string
 		flow                    proxyAdapters.FlowReaderAdapter
@@ -106,8 +111,8 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 				LogResponseHeaders: true,
 				LogResponse:        true,
 			},
-			filterReqHeaders:        config.NewHeaderFilterGroup([]string{}),
-			filterRespHeaders:       config.NewHeaderFilterGroup([]string{}),
+			filterReqHeaders:        emptyHeaderFilterGroup,
+			filterRespHeaders:       emptyHeaderFilterGroup,
 			expectedConnectionStats: getDefaultConnectionStats(),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
@@ -128,8 +133,8 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 				LogResponseHeaders: false,
 				LogResponse:        false,
 			},
-			filterReqHeaders:        config.NewHeaderFilterGroup([]string{}),
-			filterRespHeaders:       config.NewHeaderFilterGroup([]string{}),
+			filterReqHeaders:        emptyHeaderFilterGroup,
+			filterRespHeaders:       emptyHeaderFilterGroup,
 			expectedConnectionStats: (*schema.ProxyConnectionStats)(nil), // weird way to assert nil
 		},
 		{
@@ -142,8 +147,8 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 				LogResponseHeaders: true,
 				LogResponse:        true,
 			},
-			filterReqHeaders:        config.NewHeaderFilterGroup([]string{"Delete-Me-Request"}),
-			filterRespHeaders:       config.NewHeaderFilterGroup([]string{"Delete-Me-Response"}),
+			filterReqHeaders:        basicHeaderFilterGroupReq,
+			filterRespHeaders:       basicHeaderFilterGroupResp,
 			expectedConnectionStats: getDefaultConnectionStats(),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
@@ -164,8 +169,8 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 				LogResponseHeaders: true,
 				LogResponse:        true,
 			},
-			filterReqHeaders:        config.NewHeaderFilterGroup([]string{"Delete-Me-Request"}),
-			filterRespHeaders:       config.NewHeaderFilterGroup([]string{"Delete-Me-Response"}),
+			filterReqHeaders:        basicHeaderFilterGroupReq,
+			filterRespHeaders:       basicHeaderFilterGroupResp,
 			expectedConnectionStats: getDefaultConnectionStats(),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
@@ -186,8 +191,8 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 				LogResponseHeaders: true,
 				LogResponse:        true,
 			},
-			filterReqHeaders:        config.NewHeaderFilterGroup([]string{"Delete-Me-Request"}),
-			filterRespHeaders:       config.NewHeaderFilterGroup([]string{"Delete-Me-Response"}),
+			filterReqHeaders:        basicHeaderFilterGroupReq,
+			filterRespHeaders:       basicHeaderFilterGroupResp,
 			expectedConnectionStats: getDefaultConnectionStats(),
 			expectedRequestHeaders:  "",
 			expectedResponseHeaders: "Content-Type: [application/json]\r\n",
@@ -204,8 +209,8 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 				LogResponseHeaders: false,
 				LogResponse:        true,
 			},
-			filterReqHeaders:        config.NewHeaderFilterGroup([]string{"Delete-Me-Request"}),
-			filterRespHeaders:       config.NewHeaderFilterGroup([]string{"Delete-Me-Response"}),
+			filterReqHeaders:        basicHeaderFilterGroupReq,
+			filterRespHeaders:       basicHeaderFilterGroupResp,
 			expectedConnectionStats: getDefaultConnectionStats(),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
@@ -226,8 +231,8 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 				LogResponseHeaders: true,
 				LogResponse:        false,
 			},
-			filterReqHeaders:        config.NewHeaderFilterGroup([]string{"Delete-Me-Request"}),
-			filterRespHeaders:       config.NewHeaderFilterGroup([]string{"Delete-Me-Response"}),
+			filterReqHeaders:        basicHeaderFilterGroupReq,
+			filterRespHeaders:       basicHeaderFilterGroupResp,
 			expectedConnectionStats: getDefaultConnectionStats(),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",

@@ -91,14 +91,14 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	}
 
 	// check the cache for responses matching this request
-	cacheLookup, err := c.cache.Get(f.Request.URL.String(), decodedBody)
+	cachedResponse, err := c.cache.Get(f.Request.URL.String(), decodedBody)
 	if err != nil {
 		logger.Error("error accessing cache, bypassing", "error", err)
 		return
 	}
 
 	// handle cache miss, return early otherwise NPEs below
-	if cacheLookup == nil {
+	if cachedResponse == nil {
 		f.Request.Header.Set(CacheStatusHeader, CacheStatusMiss)
 		logger.Info("cache miss")
 		return
@@ -107,17 +107,23 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// handle cache hit
 	logger.Info("cache hit")
 
-	cachedResp, err := mitm.ToProxyResponse(cacheLookup, f.Request.Header.Get("Accept-Encoding"))
+	// filter the headers before returning the cached response, and remove the Content-Encoding
+	// header, because next we will be re-encoding the body according to the request's
+	// Accept-Encoding header, and a new Content-Encoding header will be added.
+	cachedResponse.Header = c.filterReqHeaders.FilterHeaders(cachedResponse.Header, "Content-Encoding", "Content-Length")
+
+	// convert the cached response to a ProxyResponse, and encode the body according to the request's Accept-Encoding header
+	encodedCachedResponse, err := mitm.ToProxyResponse(cachedResponse, f.Request.Header.Get("Accept-Encoding"))
 	if err != nil {
 		logger.Error("error converting cached response to ProxyResponse", "error", err)
 		return
 	}
 
 	// set the cache status header to indicate a hit
-	cacheLookup.Header.Set(CacheStatusHeader, CacheStatusHit)
+	encodedCachedResponse.Header.Set(CacheStatusHeader, CacheStatusHit)
 
 	// other pending addons will be skipped after setting f.Response and returning from this method
-	f.Response = cachedResp
+	f.Response = encodedCachedResponse
 }
 
 func (c *ResponseCacheAddon) Response(f *px.Flow) {
@@ -168,6 +174,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 			logger.Error("could not create TrafficObject from request", "error", err)
 			return
 		}
+
 		// remove the Accept-Encoding header to avoid storing this in the cache
 		originalAcceptEncoding := tObjReq.Header.Get("Accept-Encoding")
 		logger.Debug("removing Accept-Encoding header from request", "Accept-Encoding", originalAcceptEncoding)
@@ -261,7 +268,7 @@ func NewCacheAddon(
 		panic("badger storage engine is disabled")
 	case "bolt":
 		// pass in the header filters for removing specific headers from the objects stored in cache
-		cacheDB, err = cache.NewBoltMetaDB(cacheDir, filterRespHeaders)
+		cacheDB, err = cache.NewBoltMetaDB(cacheDir)
 		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
 	default:
 		return nil, fmt.Errorf("unknown storage engine: %s", storageEngineName)

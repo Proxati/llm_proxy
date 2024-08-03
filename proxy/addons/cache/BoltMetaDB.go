@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/key"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/storage/boltDB_Engine"
 	"github.com/proxati/llm_proxy/v2/schema"
@@ -18,10 +17,9 @@ const (
 
 // BoltMetaDB is a single boltDB with multiple internal "buckets" for each URL (like tables)
 type BoltMetaDB struct {
-	headerFilterGroup *config.HeaderFilterGroup // filter these headers when pulling from cache
-	dbFileDir         string                    // several DBs stored in the same directory, one for each base URL
-	db                *boltDB_Engine.DB         // the main db struct
-	once              sync.Once
+	dbFileDir string            // several DBs stored in the same directory, one for each base URL
+	db        *boltDB_Engine.DB // the main db struct
+	once      sync.Once
 }
 
 // len return the number of items currently in the cache
@@ -55,7 +53,7 @@ func (c *BoltMetaDB) Get(identifier string, body []byte) (response *schema.Proxy
 		return nil, nil
 	}
 
-	newResponse, err := schema.NewProxyResponseFromJSONBytes(valueBytes, c.headerFilterGroup)
+	newResponse, err := schema.NewProxyResponseFromJSONBytes(valueBytes)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling response: %s", err)
 	}
@@ -89,16 +87,15 @@ func (c *BoltMetaDB) Put(request *schema.ProxyRequest, response *schema.ProxyRes
 }
 
 // NewBoltMetaDB creates a new BoltMetaDB object, to load or create a new boltDB on disk
-func NewBoltMetaDB(dbFileDir string, responseToLogs *config.HeaderFilterGroup) (*BoltMetaDB, error) {
+func NewBoltMetaDB(dbFileDir string) (*BoltMetaDB, error) {
 	dbFile := filepath.Join(dbFileDir, defaultBoltDBFile)
 	db, err := boltDB_Engine.NewDB(dbFile)
 	if err != nil {
 		return nil, fmt.Errorf("error opening/creating db: %s", err)
 	}
 	bMeta := &BoltMetaDB{
-		headerFilterGroup: responseToLogs,
-		dbFileDir:         dbFileDir,
-		db:                db,
+		dbFileDir: dbFileDir,
+		db:        db,
 	}
 	return bMeta, nil
 }

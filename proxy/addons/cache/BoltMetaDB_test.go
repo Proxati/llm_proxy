@@ -15,11 +15,9 @@ import (
 )
 
 func TestNewBoltMetaDB(t *testing.T) {
-	respHeaderFilter := config.NewHeaderFilterGroup(t.Name(), []string{})
-
 	t.Run("valid db file", func(t *testing.T) {
 		dbFileDir := t.TempDir()
-		bMeta, err := NewBoltMetaDB(dbFileDir, respHeaderFilter)
+		bMeta, err := NewBoltMetaDB(dbFileDir)
 
 		require.NoError(t, err)
 		assert.Equal(t, dbFileDir, bMeta.dbFileDir)
@@ -34,7 +32,7 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 
 	t.Run("put and get a request and response", func(t *testing.T) {
 		dbFileDir := t.TempDir()
-		bMeta, err := NewBoltMetaDB(dbFileDir, respHeaderFilter)
+		bMeta, err := NewBoltMetaDB(dbFileDir)
 		require.NoError(t, err)
 		defer bMeta.Close()
 

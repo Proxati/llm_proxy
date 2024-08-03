@@ -8,8 +8,10 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
-// ToProxyResponse converts a ProxyResponse into a MITM proxy response object (with content encoding matching the new req)
-// Because all responses are stored as uncompressed strings, the cached response might need to be encoded before being sent
+// ToProxyResponse converts a ProxyResponse into a MITM proxy response object with body encoding
+// matching the new request's acceptEncodingHeader. Since all responses are stored as uncompressed
+// strings, the cached response might need to be encoded before being sent. This function encodes
+// the response body based on the requested acceptEncodingHeader argument.
 func ToProxyResponse(pRes proxyAdapters.ResponseReaderAdapter, acceptEncodingHeader string) (*px.Response, error) {
 	resp := &px.Response{
 		StatusCode: pRes.GetStatusCode(),

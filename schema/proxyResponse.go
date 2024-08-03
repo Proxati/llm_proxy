@@ -82,6 +82,11 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 	if ok {
 		header := make(map[string][]string)
 		for k, v := range rawheader {
+			// don't load the header if it's in the filter group
+			if pRes.headerFilter != nil && pRes.headerFilter.IsHeaderInGroup(k) {
+				continue
+			}
+
 			vals, ok := v.([]any)
 			if !ok {
 				return errors.New("header parse error")
@@ -97,8 +102,8 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 			}
 			header[k] = svals
 		}
+		// store headers
 		pRes.Header = header
-		pRes.filterHeaders()
 	}
 
 	// handle body
@@ -133,8 +138,8 @@ func NewProxyResponse(req proxyAdapters.ResponseReaderAdapter, headerFilter *con
 	return pRes, nil
 }
 
-// NewFromJSONBytes unmarshals a JSON object into a TrafficObject
-func NewProxyResponseFromJSONBytes(data []byte, headerFilter *config.HeaderFilterGroup) (*ProxyResponse, error) {
+// NewFromJSONBytes unmarshals a JSON object into a TrafficObject. Headers must be filtered later.
+func NewProxyResponseFromJSONBytes(data []byte) (*ProxyResponse, error) {
 	pRes := &ProxyResponse{}
 	err := json.Unmarshal(data, pRes)
 	if err != nil {
@@ -144,9 +149,6 @@ func NewProxyResponseFromJSONBytes(data []byte, headerFilter *config.HeaderFilte
 	if pRes.Header == nil {
 		pRes.Header = make(http.Header)
 	}
-
-	pRes.headerFilter = headerFilter
-	pRes.filterHeaders()
 
 	return pRes, nil
 }

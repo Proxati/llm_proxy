@@ -16,9 +16,9 @@ type ProxyRequestAdapter struct {
 
 func NewProxyRequestAdapter(pxReq *px.Request) *ProxyRequestAdapter {
 	if pxReq == nil {
-		pxReq = &px.Request{
-			Header: http.Header{},
-			URL:    &url.URL{},
+		return &ProxyRequestAdapter{
+			pxReq:      &px.Request{Header: http.Header{}, URL: &url.URL{}},
+			headerCopy: http.Header{},
 		}
 	}
 	if pxReq.Header == nil {
@@ -27,7 +27,7 @@ func NewProxyRequestAdapter(pxReq *px.Request) *ProxyRequestAdapter {
 	if pxReq.URL == nil {
 		pxReq.URL = &url.URL{}
 	}
-	// deep copy of the headers to prevent race conditions
+	// shallow copy of the headers to prevent race conditions
 	headerCopy := http.Header{}
 	maps.Copy(headerCopy, pxReq.Header)
 

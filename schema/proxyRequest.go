@@ -79,6 +79,10 @@ func (pReq *ProxyRequest) UnmarshalJSON(data []byte) error {
 	if ok {
 		header := make(map[string][]string)
 		for k, v := range rawheader {
+			if pReq.headerFilter != nil && pReq.headerFilter.IsHeaderInGroup(k) {
+				continue
+			}
+
 			vals, ok := v.([]any)
 			if !ok {
 				return errors.New("header parse error")
@@ -94,9 +98,8 @@ func (pReq *ProxyRequest) UnmarshalJSON(data []byte) error {
 			}
 			header[k] = svals
 		}
-		// load and filter headers
+		// store headers
 		pReq.Header = header
-		pReq.filterHeaders()
 	}
 
 	// handle body

@@ -49,12 +49,16 @@ const (
 
 type headerIndex map[string]any
 
+// HeaderFilterGroup is an object used to filter headers for a specific purpose, such as when
+// reading existing logs (remove content-type), writing new logs (remove auth), or when sending
+// requests to upstream.
 type HeaderFilterGroup struct {
 	Headers []string
 	index   headerIndex
 	name    string
 }
 
+// NewHeaderFilterGroup creates a new HeaderFilterGroup
 func NewHeaderFilterGroup(name string, headers []string) *HeaderFilterGroup {
 	hfg := &HeaderFilterGroup{
 		Headers: append([]string{}, headers...), // shallow copy the slice
@@ -76,18 +80,28 @@ func (hfg *HeaderFilterGroup) buildIndex() {
 	hfg.index = index
 }
 
+// IsHeaderInGroup returns true if the header should be filtered by this group
 func (hg *HeaderFilterGroup) IsHeaderInGroup(header string) bool {
 	_, exists := hg.index[header]
 	return exists
 }
 
-func (hg *HeaderFilterGroup) FilterHeaders(headers http.Header) http.Header {
+// FilterHeaders makes a shallow copy of the headers map and removes any headers that are in the
+// filter group. additionalHeaders is a variadic parameter that allows for additional headers to be
+// removed from the new map that will be returned by this method.
+func (hg *HeaderFilterGroup) FilterHeaders(headers http.Header, additionalHeaders ...string) http.Header {
 	filteredHeaders := make(http.Header)
 	for header, values := range headers {
 		if !hg.IsHeaderInGroup(header) {
 			filteredHeaders[header] = values
 		}
 	}
+
+	// Remove additional headers
+	for _, header := range additionalHeaders {
+		filteredHeaders.Del(header)
+	}
+
 	return filteredHeaders
 }
 

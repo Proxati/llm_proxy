@@ -189,6 +189,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 
 		// remove the Content-Encoding header to avoid storing this in the cache
 		tObjResp.Header.Del("Content-Encoding")
+		tObjResp.Header.Del("Content-Length")
 
 		// store the response in the cache
 		if err := c.cache.Put(tObjReq, tObjResp); err != nil {
@@ -241,7 +242,8 @@ func cleanCacheDir(cacheDir string) (string, error) {
 //   - logger: the DI'd logger
 //   - storageEngineName: name of the storage engine to use
 //   - cacheDir: output & cache storage directory
-//   - headerFilter: which headers to filter out
+//   - filterReqHeaders: which headers to filter out from the request before logging
+//   - filterRespHeaders: which headers to filter out from the response before logging
 //
 // Returns:
 //
@@ -250,8 +252,8 @@ func NewCacheAddon(
 	logger *slog.Logger,
 	storageEngineName string,
 	cacheDir string,
-	filterReqHeaders *config.HeaderFilterGroup, // which headers to filter out from the request before logging
-	filterRespHeaders *config.HeaderFilterGroup, // which headers to filter out from the response before logging
+	filterReqHeaders *config.HeaderFilterGroup,
+	filterRespHeaders *config.HeaderFilterGroup,
 ) (*ResponseCacheAddon, error) {
 	var cacheDB cache.DB
 	var err error

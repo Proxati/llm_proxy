@@ -14,15 +14,16 @@ type ProxyResponseAdapter struct {
 
 func NewProxyResponseAdapter(pxResp *px.Response) *ProxyResponseAdapter {
 	if pxResp == nil {
-		pxResp = &px.Response{
-			Header: http.Header{},
+		return &ProxyResponseAdapter{
+			pxResp:     &px.Response{Header: http.Header{}},
+			headerCopy: http.Header{},
 		}
 	}
 	if pxResp.Header == nil {
 		pxResp.Header = http.Header{}
 	}
 
-	// deep copy of the headers to prevent race conditions
+	// shallow copy of the headers to prevent race conditions
 	headerCopy := http.Header{}
 	maps.Copy(headerCopy, pxResp.Header)
 

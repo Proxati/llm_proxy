@@ -16,11 +16,11 @@ type LogSourceConfig struct {
 
 func NewLogSourceConfig(cfg *Config) LogSourceConfig {
 	return LogSourceConfig{
-		LogConnectionStats: !cfg.NoLogConnStats,
-		LogRequestHeaders:  !cfg.NoLogReqHeaders,
-		LogRequest:         !cfg.NoLogReqBody,
-		LogResponseHeaders: !cfg.NoLogRespHeaders,
-		LogResponse:        !cfg.NoLogRespBody,
+		LogConnectionStats: !cfg.TrafficLogger.NoLogConnStats,
+		LogRequestHeaders:  !cfg.TrafficLogger.NoLogReqHeaders,
+		LogRequest:         !cfg.TrafficLogger.NoLogReqBody,
+		LogResponseHeaders: !cfg.TrafficLogger.NoLogRespHeaders,
+		LogResponse:        !cfg.TrafficLogger.NoLogRespBody,
 	}
 }
 

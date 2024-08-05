@@ -126,12 +126,12 @@ func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMo
 	t.Helper()
 	// Create a simple proxy config
 	cfg := config.NewDefaultConfig()
-	cfg.Listen = proxyPort
-	cfg.CertDir = filepath.Join(tempDir, certSubdir)
-	cfg.Output = filepath.Join(tempDir, outputSubdir)
+	cfg.HttpBehavior.Listen = proxyPort
+	cfg.HttpBehavior.CertDir = filepath.Join(tempDir, certSubdir)
+	cfg.TrafficLogger.Output = filepath.Join(tempDir, outputSubdir)
 	cfg.Cache.Dir = filepath.Join(tempDir, cacheSubdir)
 	cfg.AppMode = proxyAppMode
-	cfg.NoHttpUpgrader = true // disable TLS because our test server doesn't support it
+	cfg.HttpBehavior.NoHttpUpgrader = true // disable TLS because our test server doesn't support it
 
 	if debugOutput {
 		cfg.EnableOutputDebug()
@@ -580,7 +580,7 @@ func TestConfigProxy(t *testing.T) {
 	t.Run("TestConfigProxy quiet mode", func(t *testing.T) {
 		// Create a mock configuration
 		cfg := config.NewDefaultConfig()
-		cfg.CertDir = t.TempDir()
+		cfg.HttpBehavior.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
 
 		// Call the function with the mock configuration
@@ -609,7 +609,7 @@ func TestConfigProxy(t *testing.T) {
 	t.Run("TestConfigProxy verbose mode", func(t *testing.T) {
 		// Create a mock configuration
 		cfg := config.NewDefaultConfig()
-		cfg.CertDir = t.TempDir()
+		cfg.HttpBehavior.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
 		cfg.EnableOutputVerbose()
 
@@ -639,9 +639,9 @@ func TestConfigProxy(t *testing.T) {
 	t.Run("TestConfigProxy output mode", func(t *testing.T) {
 		// Create a mock configuration
 		cfg := config.NewDefaultConfig()
-		cfg.CertDir = t.TempDir()
+		cfg.HttpBehavior.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
-		cfg.Output = t.TempDir() // Set the output directory, which should enable the logger addon
+		cfg.TrafficLogger.Output = t.TempDir() // Set the output directory, which should enable the logger addon
 
 		// Call the function with the mock configuration
 		p, err := configProxy(cfg)

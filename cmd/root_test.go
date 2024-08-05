@@ -109,7 +109,7 @@ func TestSetupLogFormats(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedTermFmt, cfg.GetTerminalOutputFormat())
-				assert.Equal(t, tt.expectedTrafficFmt, cfg.TrafficLogFmt)
+				assert.Equal(t, tt.expectedTrafficFmt, cfg.TrafficLogger.LogFmt)
 				assert.Equal(t, tt.expectedTermFmt, logFmt)
 			}
 		})

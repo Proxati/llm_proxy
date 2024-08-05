@@ -144,26 +144,26 @@ func init() {
 	rootCmd.PersistentFlags().MarkHidden("trace")
 
 	rootCmd.PersistentFlags().StringVarP(
-		&cfg.Listen, "listen", "l", cfg.Listen,
+		&cfg.HttpBehavior.Listen, "listen", "l", cfg.HttpBehavior.Listen,
 		"Address to listen on",
 	)
 
 	// Certificate Settings
 	rootCmd.PersistentFlags().StringVarP(
-		&cfg.CertDir, "ca_dir", "c", cfg.CertDir,
+		&cfg.HttpBehavior.CertDir, "ca_dir", "c", cfg.HttpBehavior.CertDir,
 		"Path to the local trusted certificate, for TLS MITM",
 	)
 	rootCmd.PersistentFlags().BoolVarP(
-		&cfg.InsecureSkipVerifyTLS, "skip-upstream-tls-verify", "K", cfg.InsecureSkipVerifyTLS,
+		&cfg.HttpBehavior.InsecureSkipVerifyTLS, "skip-upstream-tls-verify", "K", cfg.HttpBehavior.InsecureSkipVerifyTLS,
 		"Skip upstream TLS cert verification",
 	)
 	rootCmd.PersistentFlags().BoolVarP(
-		&cfg.NoHttpUpgrader, "no-http-upgrader", "", cfg.NoHttpUpgrader,
+		&cfg.HttpBehavior.NoHttpUpgrader, "no-http-upgrader", "", cfg.HttpBehavior.NoHttpUpgrader,
 		"Disable the automatic http->https request upgrader",
 	)
 	// Logging Settings
 	rootCmd.PersistentFlags().StringVarP(
-		&cfg.Output, "output", "o", "",
+		&cfg.TrafficLogger.Output, "output", "o", "",
 		`Comma-delimited list of log destinations. This can be a directory, or a
 HTTP(s) REST API. If unset, and verbose/debug is enabled, traffic logs will be
 sent to the terminal. See the documentation for more information.
@@ -181,23 +181,23 @@ Examples:
 		"Disk output format for traffic logs (valid options: json or txt)",
 	)
 	rootCmd.PersistentFlags().BoolVar(
-		&cfg.NoLogConnStats, "no-log-connection-stats", cfg.NoLogConnStats,
+		&cfg.TrafficLogger.NoLogConnStats, "no-log-connection-stats", cfg.TrafficLogger.NoLogConnStats,
 		"Don't write connection stats to traffic logs",
 	)
 	rootCmd.PersistentFlags().BoolVar(
-		&cfg.NoLogReqHeaders, "no-log-req-headers", cfg.NoLogReqHeaders,
+		&cfg.TrafficLogger.NoLogReqHeaders, "no-log-req-headers", cfg.TrafficLogger.NoLogReqHeaders,
 		"Don't write request headers to traffic logs",
 	)
 	rootCmd.PersistentFlags().BoolVar(
-		&cfg.NoLogReqBody, "no-log-req-body", cfg.NoLogReqBody,
+		&cfg.TrafficLogger.NoLogReqBody, "no-log-req-body", cfg.TrafficLogger.NoLogReqBody,
 		"Don't write request body or details to traffic logs",
 	)
 	rootCmd.PersistentFlags().BoolVar(
-		&cfg.NoLogRespHeaders, "no-log-resp-headers", cfg.NoLogRespHeaders,
+		&cfg.TrafficLogger.NoLogRespHeaders, "no-log-resp-headers", cfg.TrafficLogger.NoLogRespHeaders,
 		"Don't write response headers to traffic logs",
 	)
 	rootCmd.PersistentFlags().BoolVar(
-		&cfg.NoLogRespBody, "no-log-resp-body", cfg.NoLogRespBody,
+		&cfg.TrafficLogger.NoLogRespBody, "no-log-resp-body", cfg.TrafficLogger.NoLogRespBody,
 		"Don't write response body or details to traffic logs",
 	)
 

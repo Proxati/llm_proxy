@@ -9,12 +9,12 @@ const (
 
 // Config is the main config mega-struct
 type Config struct {
-	*httpBehavior
-	*trafficLogger
 	AppMode        AppMode
 	Cache          *cacheBehavior
-	terminalLogger *terminalLogger
 	HeaderFilters  *HeaderFiltersContainer
+	HttpBehavior   *httpBehavior
+	TrafficLogger  *trafficLogger
+	terminalLogger *terminalLogger
 }
 
 func (cfg *Config) getTerminalLogger() *terminalLogger {
@@ -95,7 +95,7 @@ func (cfg *Config) SetTerminalOutputFormat(terminalLogFormat string) (LogFormat,
 
 func (cfg *Config) SetTrafficLogFormat(logfmt string) error {
 	var err error
-	cfg.trafficLogger.TrafficLogFmt, err = StringToLogFormat(logfmt)
+	cfg.TrafficLogger.LogFmt, err = StringToLogFormat(logfmt)
 	return err
 }
 
@@ -105,7 +105,7 @@ func (cfg *Config) GetTerminalOutputFormat() LogFormat {
 
 func NewDefaultConfig() *Config {
 	return &Config{
-		httpBehavior: &httpBehavior{
+		HttpBehavior: &httpBehavior{
 			Listen:                DefaultListenAddr,
 			CertDir:               "",
 			InsecureSkipVerifyTLS: false,
@@ -121,9 +121,9 @@ func NewDefaultConfig() *Config {
 				Level: slog.LevelWarn,
 			},
 		},
-		trafficLogger: &trafficLogger{
-			Output:        "",
-			TrafficLogFmt: LogFormat_JSON,
+		TrafficLogger: &trafficLogger{
+			Output: "",
+			LogFmt: LogFormat_JSON,
 		},
 		HeaderFilters: NewHeaderFiltersContainer(),
 		Cache: &cacheBehavior{

@@ -59,15 +59,15 @@ func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, erro
 // no output target is requested (or when verbose is disabled)
 func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*addons.MegaTrafficDumper, error) {
 	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
-	if cfg.Output == "" && !cfg.IsVerboseOrHigher() {
+	if cfg.TrafficLogger.Output == "" && !cfg.IsVerboseOrHigher() {
 		// no output dir specified and verbose is disabled
 		return nil, nil
 	}
 
 	dumperAddon, err := addons.NewMegaTrafficDumperAddon(
 		cfg.GetLogger(),
-		cfg.Output,
-		cfg.TrafficLogFmt,
+		cfg.TrafficLogger.Output,
+		cfg.TrafficLogger.LogFmt,
 		logSources,
 		cfg.HeaderFilters.RequestToLogs,
 		cfg.HeaderFilters.ResponseToLogs,
@@ -84,12 +84,12 @@ func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*ad
 func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	metaAdd := newMetaAddon(cfg)
 
-	ca, err := newCA(cfg.CertDir)
+	ca, err := newCA(cfg.HttpBehavior.CertDir)
 	if err != nil {
 		return nil, fmt.Errorf("setupCA error: %v", err)
 	}
 
-	p, err := newProxy(cfg.Listen, cfg.InsecureSkipVerifyTLS, ca)
+	p, err := newProxy(cfg.HttpBehavior.Listen, cfg.HttpBehavior.InsecureSkipVerifyTLS, ca)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create proxy: %v", err)
 	}
@@ -110,8 +110,8 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	if dumperAddon != nil {
 		sLogger.Debug(
 			"Created "+dumperAddon.String(),
-			"outputDir", cfg.Output,
-			"logFormat", cfg.TrafficLogFmt,
+			"outputDir", cfg.TrafficLogger.Output,
+			"logFormat", cfg.TrafficLogger.LogFmt,
 			"logSources", logSources,
 			// "filterReqHeaders", cfg.FilterReqHeaders,
 			// "filterRespHeaders", cfg.FilterRespHeaders,
@@ -122,7 +122,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	}
 
 	// upgrade the request after it's logged
-	if !cfg.NoHttpUpgrader {
+	if !cfg.HttpBehavior.NoHttpUpgrader {
 		// upgrade all http requests to https
 		sLogger.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
 		metaAdd.addAddon(addons.NewSchemeUpgrader(cfg.GetLogger()))

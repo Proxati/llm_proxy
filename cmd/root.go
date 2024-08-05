@@ -6,8 +6,10 @@ import (
 	"os"
 
 	"github.com/mattn/go-isatty"
-	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/spf13/cobra"
+
+	"github.com/proxati/llm_proxy/v2/cmd/format"
+	"github.com/proxati/llm_proxy/v2/config"
 )
 
 // https://manytools.org/hacker-tools/ascii-banner/
@@ -202,20 +204,27 @@ Examples:
 	)
 
 	// "filter-request-headers-to-logs"
-	rootCmd.PersistentFlags().StringSliceVar(
-		&cfg.HeaderFilters.RequestToLogs.Headers, cfg.HeaderFilters.RequestToLogs.String(), cfg.HeaderFilters.RequestToLogs.Headers,
+	var filterRequestHeadersToLogsFormatted format.FormattedStringSlice = cfg.HeaderFilters.RequestToLogs.Headers
+	rootCmd.PersistentFlags().Var(
+		&filterRequestHeadersToLogsFormatted,
+		cfg.HeaderFilters.RequestToLogs.String(),
 		`A comma-separated list of request headers that the proxy will ignore for
 logging or caching purposes but will still forward upstream. For example,
 "Authorization" headers sent from the client should not be stored in logs
-or cache.`,
+or cache.
+`,
 	)
 
 	// "filter-response-headers-to-logs"
-	rootCmd.PersistentFlags().StringSliceVar(
-		&cfg.HeaderFilters.ResponseToLogs.Headers, cfg.HeaderFilters.ResponseToLogs.String(), cfg.HeaderFilters.ResponseToLogs.Headers,
+	var filterResponseHeadersToLogsFormatted format.FormattedStringSlice = cfg.HeaderFilters.ResponseToLogs.Headers
+	rootCmd.PersistentFlags().Var(
+		&filterResponseHeadersToLogsFormatted,
+		cfg.HeaderFilters.ResponseToLogs.String(),
 		`A comma-separated list of response headers that the proxy will ignore for
 logging or caching purposes but will still forward to the client. For example,
-"Set-Cookie" headers sent from the server should not be stored in logs or cache.`,
+"Set-Cookie" headers sent from the upstream server should not be stored in
+the logs or cache.
+`,
 	)
 
 	/* still in development:

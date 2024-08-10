@@ -1,11 +1,19 @@
 package config
 
 import (
-	"log/slog"
 	"net/http"
 	"sync"
 )
 
+// persistentFiltersRequestLogs are headers that are always filtered from request logs
+var persistentFiltersRequestLogs = []string{
+	"Accept",
+	"Accept-Encoding",
+	"Connection",
+}
+
+// defaultFiltersRequestLogs are headers that are filtered from request logs by default, but can be
+// overridden by the user
 var defaultFiltersRequestLogs = []string{
 	"Authorization",
 	"Authorization-Info",
@@ -27,6 +35,15 @@ var defaultFiltersRequestLogs = []string{
 	"X-User-Secret",
 }
 
+// persistentFiltersResponseLogs are headers that are always filtered from response logs
+var persistentFiltersResponseLogs = []string{
+	"Connection",
+	"Content-Length",
+	"Content-Encoding",
+}
+
+// defaultFiltersResponseLogs are headers that are filtered from response logs by default, but can be
+// overridden by the user
 var defaultFiltersResponseLogs = []string{
 	"Proxy-Authenticate",
 	"Set-Cookie",
@@ -34,17 +51,17 @@ var defaultFiltersResponseLogs = []string{
 }
 
 const (
-	// FlagTitle_FilterRequestHeadersToLogs is the name of the filter group for headers to be filtered from requests to logs
-	FlagTitle_FilterRequestHeadersToLogs = "filter-request-headers-to-logs"
+	// flagTitle_FilterRequestHeadersToLogs is the name of the filter group for headers to be filtered from requests to logs
+	flagTitle_FilterRequestHeadersToLogs = "filter-request-headers-to-logs"
 
-	// FlagTitle_FilterResponseHeadersToLogs is the name of the filter group for headers to be filtered from responses to logs
-	FlagTitle_FilterResponseHeadersToLogs = "filter-response-headers-to-logs"
+	// flagTitle_FilterResponseHeadersToLogs is the name of the filter group for headers to be filtered from responses to logs
+	flagTitle_FilterResponseHeadersToLogs = "filter-response-headers-to-logs"
 
-	// FlagTitle_FilterRequestHeadersToUpstream is the name of the filter group for headers to be filtered from requests to upstream
-	FlagTitle_FilterRequestHeadersToUpstream = "filter-request-headers-to-upstream"
+	// flagTitle_FilterRequestHeadersToUpstream is the name of the filter group for headers to be filtered from requests to upstream
+	flagTitle_FilterRequestHeadersToUpstream = "filter-request-headers-to-upstream"
 
-	// FlagTitle_FilterResponseHeadersToClient is the name of the filter group for headers to be filtered from responses to the client
-	FlagTitle_FilterResponseHeadersToClient = "filter-response-headers-to-client"
+	// flagTitle_FilterResponseHeadersToClient is the name of the filter group for headers to be filtered from responses to the client
+	flagTitle_FilterResponseHeadersToClient = "filter-response-headers-to-client"
 )
 
 type headerIndex map[string]any
@@ -124,13 +141,13 @@ type HeaderFiltersContainer struct {
 func NewHeaderFiltersContainer() *HeaderFiltersContainer {
 	hfc := &HeaderFiltersContainer{
 		RequestToLogs: NewHeaderFilterGroup(
-			FlagTitle_FilterRequestHeadersToLogs, defaultFiltersRequestLogs),
+			flagTitle_FilterRequestHeadersToLogs, append(defaultFiltersRequestLogs, persistentFiltersRequestLogs...)),
 		ResponseToLogs: NewHeaderFilterGroup(
-			FlagTitle_FilterResponseHeadersToLogs, defaultFiltersResponseLogs),
+			flagTitle_FilterResponseHeadersToLogs, append(defaultFiltersResponseLogs, persistentFiltersResponseLogs...)),
 		RequestToUpstream: NewHeaderFilterGroup(
-			FlagTitle_FilterRequestHeadersToUpstream, []string{}),
+			flagTitle_FilterRequestHeadersToUpstream, []string{}),
 		ResponseToClient: NewHeaderFilterGroup(
-			FlagTitle_FilterResponseHeadersToClient, []string{}),
+			flagTitle_FilterResponseHeadersToClient, []string{}),
 	}
 	return hfc
 }
@@ -142,10 +159,6 @@ func (hg *HeaderFiltersContainer) BuildIndexes() {
 	go func() {
 		defer wg.Done()
 		hg.RequestToLogs.buildIndex()
-		if !hg.RequestToLogs.IsHeaderInGroup("Accept-Encoding") {
-			slog.Default().Warn(
-				"Accept-Encoding header is not in the filter-request-headers-to-logs filter group. This may cause issues with the cache.")
-		}
 	}()
 	go func() {
 		defer wg.Done()

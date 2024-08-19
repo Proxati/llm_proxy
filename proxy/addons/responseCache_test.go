@@ -57,7 +57,7 @@ func TestCleanCachePath(t *testing.T) {
 
 func TestNewCacheAddonErr(t *testing.T) {
 	testLogger := slog.Default()
-	emptyHeaderFilterGroup := config.NewHeaderFilterGroup(t.Name(), []string{})
+	emptyHeaderFilterGroup := config.NewHeaderFilterGroup(t.Name(), []string{}, []string{})
 
 	t.Run("empty storage engine", func(t *testing.T) {
 		storageEngineName := ""
@@ -96,8 +96,8 @@ func TestNewCacheAddonErr(t *testing.T) {
 func TestRequest(t *testing.T) {
 	testLogger := slog.Default()
 	tmpDir := t.TempDir()
-	filterReqHeaders := config.NewHeaderFilterGroup(t.Name()+"req", []string{"Header1"})
-	filterRespHeaders := config.NewHeaderFilterGroup(t.Name()+"resp", []string{"Header2"})
+	filterReqHeaders := config.NewHeaderFilterGroup(t.Name()+"req", []string{}, []string{"Header1"})
+	filterRespHeaders := config.NewHeaderFilterGroup(t.Name()+"resp", []string{}, []string{"Header2"})
 
 	respCacheAddon, err := NewCacheAddon(
 		testLogger,

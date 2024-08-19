@@ -27,8 +27,8 @@ func TestNewBoltMetaDB(t *testing.T) {
 }
 
 func TestBoltMetaDB_PutAndGet(t *testing.T) {
-	reqHeaderFilter := config.NewHeaderFilterGroup(t.Name()+"req", []string{})
-	respHeaderFilter := config.NewHeaderFilterGroup(t.Name()+"resp", []string{"Set-Cookie"})
+	reqHeaderFilter := config.NewHeaderFilterGroup(t.Name()+"req", []string{}, []string{})
+	respHeaderFilter := config.NewHeaderFilterGroup(t.Name()+"resp", []string{}, []string{"Set-Cookie"})
 
 	t.Run("put and get a request and response", func(t *testing.T) {
 		dbFileDir := t.TempDir()

@@ -46,7 +46,7 @@ func TestNewProxyResponseFromMITMResponse(t *testing.T) {
 			Headers:    headers,
 			Body:       []byte(`{"key":"value"}`),
 		}
-		headersToFilter := config.NewHeaderFilterGroup(t.Name(), []string{"Delete-Me"})
+		headersToFilter := config.NewHeaderFilterGroup(t.Name(), []string{"Delete-Me"}, []string{})
 
 		res, err := schema.NewProxyResponse(mockAdapter, headersToFilter)
 		require.NoError(t, err)

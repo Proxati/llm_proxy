@@ -121,10 +121,10 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(dumperAddon)
 	}
 
-	// upgrade the request after it's logged
+	sLogger.Debug("http to https upgrade", "enabled", !cfg.HttpBehavior.NoHttpUpgrader)
+	// upgrade the request _after_ it's logged
 	if !cfg.HttpBehavior.NoHttpUpgrader {
 		// upgrade all http requests to https
-		sLogger.Debug("NoHttpUpgrader is false, enabling http to https upgrade")
 		metaAdd.addAddon(addons.NewSchemeUpgrader(cfg.GetLogger()))
 	}
 

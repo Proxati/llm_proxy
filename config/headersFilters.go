@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-// persistentFiltersRequestLogs are headers that are always filtered from request logs
-var persistentFiltersRequestLogs = []string{
+// persistentFiltersRequests are headers that are always filtered from all request logs
+var persistentFiltersRequests = []string{
 	"Accept",
 	"Accept-Encoding",
 	"Connection",
 }
 
-// defaultFiltersRequestLogs are headers that are filtered from request logs by default, but can be
+// defaultFiltersRequests are headers that are filtered from request logs by default, but can be
 // overridden by the user
-var defaultFiltersRequestLogs = []string{
+var defaultFiltersRequests = []string{
 	"Authorization",
 	"Authorization-Info",
 	"Cookie",
@@ -35,33 +35,27 @@ var defaultFiltersRequestLogs = []string{
 	"X-User-Secret",
 }
 
-// persistentFiltersResponseLogs are headers that are always filtered from response logs
-var persistentFiltersResponseLogs = []string{
+// persistentFiltersResponses are headers that are always filtered from response logs
+var persistentFiltersResponses = []string{
 	"Connection",
 	"Content-Length",
 	"Content-Encoding",
 }
 
-// defaultFiltersResponseLogs are headers that are filtered from response logs by default, but can be
+// defaultFiltersResponses are headers that are filtered from response logs by default, but can be
 // overridden by the user
-var defaultFiltersResponseLogs = []string{
+var defaultFiltersResponses = []string{
 	"Proxy-Authenticate",
 	"Set-Cookie",
 	"WWW-Authenticate",
 }
 
 const (
-	// flagTitle_FilterRequestHeadersToLogs is the name of the filter group for headers to be filtered from requests to logs
-	flagTitle_FilterRequestHeadersToLogs = "filter-request-headers-to-logs"
-
-	// flagTitle_FilterResponseHeadersToLogs is the name of the filter group for headers to be filtered from responses to logs
-	flagTitle_FilterResponseHeadersToLogs = "filter-response-headers-to-logs"
-
-	// flagTitle_FilterRequestHeadersToUpstream is the name of the filter group for headers to be filtered from requests to upstream
+	flagTitle_FilterResponseHeadersToCache   = "filter-response-headers-to-cache"
+	flagTitle_FilterRequestHeadersToLogs     = "filter-request-headers-to-logs"
+	flagTitle_FilterResponseHeadersToLogs    = "filter-response-headers-to-logs"
 	flagTitle_FilterRequestHeadersToUpstream = "filter-request-headers-to-upstream"
-
-	// flagTitle_FilterResponseHeadersToClient is the name of the filter group for headers to be filtered from responses to the client
-	flagTitle_FilterResponseHeadersToClient = "filter-response-headers-to-client"
+	flagTitle_FilterResponseHeadersToClient  = "filter-response-headers-to-client"
 )
 
 type headerIndex map[string]any
@@ -70,16 +64,18 @@ type headerIndex map[string]any
 // reading existing logs (remove content-type), writing new logs (remove auth), or when sending
 // requests to upstream.
 type HeaderFilterGroup struct {
-	Headers []string
-	index   headerIndex
-	name    string
+	Headers           []string    // user-editable list of headers to filter
+	persistentHeaders []string    // headers that are always filtered
+	index             headerIndex // map of headers to filter
+	name              string      // human-readable name of this filter group
 }
 
 // NewHeaderFilterGroup creates a new HeaderFilterGroup
-func NewHeaderFilterGroup(name string, headers []string) *HeaderFilterGroup {
+func NewHeaderFilterGroup(name string, headers, persistentHeaders []string) *HeaderFilterGroup {
 	hfg := &HeaderFilterGroup{
-		Headers: append([]string{}, headers...), // shallow copy the slice
-		name:    name,
+		Headers:           append([]string{}, headers...), // shallow copy the slice
+		persistentHeaders: persistentHeaders,
+		name:              name,
 	}
 	hfg.buildIndex()
 	return hfg
@@ -92,6 +88,9 @@ func (hfg *HeaderFilterGroup) String() string {
 func (hfg *HeaderFilterGroup) buildIndex() {
 	index := make(headerIndex)
 	for _, header := range hfg.Headers {
+		index[header] = nil
+	}
+	for _, header := range hfg.persistentHeaders {
 		index[header] = nil
 	}
 	hfg.index = index
@@ -124,30 +123,44 @@ func (hg *HeaderFilterGroup) FilterHeaders(headers http.Header, additionalHeader
 
 // HeaderFiltersContainer holds the configuration for filtering headers
 type HeaderFiltersContainer struct {
-	// Headers to be ignored by the proxy when received by the client
+	// Headers set by the upstream, to be filtered from requests stored in the cache
+	ResponseToCache *HeaderFilterGroup
+
+	// Headers set by the client, to be omitted from logs
 	RequestToLogs *HeaderFilterGroup // filter-request-headers-to-logs
 
-	// Headers to be ignored by the proxy from responses from upstream
+	// Headers set by upstream, to be omitted from logs
 	ResponseToLogs *HeaderFilterGroup // filter-response-headers-to-logs
 
-	// Headers to be filtered from requests coming from upstream
+	// Headers set by the client, to be filtered from requests sent upstream
 	RequestToUpstream *HeaderFilterGroup // filter-request-headers-to-upstream
 
-	// Headers to be filtered from responses coming from upstream
+	// Headers set by upstream, to be filtered from the responses sent to the client
 	ResponseToClient *HeaderFilterGroup // filter-response-headers-to-client
 }
 
 // NewHeaderFiltersContainer creates a new HeaderFiltersContainer with default values
 func NewHeaderFiltersContainer() *HeaderFiltersContainer {
 	hfc := &HeaderFiltersContainer{
+		ResponseToCache: NewHeaderFilterGroup(
+			flagTitle_FilterResponseHeadersToCache,
+			defaultFiltersResponses,
+			persistentFiltersResponses,
+		),
 		RequestToLogs: NewHeaderFilterGroup(
-			flagTitle_FilterRequestHeadersToLogs, append(defaultFiltersRequestLogs, persistentFiltersRequestLogs...)),
+			flagTitle_FilterRequestHeadersToLogs,
+			defaultFiltersRequests,
+			persistentFiltersRequests,
+		),
 		ResponseToLogs: NewHeaderFilterGroup(
-			flagTitle_FilterResponseHeadersToLogs, append(defaultFiltersResponseLogs, persistentFiltersResponseLogs...)),
+			flagTitle_FilterResponseHeadersToLogs,
+			defaultFiltersResponses,
+			persistentFiltersResponses,
+		),
 		RequestToUpstream: NewHeaderFilterGroup(
-			flagTitle_FilterRequestHeadersToUpstream, []string{}),
+			flagTitle_FilterRequestHeadersToUpstream, []string{}, []string{}),
 		ResponseToClient: NewHeaderFilterGroup(
-			flagTitle_FilterResponseHeadersToClient, []string{}),
+			flagTitle_FilterResponseHeadersToClient, []string{}, []string{}),
 	}
 	return hfc
 }

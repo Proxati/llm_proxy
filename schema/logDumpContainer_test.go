@@ -81,9 +81,9 @@ func getDefaultConnectionStats() *schema.ProxyConnectionStats {
 
 func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 	t.Parallel()
-	emptyHeaderFilterGroup := config.NewHeaderFilterGroup("empty", []string{})
-	basicHeaderFilterGroupReq := config.NewHeaderFilterGroup("basic-req", []string{"Delete-Me-Request"})
-	basicHeaderFilterGroupResp := config.NewHeaderFilterGroup("basic-req", []string{"Delete-Me-Response"})
+	emptyHeaderFilterGroup := config.NewHeaderFilterGroup("empty", []string{}, []string{})
+	basicHeaderFilterGroupReq := config.NewHeaderFilterGroup("basic-req", []string{}, []string{"Delete-Me-Request"})
+	basicHeaderFilterGroupResp := config.NewHeaderFilterGroup("basic-req", []string{}, []string{"Delete-Me-Response"})
 
 	testCases := []struct {
 		name                    string

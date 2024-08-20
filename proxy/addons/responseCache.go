@@ -20,10 +20,11 @@ import (
 )
 
 const (
-	CacheStatusHeader = "X-Llm_proxy-Cache"
-	CacheStatusHit    = "HIT"
-	CacheStatusMiss   = "MISS"
-	CacheStatusSkip   = "SKIP"
+	CacheStatusHeader      = "X-Llm_proxy-Cache"
+	CacheStatusHit         = "HIT"
+	CacheStatusMiss        = "MISS"
+	CacheStatusSkip        = "SKIP"
+	DefaultMemoryCacheSize = 1000 // number of records to cache per URL
 )
 
 var cacheOnlyMethods = map[string]struct{}{
@@ -273,7 +274,7 @@ func NewCacheAddon(
 		cacheDB, err = cache.NewBoltMetaDB(cacheDir)
 		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
 	case "memory":
-		cacheDB, err = cache.NewMemoryMetaDB(logger, 1000)
+		cacheDB, err = cache.NewMemoryMetaDB(logger, DefaultMemoryCacheSize)
 		logger.Debug("Loaded MemoryStorage database driver")
 	default:
 		return nil, fmt.Errorf("unknown storage engine: %s", storageEngineName)

@@ -57,13 +57,6 @@ func (c *MemoryMetaDB) Get(identifier string, body []byte) (response *schema.Pro
 		c.logger.Debug("valueBytes empty", "identifier", identifier)
 		return nil, nil
 	}
-	/*
-		c.logger.Debug(
-			"retrieved response from cache",
-			"identifier", identifier,
-			"valueBytesLength", len(valueBytes),
-		)
-	*/
 	newResponse, err := schema.NewProxyResponseFromJSONBytes(valueBytes)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling response: %s", err)
@@ -123,12 +116,14 @@ func (c *MemoryMetaDB) Put(request *schema.ProxyRequest, response *schema.ProxyR
 	if err != nil {
 		return fmt.Errorf("error marshalling response object: %s", err)
 	}
-	slog.Default().Debug(
-		"storing response in cache",
-		"identifier", identifier,
-		"response", string(respJSON),
-		"key", key.NewKeyStr(request.Body).String(),
-	)
+	/*
+		slog.Default().Debug(
+			"storing response in cache",
+			"identifier", identifier,
+			"response", string(respJSON),
+			"key", key.NewKeyStr(request.Body).String(),
+		)
+	*/
 
 	if err := db.SetBytes(identifier, key.NewKeyStr(request.Body), respJSON); err != nil {
 		return fmt.Errorf("could not store response in cache: %w", err)

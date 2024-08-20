@@ -272,12 +272,19 @@ func NewCacheAddon(
 		// pass in the header filters for removing specific headers from the objects stored in cache
 		cacheDB, err = cache.NewBoltMetaDB(cacheDir)
 		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
+	case "memory":
+		cacheDB, err = cache.NewMemoryMetaDB(logger, 1000)
+		logger.Debug("Loaded MemoryStorage database driver")
 	default:
 		return nil, fmt.Errorf("unknown storage engine: %s", storageEngineName)
 	}
 
 	if err != nil {
 		return nil, fmt.Errorf("error creating cache: %s", err)
+	}
+
+	if cacheDB == nil {
+		return nil, fmt.Errorf("cacheDB is nil after initialization")
 	}
 
 	return &ResponseCacheAddon{

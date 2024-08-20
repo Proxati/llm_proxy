@@ -126,9 +126,6 @@ func NewDefaultConfig() *Config {
 			LogFmt: LogFormat_JSON,
 		},
 		HeaderFilters: NewHeaderFiltersContainer(),
-		Cache: &cacheBehavior{
-			Dir: DefaultCacheDir,
-			TTL: 0,
-		},
+		Cache:         NewCacheBehavior(DefaultCacheDir, "bolt"),
 	}
 }

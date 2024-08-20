@@ -31,6 +31,11 @@ func init() {
 		&cfg.Cache.Dir, "cache-dir", cfg.Cache.Dir,
 		"Directory to store the cache database files",
 	)
+	cacheCmd.Flags().StringVar(
+		&cfg.Cache.EngineTitle, "cache-engine", cfg.Cache.EngineTitle,
+		`Storage engine to use for cache (memory, bolt). When using bolt, the
+cache-dir must be a valid writable path.`,
+	)
 	/*
 		cacheCmd.Flags().Int64VarP(
 			&cfg.Cache.TTL, "ttl", "", cfg.Cache.TTL,

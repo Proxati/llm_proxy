@@ -61,7 +61,7 @@ func (c *cacheBehavior) GetCacheStorageConfig(logger *slog.Logger) (config_cache
 		currentCacheConfigVer := "v1"
 		cacheConfigFileName := "llm_proxy_cache.json"
 		currentStorageVersion := "v1"
-		defaultStorageEngineName := "bolt"
+		defaultStorageEngineName := CacheEngineBolt.String()
 		return config_cache.NewStorageJSON(
 			logger,
 			c.Dir,

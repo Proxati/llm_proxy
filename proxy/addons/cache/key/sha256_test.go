@@ -2,6 +2,7 @@ package key
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ func TestSHA256KeyGet(t *testing.T) {
 	// Check if the key has been computed and returned
 	expectedHash := sha256.Sum256([]byte("test"))
 	assert.Equal(t, expectedHash[:], result)
-	assert.Equal(t, string(expectedHash[:]), key.String())
+	assert.Equal(t, hex.EncodeToString(expectedHash[:]), key.String())
 }
 
 func BenchmarkComputeSha256ChecksumSmall(b *testing.B) {

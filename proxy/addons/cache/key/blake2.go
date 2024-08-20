@@ -1,6 +1,8 @@
 package key
 
 import (
+	"encoding/hex"
+
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -27,7 +29,7 @@ func (k *BLAKE2) Get() []byte {
 
 // String returns the hashed key data as a string
 func (k *BLAKE2) String() string {
-	return string(k.Get())
+	return hex.EncodeToString(k.Get())
 }
 
 // NewKey creates a new Key object with the given key data

@@ -1,6 +1,7 @@
 package key
 
 import (
+	"encoding/hex"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ func TestBLAKE2KeyGet(t *testing.T) {
 	// Check if the keySha has been computed and returned
 	expectedHash := blake2b.Sum512([]byte("test"))
 	assert.Equal(t, expectedHash[:], result)
-	assert.Equal(t, string(expectedHash[:]), key.String())
+	assert.Equal(t, hex.EncodeToString(expectedHash[:]), key.String())
 }
 
 func TestComputeBlake2Checksum(t *testing.T) {

@@ -2,6 +2,7 @@ package key
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 )
 
 // Key is an object that stores the key data (in bytes), and also a pre-computed checksum of the key
@@ -26,7 +27,7 @@ func (k *SHA256) Get() []byte {
 
 // String returns the hashed key data as a string
 func (k *SHA256) String() string {
-	return string(k.Get())
+	return hex.EncodeToString(k.Get())
 }
 
 // NewKey creates a new Key object with the given key data

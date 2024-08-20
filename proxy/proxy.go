@@ -128,7 +128,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(addons.NewSchemeUpgrader(cfg.GetLogger()))
 	}
 
-	sLogger.Debug("Building proxy config", "AppMode", cfg.AppMode)
+	sLogger.Debug("Building proxy config", "AppMode", cfg.AppMode.String())
 	switch cfg.AppMode {
 	case config.CacheMode:
 		cacheConfig, err := config.NewCacheStorageConfig(cfg.GetLogger(), cfg.Cache.Dir)

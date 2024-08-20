@@ -65,7 +65,7 @@ func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*ad
 	}
 
 	dumperAddon, err := addons.NewMegaTrafficDumperAddon(
-		cfg.GetLogger(),
+		sLogger,
 		cfg.TrafficLogger.Output,
 		cfg.TrafficLogger.LogFmt,
 		logSources,
@@ -137,7 +137,7 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		}
 
 		cacheAddon, err := addons.NewCacheAddon(
-			cfg.GetLogger(),
+			sLogger,
 			cacheConfig.StorageEngine,
 			cacheConfig.StoragePath,
 			cfg.HeaderFilters.RequestToLogs,

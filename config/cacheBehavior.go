@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 
 	config_cache "github.com/proxati/llm_proxy/v2/config/cache"
@@ -15,7 +16,7 @@ func (c CacheEngine) String() string {
 	case CacheEngineBolt:
 		return "bolt"
 	default:
-		return "memory"
+		return ""
 	}
 }
 
@@ -28,28 +29,31 @@ const (
 type cacheBehavior struct {
 	Dir string // Directory to store the cache files
 	// Size   int64  // Max size of the cache in total response records
-	Engine      CacheEngine // Storage engine to use for cache
-	EngineTitle string      // human-readable storage engine name (memory, bolt)
+	Engine CacheEngine // Storage engine to use for cache
 }
 
 // NewCacheBehavior creates a new cacheBehavior object
-func NewCacheBehavior(dir string, engineTitle string) *cacheBehavior {
+func NewCacheBehavior(dir string, engineTitle string) (*cacheBehavior, error) {
 	cb := &cacheBehavior{Dir: dir}
-	cb.setEngine(engineTitle)
-	return cb
+	err := cb.SetEngine(engineTitle)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create new cache behavior object: %w", err)
+	}
+
+	return cb, nil
 }
 
-// setEngine sets the cache engine enum based on the engineTitle string
-func (c *cacheBehavior) setEngine(engineTitle string) {
-	e := CacheEngineMemory
+// SetEngine sets the cache engine enum based on the engineTitle string
+func (c *cacheBehavior) SetEngine(engineTitle string) error {
 	switch engineTitle {
 	case CacheEngineMemory.String():
-		e = CacheEngineMemory
+		c.Engine = CacheEngineMemory
 	case CacheEngineBolt.String():
-		e = CacheEngineBolt
+		c.Engine = CacheEngineBolt
+	default:
+		return fmt.Errorf("invalid cache engine: %s", engineTitle)
 	}
-	c.Engine = e
-	c.EngineTitle = engineTitle
+	return nil
 }
 
 // GetCacheStorageConfig returns a cache.Config object based on the configured Engine
@@ -71,6 +75,6 @@ func (c *cacheBehavior) GetCacheStorageConfig(logger *slog.Logger) (config_cache
 			defaultStorageEngineName,
 		)
 	default:
-		return config_cache.NewMemoryConfig(), nil
+		return nil, fmt.Errorf("invalid cache engine: %s", c.Engine)
 	}
 }

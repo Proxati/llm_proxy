@@ -34,7 +34,6 @@ func (m *MemoryStorage) GetBytes(identifier string, key key.Key) ([]byte, error)
 	if !ok {
 		return nil, fmt.Errorf("key not found: %s", key.String())
 	}
-
 	return val, nil
 }
 
@@ -44,19 +43,11 @@ func (m *MemoryStorage) GetBytesSafe(identifier string, key key.Key) ([]byte, er
 	if !ok {
 		return nil, nil
 	}
-
 	return val, nil
 }
 
 // SetBytes sets a value in the database using a byte key
 func (m *MemoryStorage) SetBytes(_ string, key key.Key, value []byte) error {
-	// slog.Default().Debug("MemoryStorage.SetBytes", "key", key.String(), "value", string(value))
-	//m.cache.Add("hello", []byte("world"))
-	/* if m.cache == nil {
-		return fmt.Errorf("cache is nil")
-	}
-	*/
-	// spew.Dump(m.cache)
 	ks := key.String()
 	m.cache.Add(ks, value)
 	m.logger.Debug("set", "key", ks, "value", string(value))

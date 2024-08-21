@@ -104,6 +104,12 @@ func (cfg *Config) GetTerminalOutputFormat() LogFormat {
 }
 
 func NewDefaultConfig() *Config {
+	cb, err := NewCacheBehavior(DefaultCacheDir, CacheEngineBolt.String())
+	if err != nil {
+		// this should never happen!
+		panic(err)
+	}
+
 	return &Config{
 		HttpBehavior: &httpBehavior{
 			Listen:                DefaultListenAddr,
@@ -126,9 +132,6 @@ func NewDefaultConfig() *Config {
 			LogFmt: LogFormat_JSON,
 		},
 		HeaderFilters: NewHeaderFiltersContainer(),
-		Cache: &cacheBehavior{
-			Dir: DefaultCacheDir,
-			TTL: 0,
-		},
+		Cache:         cb,
 	}
 }

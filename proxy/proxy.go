@@ -131,15 +131,15 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	sLogger.Debug("Building proxy config", "AppMode", cfg.AppMode.String())
 	switch cfg.AppMode {
 	case config.CacheMode:
-		cacheConfig, err := config.NewCacheStorageConfig(cfg.GetLogger(), cfg.Cache.Dir)
+		cacheConfig, err := cfg.Cache.GetCacheStorageConfig(sLogger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create cache config: %v", err)
 		}
 
 		cacheAddon, err := addons.NewCacheAddon(
 			sLogger,
-			cacheConfig.StorageEngine,
-			cacheConfig.StoragePath,
+			cacheConfig.GetStorageEngine(),
+			cacheConfig.GetStoragePath(),
 			cfg.HeaderFilters.RequestToLogs,
 			cfg.HeaderFilters.ResponseToLogs,
 		)
@@ -148,8 +148,8 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		}
 		sLogger.Debug(
 			"Created "+cacheAddon.String(),
-			"storageEngine", cacheConfig.StorageEngine,
-			"storagePath", cacheConfig.StoragePath,
+			"storageEngine", cacheConfig.GetStorageEngine(),
+			"storagePath", cacheConfig.GetStoragePath(),
 		)
 		metaAdd.addAddon(cacheAddon)
 	case config.APIAuditMode:

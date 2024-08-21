@@ -176,7 +176,6 @@ func TestRequest(t *testing.T) {
 		respAdapter := mitm.NewProxyResponseAdapter(resp)
 		require.NotNil(t, respAdapter)
 
-		// create traffic objects for the request and response, check header loading
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 		require.Empty(t, tResp.Header.Get(CacheStatusHeader))

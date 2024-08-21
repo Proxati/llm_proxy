@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mattn/go-isatty v0.0.20
-	github.com/proxati/mitmproxy v1.0.0
+	github.com/proxati/mitmproxy v1.0.1-0.20240819235341-78c20d7bf8b6
 	github.com/sashabaranov/go-openai v1.28.2
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0

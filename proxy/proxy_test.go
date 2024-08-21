@@ -122,7 +122,7 @@ func runWebServer(t testing.TB, hitCounter *atomic.Int32, listenAddr string) (*h
 	}
 }
 
-func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMode, addons ...px.Addon) (shutdownFunc func(), err error) {
+func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMode, cacheEngine config.CacheEngine, addons ...px.Addon) (shutdownFunc func(), err error) {
 	t.Helper()
 	// Create a simple proxy config
 	cfg := config.NewDefaultConfig()
@@ -132,6 +132,7 @@ func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMo
 	cfg.Cache.Dir = filepath.Join(tempDir, cacheSubdir)
 	cfg.AppMode = proxyAppMode
 	cfg.HttpBehavior.NoHttpUpgrader = true // disable TLS because our test server doesn't support it
+	cfg.Cache.Engine = cacheEngine
 
 	if debugOutput {
 		cfg.EnableOutputDebug()
@@ -171,12 +172,12 @@ func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMo
 	}, nil
 }
 
-func BenchmarkProxySimple(b *testing.B) {
+func BenchmarkProxySimpleMemory(b *testing.B) {
 	// create a proxy with a test config
 	proxyPort, err := getFreePort(b)
 	require.NoError(b, err)
 	tmpDir := b.TempDir()
-	proxyShutdown, err := runProxy(b, proxyPort, tmpDir, config.ProxyRunMode)
+	proxyShutdown, err := runProxy(b, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineMemory)
 	require.NoError(b, err)
 
 	// Start a basic web server on another port
@@ -199,7 +200,7 @@ func BenchmarkProxySimple(b *testing.B) {
 		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
 		b.StopTimer()
 		require.NoError(b, err)
-		assert.Equal(b, 200, resp.StatusCode)
+		require.Equal(b, 200, resp.StatusCode)
 	}
 	b.Cleanup(func() {
 		srvShutdown()
@@ -207,12 +208,107 @@ func BenchmarkProxySimple(b *testing.B) {
 	})
 }
 
-func TestProxySimple(t *testing.T) {
+func BenchmarkProxySimpleBolt(b *testing.B) {
+	// create a proxy with a test config
+	proxyPort, err := getFreePort(b)
+	require.NoError(b, err)
+	tmpDir := b.TempDir()
+	proxyShutdown, err := runProxy(b, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineBolt)
+	require.NoError(b, err)
+
+	// Start a basic web server on another port
+	hitCounter := new(atomic.Int32)
+	testServerPort, err := getFreePort(b)
+	require.NoError(b, err)
+	srv, srvShutdown := runWebServer(b, hitCounter, testServerPort)
+	require.NotNil(b, srv)
+	require.NotNil(b, srvShutdown)
+
+	// Create an http client that will use the proxy to connect to the web server
+	client, err := httpClient(b, "http://"+proxyPort)
+	require.NoError(b, err)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		hitCounter.Store(0) // reset the counter
+		// make a request using that client, through the proxy
+		b.StartTimer()
+		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
+		b.StopTimer()
+		require.NoError(b, err)
+		require.Equal(b, 200, resp.StatusCode)
+	}
+	b.Cleanup(func() {
+		srvShutdown()
+		proxyShutdown()
+	})
+}
+
+func TestProxySimpleMemoryEngine(t *testing.T) {
 	// create a proxy with a test config
 	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineMemory)
+	require.NoError(t, err)
+
+	// Start a basic web server on another port
+	hitCounter := new(atomic.Int32)
+	testServerPort, err := getFreePort(t)
+	require.NoError(t, err)
+	srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
+	require.NotNil(t, srv)
+	require.NotNil(t, srvShutdown)
+
+	// Create an http client that will use the proxy to connect to the web server
+	client, err := httpClient(t, "http://"+proxyPort)
+	require.NoError(t, err)
+
+	t.Run("TestSimpleProxy", func(t *testing.T) {
+		hitCounter.Store(0) // reset the counter
+		// make a request using that client, through the proxy
+		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
+		require.NoError(t, err)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		expectedResponse := respBuilder(t, 1, strings.NewReader("hello"))
+
+		// check the response body from req1
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Equal(t, expectedResponse, body)
+		assert.Equal(t, int32(1), hitCounter.Load())
+	})
+
+	t.Run("TestSimpleProxy2", func(t *testing.T) {
+		hitCounter.Store(5) // reset the counter
+		// make another request using that client, through the proxy
+		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
+		require.NoError(t, err)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		expectedResponse := respBuilder(t, 6, strings.NewReader("hello"))
+
+		// check the response body from req2
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.Equal(t, expectedResponse, body)
+		assert.Equal(t, int32(6), hitCounter.Load())
+	})
+
+	// done with tests, send shutdown signals
+	t.Cleanup(func() {
+		srvShutdown()
+		proxyShutdown()
+	})
+}
+
+func TestProxySimpleBoltEngine(t *testing.T) {
+	// create a proxy with a test config
+	proxyPort, err := getFreePort(t)
+	require.NoError(t, err)
+	tmpDir := t.TempDir()
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineBolt)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
@@ -273,7 +369,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineMemory)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
@@ -415,7 +511,7 @@ func TestProxyCache(t *testing.T) {
 	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.CacheMode)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.CacheMode, config.CacheEngineMemory)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port

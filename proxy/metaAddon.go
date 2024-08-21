@@ -58,8 +58,8 @@ func (addon *metaAddon) addAddon(a any) error {
 
 	myAddon, ok := a.(addons.ClosableAddon)
 	if ok {
-		sLogger.Debug("Loading addon", "addonName", myAddon.String())
 		addon.closableAddons = append(addon.closableAddons, myAddon) // for closing later
+		sLogger.Debug("Loaded closable addon", "addonName", myAddon.String())
 	}
 
 	mitmAddon, ok := a.(px.Addon)

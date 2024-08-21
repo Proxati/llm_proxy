@@ -7,6 +7,8 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy"
 )
 
+var cacheEngineTitle string = "bolt"
+
 // cacheCmd represents the mock command
 var cacheCmd = &cobra.Command{
 	Use:   "cache",
@@ -19,6 +21,10 @@ the number of requests to the upstream server. The cache stores responses with t
 code, headers, and body as the original, except for responses with status codes 500 or higher.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg.AppMode = config.CacheMode
+		err := cfg.Cache.SetEngine(cacheEngineTitle)
+		if err != nil {
+			return err
+		}
 		return proxy.Run(cfg)
 	},
 }
@@ -30,6 +36,11 @@ func init() {
 	cacheCmd.Flags().StringVar(
 		&cfg.Cache.Dir, "cache-dir", cfg.Cache.Dir,
 		"Directory to store the cache database files",
+	)
+	cacheCmd.Flags().StringVar(
+		&cacheEngineTitle, "cache-engine", cacheEngineTitle,
+		`Storage engine to use for cache (memory, bolt). When using bolt, the
+cache-dir must be a valid writable path.`,
 	)
 	/*
 		cacheCmd.Flags().Int64VarP(

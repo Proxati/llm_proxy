@@ -92,7 +92,7 @@ func TestAllMethods(t *testing.T) {
 	mock := &mockAddon{}
 	meta.addAddon(mock)
 
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, meta)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineMemory, meta)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port

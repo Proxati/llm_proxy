@@ -15,7 +15,7 @@ client = OpenAI(
     ),
 )
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # import ipdb; ipdb.set_trace()
     chat_completion = client.chat.completions.create(
         messages=[

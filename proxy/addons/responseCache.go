@@ -154,9 +154,9 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 	}
 
 	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+	defer c.wg.Done()
 	go func() {
 		logger.Debug("Response cache storage starting...")
-		defer c.wg.Done()
 		<-f.Done()
 
 		// Only cache good response codes

@@ -172,143 +172,12 @@ func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMo
 	}, nil
 }
 
-func BenchmarkProxySimpleMemory(b *testing.B) {
-	// create a proxy with a test config
-	proxyPort, err := getFreePort(b)
-	require.NoError(b, err)
-	tmpDir := b.TempDir()
-	proxyShutdown, err := runProxy(b, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineMemory)
-	require.NoError(b, err)
-
-	// Start a basic web server on another port
-	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort(b)
-	require.NoError(b, err)
-	srv, srvShutdown := runWebServer(b, hitCounter, testServerPort)
-	require.NotNil(b, srv)
-	require.NotNil(b, srvShutdown)
-
-	// Create an http client that will use the proxy to connect to the web server
-	client, err := httpClient(b, "http://"+proxyPort)
-	require.NoError(b, err)
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		hitCounter.Store(0) // reset the counter
-		// make a request using that client, through the proxy
-		b.StartTimer()
-		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
-		b.StopTimer()
-		require.NoError(b, err)
-		require.Equal(b, 200, resp.StatusCode)
-	}
-	b.Cleanup(func() {
-		srvShutdown()
-		proxyShutdown()
-	})
-}
-
-func BenchmarkProxySimpleBolt(b *testing.B) {
-	// create a proxy with a test config
-	proxyPort, err := getFreePort(b)
-	require.NoError(b, err)
-	tmpDir := b.TempDir()
-	proxyShutdown, err := runProxy(b, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineBolt)
-	require.NoError(b, err)
-
-	// Start a basic web server on another port
-	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort(b)
-	require.NoError(b, err)
-	srv, srvShutdown := runWebServer(b, hitCounter, testServerPort)
-	require.NotNil(b, srv)
-	require.NotNil(b, srvShutdown)
-
-	// Create an http client that will use the proxy to connect to the web server
-	client, err := httpClient(b, "http://"+proxyPort)
-	require.NoError(b, err)
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		hitCounter.Store(0) // reset the counter
-		// make a request using that client, through the proxy
-		b.StartTimer()
-		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
-		b.StopTimer()
-		require.NoError(b, err)
-		require.Equal(b, 200, resp.StatusCode)
-	}
-	b.Cleanup(func() {
-		srvShutdown()
-		proxyShutdown()
-	})
-}
-
-func TestProxySimpleMemoryEngine(t *testing.T) {
+func TestProxySimple(t *testing.T) {
 	// create a proxy with a test config
 	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineMemory)
-	require.NoError(t, err)
-
-	// Start a basic web server on another port
-	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort(t)
-	require.NoError(t, err)
-	srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
-	require.NotNil(t, srv)
-	require.NotNil(t, srvShutdown)
-
-	// Create an http client that will use the proxy to connect to the web server
-	client, err := httpClient(t, "http://"+proxyPort)
-	require.NoError(t, err)
-
-	t.Run("TestSimpleProxy", func(t *testing.T) {
-		hitCounter.Store(0) // reset the counter
-		// make a request using that client, through the proxy
-		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
-		require.NoError(t, err)
-		assert.Equal(t, 200, resp.StatusCode)
-
-		expectedResponse := respBuilder(t, 1, strings.NewReader("hello"))
-
-		// check the response body from req1
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		assert.Equal(t, expectedResponse, body)
-		assert.Equal(t, int32(1), hitCounter.Load())
-	})
-
-	t.Run("TestSimpleProxy2", func(t *testing.T) {
-		hitCounter.Store(5) // reset the counter
-		// make another request using that client, through the proxy
-		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader("hello"))
-		require.NoError(t, err)
-		assert.Equal(t, 200, resp.StatusCode)
-
-		expectedResponse := respBuilder(t, 6, strings.NewReader("hello"))
-
-		// check the response body from req2
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		assert.Equal(t, expectedResponse, body)
-		assert.Equal(t, int32(6), hitCounter.Load())
-	})
-
-	// done with tests, send shutdown signals
-	t.Cleanup(func() {
-		srvShutdown()
-		proxyShutdown()
-	})
-}
-
-func TestProxySimpleBoltEngine(t *testing.T) {
-	// create a proxy with a test config
-	proxyPort, err := getFreePort(t)
-	require.NoError(t, err)
-	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineBolt)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, 0)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
@@ -369,7 +238,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	proxyPort, err := getFreePort(t)
 	require.NoError(t, err)
 	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, config.CacheEngineMemory)
+	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.ProxyRunMode, 0)
 	require.NoError(t, err)
 
 	// Start a basic web server on another port
@@ -507,143 +376,147 @@ func TestProxyDirLoggerMode(t *testing.T) {
 }
 
 func TestProxyCache(t *testing.T) {
-	// create a proxy with a test config
-	proxyPort, err := getFreePort(t)
-	require.NoError(t, err)
-	tmpDir := t.TempDir()
-	proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.CacheMode, config.CacheEngineMemory)
-	require.NoError(t, err)
+	for _, engine := range []config.CacheEngine{config.CacheEngineMemory, config.CacheEngineBolt} {
+		t.Run(engine.String(), func(t *testing.T) {
+			// create a proxy with a test config
+			proxyPort, err := getFreePort(t)
+			require.NoError(t, err)
+			tmpDir := t.TempDir()
+			proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.CacheMode, engine)
+			require.NoError(t, err)
 
-	// Start a basic web server on another port
-	hitCounter := new(atomic.Int32)
-	testServerPort, err := getFreePort(t)
-	require.NoError(t, err)
-	srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
-	require.NotNil(t, srv)
-	require.NotNil(t, srvShutdown)
+			// Start a basic web server on another port
+			hitCounter := new(atomic.Int32)
+			testServerPort, err := getFreePort(t)
+			require.NoError(t, err)
+			srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
+			require.NotNil(t, srv)
+			require.NotNil(t, srvShutdown)
 
-	// Create a client that will use the proxy
-	client, err := httpClient(t, "http://"+proxyPort)
-	require.NoError(t, err)
+			// Create a client that will use the proxy
+			client, err := httpClient(t, "http://"+proxyPort)
+			require.NoError(t, err)
 
-	t.Run("TestCacheMiss", func(t *testing.T) {
-		hitCounter.Store(0) // reset the counter
-		// make a request using the client, through the proxy
-		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
+			t.Run("Miss", func(t *testing.T) {
+				hitCounter.Store(0) // reset the counter
+				// make a request using the client, through the proxy
+				resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		// check the response body from this request
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
+				// check the response body from this request
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
 
-		expectedResponse := respBuilder(t, 1, strings.NewReader(t.Name()))
+				expectedResponse := respBuilder(t, 1, strings.NewReader(t.Name()))
 
-		assert.Equal(t, expectedResponse, body)
-		assert.Equal(t, int32(1), hitCounter.Load())
-		assert.Equal(t, addons.CacheStatusMiss, resp.Header.Get(addons.CacheStatusHeader))
-	})
+				assert.Equal(t, expectedResponse, body)
+				assert.Equal(t, int32(1), hitCounter.Load())
+				assert.Equal(t, addons.CacheStatusMiss, resp.Header.Get(addons.CacheStatusHeader))
+			})
 
-	t.Run("TestCacheHit", func(t *testing.T) {
-		hitCounter.Store(0) // reset the counter
+			t.Run("Hit", func(t *testing.T) {
+				hitCounter.Store(0) // reset the counter
 
-		// make a request using the client, through the proxy
-		resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
+				// make a request using the client, through the proxy
+				resp, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		// check the response body from this request, should be a miss
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
+				// check the response body from this request, should be a miss
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
 
-		expectedResponse := respBuilder(t, 1, strings.NewReader(t.Name()))
+				expectedResponse := respBuilder(t, 1, strings.NewReader(t.Name()))
 
-		assert.Equal(t, expectedResponse, body)
-		assert.Equal(t, int32(1), hitCounter.Load())
-		assert.Equal(t, addons.CacheStatusMiss, resp.Header.Get(addons.CacheStatusHeader))
+				assert.Equal(t, expectedResponse, body)
+				assert.Equal(t, int32(1), hitCounter.Load())
+				assert.Equal(t, addons.CacheStatusMiss, resp.Header.Get(addons.CacheStatusHeader))
 
-		// wait for the cache to be written, waiting for a file event is not reliable here
-		time.Sleep(defaultSleepTime)
+				// wait for the cache to be written, waiting for a file event is not reliable here
+				time.Sleep(defaultSleepTime)
 
-		// now, this should be a cache hit...
-		// make another request using the client, through the proxy
-		resp, err = client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
-		require.NoError(t, err)
-		assert.Equal(t, 200, resp.StatusCode)
+				// now, this should be a cache hit...
+				// make another request using the client, through the proxy
+				resp, err = client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
+				require.NoError(t, err)
+				assert.Equal(t, 200, resp.StatusCode)
 
-		// check the response body from this request
-		// (should be the cached response with value=1, not the incremented value)
-		body, err = io.ReadAll(resp.Body)
-		require.NoError(t, err)
+				// check the response body from this request
+				// (should be the cached response with value=1, not the incremented value)
+				body, err = io.ReadAll(resp.Body)
+				require.NoError(t, err)
 
-		expectedResponse = respBuilder(t, 1, strings.NewReader(t.Name()))
+				expectedResponse = respBuilder(t, 1, strings.NewReader(t.Name()))
 
-		assert.Equal(t, expectedResponse, body)
-		assert.Equal(t, int32(1), hitCounter.Load()) // the counter should not be 6, because we got a cache hit
-		assert.Equal(t, addons.CacheStatusHit, resp.Header.Get(addons.CacheStatusHeader))
-	})
+				assert.Equal(t, expectedResponse, body)
+				assert.Equal(t, int32(1), hitCounter.Load()) // the counter should not be 6, because we got a cache hit
+				assert.Equal(t, addons.CacheStatusHit, resp.Header.Get(addons.CacheStatusHeader))
+			})
 
-	t.Run("TestCacheHitNoGzip", func(t *testing.T) {
-		// Make a request with gzip, then make a second request without gzip
-		hitCounter.Store(0) // reset the counter to align with results from the previous test
-		require.Equal(t, int32(0), hitCounter.Load())
+			t.Run("HitNoGzip", func(t *testing.T) {
+				// Make a request with gzip, then make a second request without gzip
+				hitCounter.Store(0) // reset the counter to align with results from the previous test
+				require.Equal(t, int32(0), hitCounter.Load())
 
-		// create the test request
-		req1, err := http.NewRequest("POST", "http://"+testServerPort, strings.NewReader(t.Name()))
-		require.NoError(t, err)
+				// create the test request
+				req1, err := http.NewRequest("POST", "http://"+testServerPort, strings.NewReader(t.Name()))
+				require.NoError(t, err)
 
-		// manually set the headers to simulate a request asking for a gzip response from upstream
-		req1.Header.Set("Content-Type", "text/plain")
-		req1.Header.Set("Accept-Encoding", "gzip")
+				// manually set the headers to simulate a request asking for a gzip response from upstream
+				req1.Header.Set("Content-Type", "text/plain")
+				req1.Header.Set("Accept-Encoding", "gzip")
 
-		resp1, err := client.Do(req1)
-		require.NoError(t, err)
-		require.Equal(t, http.StatusOK, resp1.StatusCode)
-		assert.Equal(t, "gzip", resp1.Header.Get("Content-Encoding"))
+				resp1, err := client.Do(req1)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusOK, resp1.StatusCode)
+				assert.Equal(t, "gzip", resp1.Header.Get("Content-Encoding"))
 
-		// check the response body from this request
-		body1, err := io.ReadAll(resp1.Body)
-		require.NoError(t, err)
+				// check the response body from this request
+				body1, err := io.ReadAll(resp1.Body)
+				require.NoError(t, err)
 
-		// decode the response, force gzip decoding because that's what we asked for!
-		decodedBody, err := utils.DecodeBody(body1, "gzip")
-		require.NoError(t, err)
+				// decode the response, force gzip decoding because that's what we asked for!
+				decodedBody, err := utils.DecodeBody(body1, "gzip")
+				require.NoError(t, err)
 
-		// check the response and counter state
-		expectedResponseBody := respBuilder(t, 1, strings.NewReader(t.Name()))
-		assert.Equal(t, expectedResponseBody, decodedBody)
-		assert.Equal(t, int32(1), hitCounter.Load())
-		assert.Equal(t, addons.CacheStatusMiss, resp1.Header.Get(addons.CacheStatusHeader))
+				// check the response and counter state
+				expectedResponseBody := respBuilder(t, 1, strings.NewReader(t.Name()))
+				assert.Equal(t, expectedResponseBody, decodedBody)
+				assert.Equal(t, int32(1), hitCounter.Load())
+				assert.Equal(t, addons.CacheStatusMiss, resp1.Header.Get(addons.CacheStatusHeader))
 
-		// wait for the cache to be written, waiting for a file event is not reliable here
-		time.Sleep(defaultSleepTime)
+				// wait for the cache to be written, waiting for a file event is not reliable here
+				time.Sleep(defaultSleepTime)
 
-		// send another request without gzip, check that it's a cache hit (no gzip)
-		client.Transport.(*http.Transport).DisableCompression = false
-		resp2, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
-		require.NoError(t, err)
-		assert.Equal(t, http.StatusOK, resp2.StatusCode)
-		assert.NotEqual(t, "gzip", resp2.Header.Get("Content-Encoding"))
-		assert.Equal(t, "", resp2.Header.Get("Content-Encoding"))
+				// send another request without gzip, check that it's a cache hit (no gzip)
+				client.Transport.(*http.Transport).DisableCompression = false
+				resp2, err := client.Post("http://"+testServerPort, "text/plain", strings.NewReader(t.Name()))
+				require.NoError(t, err)
+				assert.Equal(t, http.StatusOK, resp2.StatusCode)
+				assert.NotEqual(t, "gzip", resp2.Header.Get("Content-Encoding"))
+				assert.Equal(t, "", resp2.Header.Get("Content-Encoding"))
 
-		// check the response body from this request
-		body2, err := io.ReadAll(resp2.Body)
-		require.NoError(t, err)
-		expectedResponseBody = respBuilder(t, 1, strings.NewReader(t.Name()))
+				// check the response body from this request
+				body2, err := io.ReadAll(resp2.Body)
+				require.NoError(t, err)
+				expectedResponseBody = respBuilder(t, 1, strings.NewReader(t.Name()))
 
-		// no decoding for this body check, because it should be plain-text (no gzip)
-		assert.Equal(t, expectedResponseBody, body2)
-		assert.Equal(t, int32(1), hitCounter.Load(), "test server hit counter hasn't incremented, bc cache hit")
-		assert.Equal(t, addons.CacheStatusHit, resp2.Header.Get(addons.CacheStatusHeader))
+				// no decoding for this body check, because it should be plain-text (no gzip)
+				assert.Equal(t, expectedResponseBody, body2)
+				assert.Equal(t, int32(1), hitCounter.Load(), "test server hit counter hasn't incremented, bc cache hit")
+				assert.Equal(t, addons.CacheStatusHit, resp2.Header.Get(addons.CacheStatusHeader))
 
-		require.Equal(t, decodedBody, body2, "body1 and body2 are equal, because 1 is live and the 2 is from cache")
-	})
+				require.Equal(t, decodedBody, body2, "body1 and body2 are equal, because 1 is live and the 2 is from cache")
+			})
 
-	// done with tests, send shutdown signals
-	t.Cleanup(func() {
-		srvShutdown()
-		proxyShutdown()
-	})
+			// done with this test run, send shutdown signals
+			t.Cleanup(func() {
+				srvShutdown()
+				proxyShutdown()
+			})
+		})
+	}
 }
 
 // Testing imperative code is tough

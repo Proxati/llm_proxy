@@ -61,8 +61,11 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 		f.Response = &px.Response{
 			StatusCode: http.StatusServiceUnavailable,
 			Body:       []byte("LLM_Proxy is not available"),
+			Header: http.Header{
+				"Content-Type":    {"text/plain"},
+				CacheStatusHeader: {CacheStatusSkip},
+			},
 		}
-		f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
 		return
 	}
 

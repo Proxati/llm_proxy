@@ -65,16 +65,21 @@ type headerIndex map[string]any
 // requests to upstream.
 type HeaderFilterGroup struct {
 	Headers           []string    // user-editable list of headers to filter
-	persistentHeaders []string    // headers that are always filtered
+	additionalHeaders []string    // headers that are always filtered, not user editable
 	index             headerIndex // map of headers to filter
 	name              string      // human-readable name of this filter group
 }
 
 // NewHeaderFilterGroup creates a new HeaderFilterGroup
-func NewHeaderFilterGroup(name string, headers, persistentHeaders []string) *HeaderFilterGroup {
+func NewHeaderFilterGroup(name string, userHeaders []string, extraHeaders ...[]string) *HeaderFilterGroup {
+	var mergedHeaders []string
+	for _, headers := range extraHeaders {
+		mergedHeaders = append(mergedHeaders, headers...)
+	}
+
 	hfg := &HeaderFilterGroup{
-		Headers:           append([]string{}, headers...), // shallow copy the slice
-		persistentHeaders: persistentHeaders,
+		Headers:           append([]string{}, userHeaders...), // shallow copy the slice
+		additionalHeaders: mergedHeaders,
 		name:              name,
 	}
 	hfg.buildIndex()
@@ -90,7 +95,7 @@ func (hfg *HeaderFilterGroup) buildIndex() {
 	for _, header := range hfg.Headers {
 		index[header] = nil
 	}
-	for _, header := range hfg.persistentHeaders {
+	for _, header := range hfg.additionalHeaders {
 		index[header] = nil
 	}
 	hfg.index = index

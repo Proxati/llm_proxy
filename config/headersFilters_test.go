@@ -9,13 +9,18 @@ import (
 
 func TestHeaderFilterGroup(t *testing.T) {
 	t.Parallel()
-	headers := []string{"Foo", "Bar"}
 	userHeaders := []string{"User-Agent", "Accept"}
-	hfg := NewHeaderFilterGroup(t.Name(), userHeaders, headers)
+	extraHeaders1 := []string{"Foo"}
+	extraHeaders2 := []string{"Bar"}
+	hfg := NewHeaderFilterGroup(t.Name(), userHeaders, extraHeaders1, extraHeaders2)
 
 	// Check initialization
-	assert.Equal(t, headers, hfg.persistentHeaders, "persistentHeaders should be initialized correctly")
-	assert.Equal(t, userHeaders, hfg.Headers, "Headers should be initialized correctly")
+	assert.Equal(
+		t, append(extraHeaders1, extraHeaders2...),
+		hfg.additionalHeaders,
+		"additionalHeaders should be initialized correctly",
+	)
+	assert.Equal(t, userHeaders, hfg.Headers, "userHeaders should be initialized correctly")
 	assert.NotNil(t, hfg.index, "Index should be initialized")
 
 	// Check IsHeaderInGroup method
@@ -42,8 +47,8 @@ func TestHeaderFilterGroup(t *testing.T) {
 	assert.NotContains(t, filteredHeaders, "Cookie", "filtered from the variadic arguments")
 	assert.NotContains(t, filteredHeaders, "User-Agent", "filtered from the userHeaders")
 	assert.NotContains(t, filteredHeaders, "Accept", "filtered from the userHeaders")
-	assert.NotContains(t, filteredHeaders, "Foo", "filtered from the persistentHeaders")
-	assert.NotContains(t, filteredHeaders, "Bar", "filtered from the persistentHeaders")
+	assert.NotContains(t, filteredHeaders, "Foo", "filtered from the additionalHeaders")
+	assert.NotContains(t, filteredHeaders, "Bar", "filtered from the additionalHeaders")
 	assert.Contains(t, filteredHeaders, "Faz", "Faz header should not be filtered out")
 
 	// Test filtering without additional headers
@@ -52,8 +57,8 @@ func TestHeaderFilterGroup(t *testing.T) {
 	assert.Contains(t, filteredHeaders, "Cookie", "Cookie should not be filtered out")
 	assert.NotContains(t, filteredHeaders, "User-Agent", "filtered from the userHeaders")
 	assert.NotContains(t, filteredHeaders, "Accept", "filtered from the userHeaders")
-	assert.NotContains(t, filteredHeaders, "Foo", "filtered from the persistentHeaders")
-	assert.NotContains(t, filteredHeaders, "Bar", "filtered from the persistentHeaders")
+	assert.NotContains(t, filteredHeaders, "Foo", "filtered from the additionalHeaders")
+	assert.NotContains(t, filteredHeaders, "Bar", "filtered from the additionalHeaders")
 	assert.Contains(t, filteredHeaders, "Faz", "Faz header should not be filtered out")
 }
 
@@ -95,5 +100,4 @@ func TestEmptyFull(t *testing.T) {
 
 	assert.NotNil(t, hfc.ResponseToClient.index, "ResponseToClient index should be initialized")
 	assert.Empty(t, hfc.ResponseToClient.index, "ResponseToClient index should be empty")
-
 }

@@ -34,7 +34,7 @@ const (
 	outputSubdir     = "output"
 	certSubdir       = "certs"
 	cacheSubdir      = "cache"
-	debugOutput      = true
+	debugOutput      = false
 )
 
 // randomly finds an available port to bind to

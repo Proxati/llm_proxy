@@ -16,7 +16,7 @@ func (a *StdOutLogger) ClientConnected(client *px.ClientConn) {
 	a.logger.Debug(
 		"client connect",
 		"clientAddress", client.Conn.RemoteAddr(),
-		"ID", client.ID,
+		"client.ID", client.ID,
 	)
 }
 
@@ -24,7 +24,7 @@ func (a *StdOutLogger) ClientDisconnected(client *px.ClientConn) {
 	a.logger.Debug(
 		"client disconnect",
 		"clientAddress", client.Conn.RemoteAddr(),
-		"ID", client.ID,
+		"client.ID", client.ID,
 	)
 }
 
@@ -34,7 +34,7 @@ func (a *StdOutLogger) ServerConnected(connCtx *px.ConnContext) {
 		"serverAddress", connCtx.ServerConn.Address,
 		"localAddress", connCtx.ServerConn.Conn.LocalAddr(),
 		"remoteAddress", connCtx.ServerConn.Conn.RemoteAddr(),
-		"ID", connCtx.ID(),
+		"client.ID", connCtx.ID(),
 	)
 }
 
@@ -44,7 +44,7 @@ func (a *StdOutLogger) ServerDisconnected(connCtx *px.ConnContext) {
 		"serverAddress", connCtx.ServerConn.Address,
 		"localAddress", connCtx.ServerConn.Conn.LocalAddr(),
 		"remoteAddress", connCtx.ServerConn.Conn.RemoteAddr(),
-		"ID", connCtx.ID(),
+		"client.ID", connCtx.ID(),
 	)
 }
 

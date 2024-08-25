@@ -37,7 +37,8 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 	id := f.Id.String()
 	logger := d.logger.With(
 		"URL", f.Request.URL,
-		"ID", id,
+		"proxy.ID", id,
+		"client.ID", f.ConnContext.ID(),
 	)
 
 	if d.closed.Load() {

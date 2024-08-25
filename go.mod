@@ -15,7 +15,7 @@ require (
 	github.com/sashabaranov/go-openai v1.29.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
-	go.etcd.io/bbolt v1.3.10
+	go.etcd.io/bbolt v1.3.11
 	go.uber.org/goleak v1.3.0
 	golang.org/x/crypto v0.26.0
 )

@@ -242,7 +242,7 @@ func (d *ResponseCacheAddon) String() string {
 
 func (d *ResponseCacheAddon) Close() error {
 	if !d.closed.Swap(true) {
-		d.logger.Debug("Closing ResponseCacheAddon")
+		d.logger.Debug("Closing...")
 		err := d.cache.Close()
 		if err != nil {
 			d.logger.Error("error closing cacheDB", "error", err)

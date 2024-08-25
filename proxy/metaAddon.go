@@ -41,6 +41,7 @@ func (addon *metaAddon) Close() error {
 		if err := a.Close(); err != nil {
 			sLogger.Error("could not close the addon", "error", err)
 		}
+		sLogger.Debug("Closed addon", "addonName", a.String())
 	}
 
 	return nil

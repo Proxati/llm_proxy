@@ -57,7 +57,7 @@ func (m *MemoryStorage) SetBytes(_ string, key key.Key, value []byte) error {
 // Close closes the database
 func (m *MemoryStorage) Close() error {
 	m.cache = nil
-	m.logger.Debug("closed")
+	m.logger.Debug("Closed")
 	return nil
 }
 

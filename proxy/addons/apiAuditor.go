@@ -85,7 +85,7 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 
 func (aud *APIAuditorAddon) Close() error {
 	if !aud.closed.Swap(true) {
-		aud.logger.Debug("Waiting for APIAuditor shutdown...")
+		aud.logger.Debug("Closing...")
 		aud.wg.Wait()
 	}
 

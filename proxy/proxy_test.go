@@ -715,8 +715,8 @@ func TestConfigProxy(t *testing.T) {
 		metaAddon := p.Addons[0].(*metaAddon)
 		assert.Equal(t, cfg, metaAddon.cfg)
 
-		// Assert that the MetaAddon has only one addon
-		assert.Equal(t, 1, len(metaAddon.mitmAddons))
+		// Assert that the MetaAddon has two addons (the traffic logger, and the ID header addon)
+		assert.Equal(t, 2, len(metaAddon.mitmAddons))
 	})
 
 	t.Run("TestConfigProxy verbose mode", func(t *testing.T) {
@@ -745,8 +745,8 @@ func TestConfigProxy(t *testing.T) {
 		metaAddon := p.Addons[0].(*metaAddon)
 		assert.Equal(t, cfg, metaAddon.cfg)
 
-		// Assert that the MetaAddon has two addons (the traffic logger, stdout logger, and the base addon)
-		assert.Equal(t, 3, len(metaAddon.mitmAddons))
+		// Assert that the MetaAddon has two addons (the traffic logger, stdout logger, the ID header addon, and the base addon)
+		assert.Equal(t, 4, len(metaAddon.mitmAddons))
 	})
 
 	t.Run("TestConfigProxy output mode", func(t *testing.T) {
@@ -775,7 +775,7 @@ func TestConfigProxy(t *testing.T) {
 		metaAddon := p.Addons[0].(*metaAddon)
 		assert.Equal(t, cfg, metaAddon.cfg)
 
-		// Assert that the MetaAddon has two addons, the logger and the base addon
-		assert.Equal(t, 2, len(metaAddon.mitmAddons))
+		// Assert that the MetaAddon has two addons, the logger, the ID header addon, and the base addon
+		assert.Equal(t, 3, len(metaAddon.mitmAddons))
 	})
 }

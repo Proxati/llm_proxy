@@ -121,6 +121,9 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(dumperAddon)
 	}
 
+	// Always add the request ID to the response headers
+	metaAdd.addAddon(addons.NewAddIDToHeaders())
+
 	sLogger.Debug("http to https upgrade", "enabled", !cfg.HttpBehavior.NoHttpUpgrader)
 	// upgrade the request _after_ it's logged
 	if !cfg.HttpBehavior.NoHttpUpgrader {

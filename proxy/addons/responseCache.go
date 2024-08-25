@@ -66,8 +66,19 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 		return
 	}
 
-	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+	// wg incremented after the closed check, otherwise close may wait forever as new requests pile up
+	c.wg.Add(1)
 	defer c.wg.Done()
+
+	// check if the request has a no-cache or no-store header, bypass the cache lookup if true
+	cacheControlHeader := strings.ToLower(f.Request.Header.Get("Cache-Control"))
+	for _, header := range []string{"no-cache", "no-store"} {
+		if cacheControlHeader == header {
+			logger.Debug("skipping cache lookup for request with Cache-Control header", "header", header)
+			f.Request.Header.Set(CacheStatusHeader, CacheStatusSkip) // hack to store the cache status in the request
+			return
+		}
+	}
 
 	if f.Request.URL == nil || f.Request.URL.String() == "" {
 		logger.Error("request URL is nil or empty")
@@ -81,6 +92,7 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// Only cache these request methods (and empty string for GET)
 	if _, ok := cacheOnlyMethods[f.Request.Method]; !ok {
 		logger.Debug("skipping cache lookup for unsupported method", "method", f.Request.Method)
+		f.Request.Header.Set(CacheStatusHeader, CacheStatusSkip) // hack to store the cache status state in the request
 		return
 	}
 
@@ -128,44 +140,61 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 }
 
 func (c *ResponseCacheAddon) Response(f *px.Flow) {
+	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+
+	if f.Response == nil {
+		// if the response is nil, don't even try to cache it, not sure why
+		// this would happen, but it's better to have the NPE defense.
+		c.logger.Warn(
+			"skipping cache storage for nil response",
+			"URL", f.Request.URL,
+			"ID", f.Id.String(),
+		)
+		c.wg.Done()
+		return
+	}
+
 	logger := c.logger.With(
 		"URL", f.Request.URL,
 		"StatusCode", f.Response.StatusCode,
 		"ID", f.Id.String(),
 	)
 
-	// if the response is nil, don't even try to cache it
-	if f.Response == nil {
-		logger.Debug("skipping cache storage for nil response")
-		return
+	// Get the request header for CacheStatusHeader and set the response header to whatever it's set to
+	if f.Request != nil {
+		cacheStatus := f.Request.Header.Get(CacheStatusHeader)
+		if cacheStatus != "" {
+			// Set the response header to the same value as the request header
+			if f.Response != nil {
+				f.Response.Header.Set(CacheStatusHeader, cacheStatus)
+			}
+			if cacheStatus == CacheStatusSkip {
+				logger.Debug("skipping cache storage for request with CacheStatusHeader set to SKIP")
+				c.wg.Done()
+				return
+			}
+		}
 	}
 
-	// add a header to the response to indicate it was a cache miss
-	if f.Request != nil && f.Request.Header.Get(CacheStatusHeader) == CacheStatusMiss {
-		// abusing the request header as a context storage for the cache miss
-		if f.Response != nil {
-			f.Response.Header.Set(CacheStatusHeader, CacheStatusMiss)
-		}
+	// Only cache good response codes
+	_, shouldCache := cacheOnlyResponseCodes[f.Response.StatusCode]
+	if !shouldCache {
+		f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
+		logger.Debug("skipping cache storage for non-200 response")
+		c.wg.Done()
+		return
 	}
 
 	if c.closed.Load() {
 		logger.Warn("ResponseCacheAddon is being closed, not storing response in cache")
+		c.wg.Done()
 		return
 	}
 
-	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	go func() {
 		logger.Debug("Response cache storage starting...")
-		defer c.wg.Done()
-		<-f.Done()
-
-		// Only cache good response codes
-		_, shouldCache := cacheOnlyResponseCodes[f.Response.StatusCode]
-		if !shouldCache {
-			f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
-			logger.Debug("skipping cache storage for non-200 response")
-			return
-		}
+		defer c.wg.Done() // .Done() must be inside the goroutine, so that .Close() waits for the storage to finish
+		<-f.Done()        // block until the response from upstream is fully read into proxy memory, and other addons have run
 
 		// convert the request to an internal TrafficObject
 		reqAdapter := mitm.NewProxyRequestAdapter(f.Request) // generic wrapper for the mitm request
@@ -178,7 +207,6 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 
 		// remove the Accept-Encoding header to avoid storing this in the cache
 		originalAcceptEncoding := tObjReq.Header.Get("Accept-Encoding")
-		logger.Debug("removing Accept-Encoding header from request", "Accept-Encoding", originalAcceptEncoding)
 
 		// convert the response to an internal TrafficObject
 		respAdapter := mitm.NewProxyResponseAdapter(f.Response) // generic wrapper for the mitm response
@@ -191,12 +219,17 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		// remove the Content-Encoding header to avoid storing this in the cache
 		tObjResp.Header.Del("Content-Encoding")
 		tObjResp.Header.Del("Content-Length")
+		logger.Debug(
+			"removed header from request before storing in cache",
+			"Accept-Encoding", originalAcceptEncoding,
+		)
 
 		// store the response in the cache
 		if err := c.cache.Put(tObjReq, tObjResp); err != nil {
 			logger.Error("could not store response in cache", "error", err)
 		}
 
+		logger.Debug("Response cache storage complete")
 	}()
 }
 

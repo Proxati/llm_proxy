@@ -30,11 +30,11 @@ import (
 
 const (
 	// ugly hack to wait for background async
-	defaultSleepTime = 500 * time.Millisecond
+	defaultSleepTime = 100 * time.Millisecond
 	outputSubdir     = "output"
 	certSubdir       = "certs"
 	cacheSubdir      = "cache"
-	debugOutput      = false
+	debugOutput      = true
 )
 
 // randomly finds an available port to bind to
@@ -122,7 +122,13 @@ func runWebServer(t testing.TB, hitCounter *atomic.Int32, listenAddr string) (*h
 	}
 }
 
-func runProxy(t testing.TB, proxyPort, tempDir string, proxyAppMode config.AppMode, cacheEngine config.CacheEngine, addons ...px.Addon) (shutdownFunc func(), err error) {
+func runProxy(
+	t testing.TB,
+	proxyPort, tempDir string,
+	proxyAppMode config.AppMode,
+	cacheEngine config.CacheEngine,
+	addons ...px.Addon,
+) (shutdownFunc func(), err error) {
 	t.Helper()
 	// Create a simple proxy config
 	cfg := config.NewDefaultConfig()
@@ -226,6 +232,7 @@ func TestProxySimple(t *testing.T) {
 
 	// done with tests, send shutdown signals
 	t.Cleanup(func() {
+		hitCounter.Store(0)
 		srvShutdown()
 		proxyShutdown()
 	})
@@ -370,6 +377,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 
 	// done with tests, send shutdown signals
 	t.Cleanup(func() {
+		hitCounter.Store(0)
 		srvShutdown()
 		proxyShutdown()
 	})
@@ -378,6 +386,8 @@ func TestProxyDirLoggerMode(t *testing.T) {
 func TestProxyCache(t *testing.T) {
 	for _, engine := range []config.CacheEngine{config.CacheEngineMemory, config.CacheEngineBolt} {
 		t.Run(engine.String(), func(t *testing.T) {
+			logger := slog.Default().With("cacheEngine", engine.String())
+
 			// create a proxy with a test config
 			proxyPort, err := getFreePort(t)
 			require.NoError(t, err)
@@ -512,10 +522,144 @@ func TestProxyCache(t *testing.T) {
 
 			// done with this test run, send shutdown signals
 			t.Cleanup(func() {
+				logger.Info("Cleaning up")
 				srvShutdown()
 				proxyShutdown()
 			})
 		})
+	}
+}
+
+func TestCacheControlHeaders(t *testing.T) {
+	for _, engine := range []config.CacheEngine{config.CacheEngineMemory, config.CacheEngineBolt} {
+		for _, testHeaderValue := range []string{"no-store", "no-cache"} {
+			testName := fmt.Sprintf("%s_%s", engine, testHeaderValue)
+			logger := slog.Default().With("testName", testName)
+
+			t.Run(testName, func(t *testing.T) {
+				logger.Info("Starting test")
+
+				// create a proxy with a test config
+				proxyPort, err := getFreePort(t)
+				require.NoError(t, err)
+				tmpDir := t.TempDir()
+				proxyShutdown, err := runProxy(t, proxyPort, tmpDir, config.CacheMode, engine)
+				require.NoError(t, err)
+
+				// Start a basic web server on another port
+				hitCounter := new(atomic.Int32)
+				testServerPort, err := getFreePort(t)
+				require.NoError(t, err)
+				srv, srvShutdown := runWebServer(t, hitCounter, testServerPort)
+				require.NotNil(t, srv)
+				require.NotNil(t, srvShutdown)
+
+				// Create a client that will use the proxy
+				client, err := httpClient(t, "http://"+proxyPort)
+				require.NoError(t, err)
+
+				// start tests
+				hitCounter.Store(0) // reset the counter
+
+				logger.Debug("Starting First Request")
+				// First request with "Cache-Control: no-store" header
+				req, err := http.NewRequest("POST", "http://"+testServerPort, strings.NewReader("hello"))
+				require.NoError(t, err)
+				req.Header.Set("Cache-Control", testHeaderValue)
+
+				// Make the first request using the client
+				resp, err := client.Do(req)
+				require.NoError(t, err)
+				require.Equal(t, 200, resp.StatusCode)
+
+				expectedResponse := respBuilder(t, 1, strings.NewReader("hello"))
+
+				// check the response body
+				body, err := io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				require.NoError(t, resp.Body.Close())
+
+				assert.Equal(t, expectedResponse, body)
+				require.Equal(t, int32(1), hitCounter.Load(), "first request, fresh response expected")
+
+				logger.Debug("Starting Second Request")
+				time.Sleep(defaultSleepTime)
+				// Create the second request without "Cache-Control" header
+				req, err = http.NewRequest("POST", "http://"+testServerPort, strings.NewReader("hello"))
+				require.NoError(t, err)
+
+				// Make the second request using the client
+				resp, err = client.Do(req)
+				require.NoError(t, err)
+				require.Equal(t, 200, resp.StatusCode)
+
+				expectedResponse = respBuilder(t, 2, strings.NewReader("hello"))
+
+				// check the second response body
+				body, err = io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				require.NoError(t, resp.Body.Close())
+
+				assert.Equal(t, expectedResponse, body)
+
+				// The counter should be incremented to 2, indicating the first response was not cached
+				require.Equal(t, int32(2), hitCounter.Load(), "second request, cache miss")
+
+				logger.Debug("Starting Third Request")
+				time.Sleep(defaultSleepTime)
+				// Third request should be a cache hit, because the second response was cached
+				req, err = http.NewRequest("POST", "http://"+testServerPort, strings.NewReader("hello"))
+				require.NoError(t, err)
+
+				// Make the third request using the client
+				resp, err = client.Do(req)
+				require.NoError(t, err)
+				require.Equal(t, 200, resp.StatusCode)
+
+				expectedResponse = respBuilder(t, 2, strings.NewReader("hello"))
+
+				// check the third response body
+				body, err = io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				require.NoError(t, resp.Body.Close())
+
+				assert.Equal(t, expectedResponse, body)
+
+				// The counter should not have incremented, because the response was cached
+				require.Equal(t, int32(2), hitCounter.Load(), "third request, cache hit")
+
+				logger.Debug("Starting Fourth Request")
+				time.Sleep(defaultSleepTime)
+				// Fourth request with "Cache-Control: no-store" header
+				req, err = http.NewRequest("POST", "http://"+testServerPort, strings.NewReader("hello"))
+				require.NoError(t, err)
+				req.Header.Set("Cache-Control", testHeaderValue)
+
+				// Make the fourth request using the client
+				resp, err = client.Do(req)
+				require.NoError(t, err)
+				require.Equal(t, 200, resp.StatusCode)
+
+				expectedResponse = respBuilder(t, 3, strings.NewReader("hello"))
+
+				// check the fourth response body
+				body, err = io.ReadAll(resp.Body)
+				require.NoError(t, err)
+				require.NoError(t, resp.Body.Close())
+
+				assert.Equal(t, expectedResponse, body)
+
+				// The counter should be incremented to 3, indicating the fourth response was not from the cache
+				require.Equal(t, int32(3), hitCounter.Load(), "fourth request,fresh response expected")
+
+				t.Cleanup(func() {
+					logger.Info("Cleaning up")
+					srvShutdown()
+					proxyShutdown()
+				})
+			})
+
+		}
 	}
 }
 

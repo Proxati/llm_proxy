@@ -30,7 +30,7 @@ import (
 
 const (
 	// ugly hack to wait for background async
-	defaultSleepTime = 200 * time.Millisecond
+	defaultSleepTime = 300 * time.Millisecond
 	outputSubdir     = "output"
 	certSubdir       = "certs"
 	cacheSubdir      = "cache"

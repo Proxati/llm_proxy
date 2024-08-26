@@ -94,6 +94,9 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 		return nil, fmt.Errorf("failed to create proxy: %v", err)
 	}
 
+	// always validate the request and response objects
+	metaAdd.addAddon(addons.NewRequestAndResponseValidator(cfg.GetLogger()))
+
 	if cfg.IsVerboseOrHigher() {
 		// add the verbose logger to the proxy
 		metaAdd.addAddon(addons.NewStdOutLogger(cfg.GetLogger()))

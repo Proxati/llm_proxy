@@ -47,6 +47,7 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		start := time.Now()
 		<-f.Done() // block this goroutine until the entire flow is done
 		doneAt := time.Since(start).Milliseconds()
+		logger := configLoggerFieldsWithFlow(d.logger, f)
 
 		// save the other fields in the FlowAdapter
 		fa.SetFlow(f)
@@ -57,7 +58,7 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		// write the formatted log data to... somewhere
 		d.sendToLogDestinations(logger, f.Id.String(), dumpContainer)
 
-		configLoggerFieldsWithFlow(d.logger, f).Debug("Request completed")
+		logger.Debug("Request completed")
 	}()
 }
 

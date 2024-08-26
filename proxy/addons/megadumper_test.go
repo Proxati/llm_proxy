@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/proxati/llm_proxy/v2/config"
 	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
@@ -73,11 +72,6 @@ func TestMegaTrafficDumper_Requestheaders_ValidFlow(t *testing.T) {
 		flow := &px.Flow{
 			Request:  &px.Request{},
 			Response: &px.Response{},
-			ConnContext: &px.ConnContext{
-				ClientConn: &px.ClientConn{
-					ID: uuid.UUID{}, // ugly npe defense for mocked test flow
-				},
-			},
 		}
 
 		assert.NotPanics(t, func() {

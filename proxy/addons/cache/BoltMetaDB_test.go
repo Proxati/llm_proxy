@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"log/slog"
 	"net/http"
 	"net/url"
 	"testing"
@@ -17,7 +18,7 @@ import (
 func TestNewBoltMetaDB(t *testing.T) {
 	t.Run("valid db file", func(t *testing.T) {
 		dbFileDir := t.TempDir()
-		bMeta, err := NewBoltMetaDB(dbFileDir)
+		bMeta, err := NewBoltMetaDB(slog.Default(), dbFileDir)
 
 		require.NoError(t, err)
 		assert.Equal(t, dbFileDir, bMeta.dbFileDir)
@@ -32,7 +33,7 @@ func TestBoltMetaDB_PutAndGet(t *testing.T) {
 
 	t.Run("put and get a request and response", func(t *testing.T) {
 		dbFileDir := t.TempDir()
-		bMeta, err := NewBoltMetaDB(dbFileDir)
+		bMeta, err := NewBoltMetaDB(slog.Default(), dbFileDir)
 		require.NoError(t, err)
 		defer bMeta.Close()
 

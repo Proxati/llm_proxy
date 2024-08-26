@@ -18,21 +18,21 @@ import (
 	"github.com/proxati/llm_proxy/v2/version"
 )
 
-func newCA(certDir string) (*cert.CA, error) {
+func newCA(logger *slog.Logger, certDir string) (*cert.CA, error) {
 	if certDir == "" {
-		sLogger.Debug("No cert dir specified, defaulting to ~/.mitmproxy/")
+		logger.Debug("No cert dir specified, defaulting to ~/.mitmproxy/")
 	} else {
-		sLogger.Debug("Loading certs", "certDir", certDir)
+		logger.Debug("Loading certs", "certDir", certDir)
 	}
 
 	l, err := cert.NewPathLoader(certDir)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create or load certs from %v: %v", certDir, err)
+		return nil, fmt.Errorf("unable to create or load certs from %v: %w", certDir, err)
 	}
 
 	ca, err := cert.New(l)
 	if err != nil {
-		return nil, fmt.Errorf("problem with CA config: %v", err)
+		return nil, fmt.Errorf("problem with CA config: %w", err)
 	}
 
 	return ca, nil
@@ -44,8 +44,8 @@ func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, erro
 		Addr:                  listenOn,
 		InsecureSkipVerifyTLS: skipVerifyTLS,
 		CA:                    ca,
-		StreamLargeBodies:     1024 * 1024 * 100,                           // responses larger than 100MB will be streamed
-		Logger:                slog.Default().WithGroup("mitmproxy.proxy"), // don't use the logger from slog.go in this package!
+		StreamLargeBodies:     1024 * 1024 * 100,                     // responses larger than 100MB will be streamed
+		Logger:                slog.Default().WithGroup("mitmproxy"), // don't use the logger from slog.go in this package!
 	}
 
 	p, err := px.NewProxy(opts)
@@ -57,7 +57,7 @@ func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, erro
 
 // configureDumper creates and configure MegaDirDumper addon object, but bypass traffic logs when
 // no output target is requested (or when verbose is disabled)
-func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*addons.MegaTrafficDumper, error) {
+func configureDumper(logger *slog.Logger, cfg *config.Config, logSources config.LogSourceConfig) (*addons.MegaTrafficDumper, error) {
 	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
 	if cfg.TrafficLogger.Output == "" && !cfg.IsVerboseOrHigher() {
 		// no output dir specified and verbose is disabled
@@ -65,7 +65,7 @@ func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*ad
 	}
 
 	dumperAddon, err := addons.NewMegaTrafficDumperAddon(
-		sLogger,
+		logger,
 		cfg.TrafficLogger.Output,
 		cfg.TrafficLogger.LogFmt,
 		logSources,
@@ -81,37 +81,37 @@ func configureDumper(cfg *config.Config, logSources config.LogSourceConfig) (*ad
 
 // configProxy returns a configured proxy object w/ addons. This proxy still needs to be "started"
 // with a blocking call to .Start() (which is handled elsewhere)
-func configProxy(cfg *config.Config) (*px.Proxy, error) {
+func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 	metaAdd := newMetaAddon(cfg)
 
-	ca, err := newCA(cfg.HttpBehavior.CertDir)
+	ca, err := newCA(logger, cfg.HttpBehavior.CertDir)
 	if err != nil {
-		return nil, fmt.Errorf("setupCA error: %v", err)
+		return nil, fmt.Errorf("setupCA error: %w", err)
 	}
 
 	p, err := newProxy(cfg.HttpBehavior.Listen, cfg.HttpBehavior.InsecureSkipVerifyTLS, ca)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create proxy: %v", err)
+		return nil, fmt.Errorf("failed to create proxy: %w", err)
 	}
 
 	// always validate the request and response objects
-	metaAdd.addAddon(addons.NewRequestAndResponseValidator(cfg.GetLogger()))
+	metaAdd.addAddon(addons.NewRequestAndResponseValidator(logger))
 
 	if cfg.IsVerboseOrHigher() {
 		// add the verbose logger to the proxy
-		metaAdd.addAddon(addons.NewStdOutLogger(cfg.GetLogger()))
+		metaAdd.addAddon(addons.NewStdOutLogger(logger))
 	}
 
 	// struct of bools to toggle the various traffic log outputs
 	logSources := cfg.TrafficLogger.GetLogSourceConfig()
 
 	// create the mega traffic dumper addon
-	dumperAddon, err := configureDumper(cfg, logSources)
+	dumperAddon, err := configureDumper(logger, cfg, logSources)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
+		return nil, fmt.Errorf("failed to create traffic log dumper: %w", err)
 	}
 	if dumperAddon != nil {
-		sLogger.Debug(
+		logger.Debug(
 			"Created "+dumperAddon.String(),
 			"outputDir", cfg.TrafficLogger.Output,
 			"logFormat", cfg.TrafficLogger.LogFmt,
@@ -127,40 +127,40 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 	// Always add the request ID to the response headers
 	metaAdd.addAddon(addons.NewAddIDToHeaders())
 
-	sLogger.Debug("http to https upgrade", "enabled", !cfg.HttpBehavior.NoHttpUpgrader)
+	logger.Debug("http to https upgrade", "enabled", !cfg.HttpBehavior.NoHttpUpgrader)
 	// upgrade the request _after_ it's logged
 	if !cfg.HttpBehavior.NoHttpUpgrader {
 		// upgrade all http requests to https
-		metaAdd.addAddon(addons.NewSchemeUpgrader(cfg.GetLogger()))
+		metaAdd.addAddon(addons.NewSchemeUpgrader(logger))
 	}
 
-	sLogger.Debug("Building proxy config", "AppMode", cfg.AppMode.String())
+	logger.Debug("Building proxy config", "AppMode", cfg.AppMode.String())
 	switch cfg.AppMode {
 	case config.CacheMode:
-		cacheConfig, err := cfg.Cache.GetCacheStorageConfig(sLogger)
+		cacheConfig, err := cfg.Cache.GetCacheStorageConfig(logger)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create cache config: %v", err)
+			return nil, fmt.Errorf("failed to create cache config: %w", err)
 		}
 
 		cacheAddon, err := addons.NewCacheAddon(
-			sLogger,
+			logger,
 			cacheConfig.GetStorageEngine(),
 			cacheConfig.GetStoragePath(),
 			cfg.HeaderFilters.RequestToLogs,
 			cfg.HeaderFilters.ResponseToLogs,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load cache addon: %v", err)
+			return nil, fmt.Errorf("failed to load cache addon: %w", err)
 		}
-		sLogger.Debug(
+		logger.Debug(
 			"Created "+cacheAddon.String(),
 			"storageEngine", cacheConfig.GetStorageEngine(),
 			"storagePath", cacheConfig.GetStoragePath(),
 		)
 		metaAdd.addAddon(cacheAddon)
 	case config.APIAuditMode:
-		sLogger.Debug("Enabling API Auditor addon")
-		metaAdd.addAddon(addons.NewAPIAuditor(cfg.GetLogger()))
+		metaAdd.addAddon(addons.NewAPIAuditor(logger))
+		logger.Debug("APIAuditor mode enabled")
 	case config.ProxyRunMode:
 		// log.Debugf("No addons enabled for the basic proxy mode")
 	default:
@@ -174,10 +174,10 @@ func configProxy(cfg *config.Config) (*px.Proxy, error) {
 }
 
 // startProxy receives a pointer to a proxy object, runs it, and handles the shutdown signal
-func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
+func startProxy(logger *slog.Logger, p *px.Proxy, shutdown chan os.Signal) error {
 	go func() {
 		<-shutdown
-		sLogger.Info("Received SIGINT, shutting down now...")
+		logger.Info("Received SIGINT, shutting down now...")
 
 		// Then close all of the addon connections
 		for _, addon := range p.Addons {
@@ -185,13 +185,13 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 			if !ok {
 				continue
 			}
-			sLogger.Debug("Closing addon", "addonName", myAddon)
+			logger.Debug("Closing addon", "addonName", myAddon)
 			if err := myAddon.Close(); err != nil {
-				sLogger.Error("Could not close", "addon", myAddon, "error", err)
+				logger.Error("Could not close", "addon", myAddon, "error", err)
 			}
 		}
 		// Close the http client/server connections first
-		sLogger.Debug("Closing proxy server...")
+		logger.Debug("Closing proxy server...")
 
 		// Manual sleep to avoid race condition on connection close
 		time.Sleep(100 * time.Millisecond)
@@ -201,7 +201,7 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 		defer cancel()
 
 		if err := p.Shutdown(ctx); err != nil {
-			sLogger.Error("Unexpected error shutting down proxy server", "error", err)
+			logger.Error("Unexpected error shutting down proxy server", "error", err)
 		}
 	}()
 
@@ -214,24 +214,22 @@ func startProxy(p *px.Proxy, shutdown chan os.Signal) error {
 
 // Run is the main entry point for the proxy, configures the proxy and runs it
 func Run(cfg *config.Config) error {
-	if cfg.GetLogger() != nil {
-		sLogger = cfg.GetLogger().WithGroup("proxy")
-	}
-
-	sLogger.Info("Starting LLM_Proxy", "version", version.String())
+	logger := cfg.GetLogger().WithGroup("proxy")
+	logger.Info("Starting LLM_Proxy", "version", version.String())
 
 	// setup background signal handler for clean shutdown
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	p, err := configProxy(cfg)
+	p, err := configProxy(logger, cfg)
 	if err != nil {
-		return fmt.Errorf("failed to configure proxy: %v", err)
+		return fmt.Errorf("failed to configure proxy: %w", err)
 	}
 
-	if err := startProxy(p, shutdown); err != nil {
-		return fmt.Errorf("failed to start proxy: %v", err)
+	if err := startProxy(logger, p, shutdown); err != nil {
+		return fmt.Errorf("failed to start proxy: %w", err)
 	}
+	logger.Info("LLM_Proxy shutdown complete")
 
 	return nil
 }

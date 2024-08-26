@@ -7,13 +7,6 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
-func getProxyIDSafe(f *px.Flow) string {
-	if f.ConnContext != nil && f.ConnContext.ClientConn != nil {
-		return f.ConnContext.ID().String()
-	}
-	return ""
-}
-
 type RequestAndResponseValidator struct {
 	px.BaseAddon
 	logger *slog.Logger
@@ -23,6 +16,8 @@ func NewRequestAndResponseValidator(logger *slog.Logger) *RequestAndResponseVali
 	return &RequestAndResponseValidator{logger: logger.WithGroup("addons.RequestAndResponseValidator")}
 }
 
+// Request validates the request, and does not use the normal logger, because
+// the request may not have all the necessary fields needed to log.
 func (c *RequestAndResponseValidator) Request(f *px.Flow) {
 	if f.Request != nil {
 		if f.Request.URL == nil || f.Request.URL.String() == "" {
@@ -57,6 +52,8 @@ func (c *RequestAndResponseValidator) Request(f *px.Flow) {
 	}
 }
 
+// Response validates the response, and does not use the normal logger, because
+// the response may not have all the necessary fields needed to log.
 func (c *RequestAndResponseValidator) Response(f *px.Flow) {
 	if f.Response != nil {
 		return

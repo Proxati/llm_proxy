@@ -54,12 +54,7 @@ type ResponseCacheAddon struct {
 }
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
-	logger := c.logger.With(
-		"client.ID", f.Id.String(),
-		"proxy.ID", f.ConnContext.ID(),
-		"URL", f.Request.URL,
-		"Method", f.Request.Method,
-	)
+	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Request")
 
 	if c.closed.Load() {
 		logger.Warn("ResponseCacheAddon is being closed, skipping request")
@@ -115,12 +110,12 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// handle cache miss, return early otherwise NPEs below
 	if cachedResponse == nil {
 		f.Request.Header.Set(CacheStatusHeader, CacheStatusMiss)
-		logger.Info("cache miss")
+		logger.Info("Cache miss")
 		return
 	}
 
 	// handle cache hit
-	logger.Info("cache hit")
+	logger.Info("Cache hit")
 
 	// filter the headers before returning the cached response, and remove the Content-Encoding
 	// header, because next we will be re-encoding the body according to the request's
@@ -146,14 +141,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	// Get the request header for CacheStatusHeader and set the response header to whatever it's set to
 	cacheStatus := f.Request.Header.Get(CacheStatusHeader)
-
-	logger := c.logger.With(
-		"client.ID", f.Id.String(),
-		"proxy.ID", f.ConnContext.ID(),
-		"StatusCode", f.Response.StatusCode,
-		"URL", f.Request.URL,
-		"Method", f.Request.Method,
-	)
+	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Response")
 
 	if cacheStatus != "" {
 		logger = logger.With("CacheStatus", cacheStatus)
@@ -294,7 +282,7 @@ func NewCacheAddon(
 		panic("badger storage engine is disabled")
 	case "bolt":
 		// pass in the header filters for removing specific headers from the objects stored in cache
-		cacheDB, err = cache.NewBoltMetaDB(cacheDir)
+		cacheDB, err = cache.NewBoltMetaDB(logger, cacheDir)
 		logger.Debug("Loaded BoltMetaDB database driver", "cacheDir", cacheDir)
 	case "memory":
 		cacheDB, err = cache.NewMemoryMetaDB(logger, DefaultMemoryCacheSize)

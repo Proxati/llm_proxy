@@ -23,12 +23,7 @@ type APIAuditorAddon struct {
 }
 
 func (aud *APIAuditorAddon) Response(f *px.Flow) {
-	logger := aud.logger.With(
-		"URL", f.Request.URL,
-		"StatusCode", f.Response.StatusCode,
-		"proxy.ID", f.Id.String(),
-		"client.ID", f.ConnContext.ID(),
-	)
+	logger := configLoggerFieldsWithFlow(aud.logger, f).WithGroup("Response")
 
 	if aud.closed.Load() {
 		logger.Warn("APIAuditor is being closed, not processing request")

@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/google/uuid"
 	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,11 +17,6 @@ func TestSchemeUpgrader_Request(t *testing.T) {
 
 	flow := &px.Flow{
 		Request: req,
-		ConnContext: &px.ConnContext{
-			ClientConn: &px.ClientConn{
-				ID: uuid.UUID{},
-			},
-		},
 	}
 
 	upgrader.Request(flow)
@@ -39,11 +33,6 @@ func TestSchemeUpgrader_Request_HTTPS(t *testing.T) {
 
 	flow := &px.Flow{
 		Request: req,
-		ConnContext: &px.ConnContext{
-			ClientConn: &px.ClientConn{
-				ID: uuid.UUID{},
-			},
-		},
 	}
 
 	upgrader.Request(flow)

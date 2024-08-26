@@ -144,11 +144,10 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Response")
 
 	if cacheStatus != "" {
-		logger = logger.With("CacheStatus", cacheStatus)
 		// Set the response header to the same value as the request header
 		f.Response.Header.Set(CacheStatusHeader, cacheStatus)
 		if cacheStatus == CacheStatusSkip {
-			logger.Debug("skipping cache storage")
+			logger.Debug("skipping cache storage", "CacheStatus", cacheStatus)
 			c.wg.Done()
 			return
 		}
@@ -158,7 +157,10 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 	_, shouldCache := cacheOnlyResponseCodes[f.Response.StatusCode]
 	if !shouldCache {
 		f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
-		logger.Debug("skipping cache storage for non-200 response")
+		logger.Debug(
+			"skipping cache storage for non-200 response",
+			"statusCode", f.Response.StatusCode,
+		)
 		c.wg.Done()
 		return
 	}

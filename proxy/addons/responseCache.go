@@ -54,7 +54,12 @@ type ResponseCacheAddon struct {
 }
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
-	logger := c.logger.With("URL", f.Request.URL, "ID", f.Id.String())
+	logger := c.logger.With(
+		"client.ID", f.Id.String(),
+		"proxy.ID", f.ConnContext.ID(),
+		"URL", f.Request.URL,
+		"Method", f.Request.Method,
+	)
 
 	if c.closed.Load() {
 		logger.Warn("ResponseCacheAddon is being closed, skipping request")
@@ -77,19 +82,13 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	cacheControlHeader := strings.ToLower(f.Request.Header.Get("Cache-Control"))
 	for _, header := range []string{"no-cache", "no-store"} {
 		if cacheControlHeader == header {
-			logger.Debug("skipping cache lookup for request with Cache-Control header", "header", header)
+			logger.Debug(
+				"skipping cache lookup because of the Cache-Control header value",
+				"Cache-Control", header,
+			)
 			f.Request.Header.Set(CacheStatusHeader, CacheStatusSkip) // hack to store the cache status in the request
 			return
 		}
-	}
-
-	if f.Request.URL == nil || f.Request.URL.String() == "" {
-		logger.Error("request URL is nil or empty")
-		f.Response = &px.Response{
-			StatusCode: http.StatusBadRequest,
-			Body:       []byte("Request URL is empty"),
-		}
-		return
 	}
 
 	// Only cache these request methods (and empty string for GET)
@@ -126,7 +125,8 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// filter the headers before returning the cached response, and remove the Content-Encoding
 	// header, because next we will be re-encoding the body according to the request's
 	// Accept-Encoding header, and a new Content-Encoding header will be added.
-	cachedResponse.Header = c.filterReqHeaders.FilterHeaders(cachedResponse.Header, "Content-Encoding", "Content-Length")
+	cachedResponse.Header = c.filterReqHeaders.FilterHeaders(
+		cachedResponse.Header, "Content-Encoding", "Content-Length")
 
 	// convert the cached response to a ProxyResponse, and encode the body according to the request's Accept-Encoding header
 	encodedCachedResponse, err := mitm.ToProxyResponse(cachedResponse, f.Request.Header.Get("Accept-Encoding"))
@@ -144,38 +144,25 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 
 func (c *ResponseCacheAddon) Response(f *px.Flow) {
 	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
-
-	if f.Response == nil {
-		// if the response is nil, don't even try to cache it, not sure why
-		// this would happen, but it's better to have the NPE defense.
-		c.logger.Warn(
-			"skipping cache storage for nil response",
-			"URL", f.Request.URL,
-			"ID", f.Id.String(),
-		)
-		c.wg.Done()
-		return
-	}
+	// Get the request header for CacheStatusHeader and set the response header to whatever it's set to
+	cacheStatus := f.Request.Header.Get(CacheStatusHeader)
 
 	logger := c.logger.With(
-		"URL", f.Request.URL,
+		"client.ID", f.Id.String(),
+		"proxy.ID", f.ConnContext.ID(),
 		"StatusCode", f.Response.StatusCode,
-		"ID", f.Id.String(),
+		"URL", f.Request.URL,
+		"Method", f.Request.Method,
 	)
 
-	// Get the request header for CacheStatusHeader and set the response header to whatever it's set to
-	if f.Request != nil {
-		cacheStatus := f.Request.Header.Get(CacheStatusHeader)
-		if cacheStatus != "" {
-			// Set the response header to the same value as the request header
-			if f.Response != nil {
-				f.Response.Header.Set(CacheStatusHeader, cacheStatus)
-			}
-			if cacheStatus == CacheStatusSkip {
-				logger.Debug("skipping cache storage for request with CacheStatusHeader set to SKIP")
-				c.wg.Done()
-				return
-			}
+	if cacheStatus != "" {
+		logger = logger.With("CacheStatus", cacheStatus)
+		// Set the response header to the same value as the request header
+		f.Response.Header.Set(CacheStatusHeader, cacheStatus)
+		if cacheStatus == CacheStatusSkip {
+			logger.Debug("skipping cache storage")
+			c.wg.Done()
+			return
 		}
 	}
 

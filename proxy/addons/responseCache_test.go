@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
@@ -119,6 +120,11 @@ func TestRequest(t *testing.T) {
 				},
 				Body: []byte("req"),
 			},
+			ConnContext: &px.ConnContext{
+				ClientConn: &px.ClientConn{
+					ID: uuid.UUID{},
+				},
+			},
 		}
 		require.Empty(t, flow.Request.Header.Get(CacheStatusHeader))
 
@@ -145,6 +151,11 @@ func TestRequest(t *testing.T) {
 					"Header2": []string{"value2"},
 				},
 				Body: []byte("req"),
+			},
+			ConnContext: &px.ConnContext{
+				ClientConn: &px.ClientConn{
+					ID: uuid.UUID{},
+				},
 			},
 		}
 		resp := &px.Response{
@@ -215,6 +226,11 @@ func TestRequest(t *testing.T) {
 					"Accept-Encoding": []string{"gzip"},
 				},
 				Body: []byte("req2"),
+			},
+			ConnContext: &px.ConnContext{
+				ClientConn: &px.ClientConn{
+					ID: uuid.UUID{},
+				},
 			},
 		}
 		resp := &px.Response{

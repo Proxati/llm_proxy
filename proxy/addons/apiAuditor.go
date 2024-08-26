@@ -1,7 +1,6 @@
 package addons
 
 import (
-	"fmt"
 	"log/slog"
 	"sync"
 	"sync/atomic"
@@ -20,10 +19,11 @@ type APIAuditorAddon struct {
 	closed      atomic.Bool
 	wg          sync.WaitGroup
 	logger      *slog.Logger
+	auditLogger *slog.Logger
 }
 
 func (aud *APIAuditorAddon) Response(f *px.Flow) {
-	logger := configLoggerFieldsWithFlow(aud.logger, f).WithGroup("Response")
+	logger := configLoggerFieldsWithFlow(aud.logger, f)
 
 	if aud.closed.Load() {
 		logger.Warn("APIAuditor is being closed, not processing request")
@@ -39,14 +39,20 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 		reqHostname := f.Request.URL.Hostname()
 		_, shouldAudit := providers.API_Hostnames[reqHostname]
 		if !shouldAudit {
-			logger.Debug("skipping accounting for unsupported API")
+			logger.Debug(
+				"skipping accounting for unsupported API",
+				"hostname", reqHostname,
+			)
 			return
 		}
 
 		// Only account when receiving good response codes
 		_, shouldAccount := cacheOnlyResponseCodes[f.Response.StatusCode]
 		if !shouldAccount {
-			logger.Debug("skipping accounting for non-200 response")
+			logger.Debug(
+				"skipping accounting for non-200 response",
+				"StatusCode", f.Response.StatusCode,
+			)
 			return
 		}
 
@@ -68,14 +74,23 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 			return
 		}
 
-		// account the cost, TODO: returns what?
+		// account the cost
 		auditOutput, err := aud.costCounter.Add(*tObjReq, *tObjResp)
 		if err != nil {
-			logger.Error("error accounting response", "error", err)
+			logger.Error("unable to create audit output", "error", err)
+			return
 		}
 
-		// TODO Improve this output format:
-		fmt.Println(auditOutput)
+		// show the transaction
+		aud.auditLogger.Info(
+			"Transaction Received",
+			"URL", auditOutput.URL,
+			"Model", auditOutput.Model,
+			"InputCost", auditOutput.InputCost,
+			"OutputCost", auditOutput.OutputCost,
+			"TotalReqCost", auditOutput.TotalReqCost,
+			"SessionTotal", auditOutput.GrandTotal,
+		)
 	}()
 }
 
@@ -92,6 +107,7 @@ func NewAPIAuditor(logger *slog.Logger) *APIAuditorAddon {
 	aud := &APIAuditorAddon{
 		costCounter: schema.NewCostCounterDefaults(),
 		logger:      logger.WithGroup("addons.APIAuditorAddon"),
+		auditLogger: logger.WithGroup("API_Auditor"),
 	}
 	aud.closed.Store(false) // initialize as open
 	return aud

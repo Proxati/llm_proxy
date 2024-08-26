@@ -22,7 +22,7 @@ func NewSchemeUpgrader(logger *slog.Logger) *SchemeUpgrader {
 }
 
 func (c *SchemeUpgrader) Request(f *px.Flow) {
-	logger := c.logger.With("addon", "SchemeUpgrader.Request", "URL", f.Request.URL, "ID", f.Id.String())
+	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Request")
 
 	// upgrade to https
 	if f.Request.URL.Scheme == "https" {

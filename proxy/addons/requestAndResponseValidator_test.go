@@ -16,8 +16,7 @@ func TestRequestAndResponseValidator_Request(t *testing.T) {
 
 	t.Run("Request is nil", func(t *testing.T) {
 		flow := &px.Flow{
-			Request:     nil,
-			ConnContext: &px.ConnContext{},
+			Request: nil,
 		}
 		assert.NotPanics(t, func() {
 			validator.Request(flow)
@@ -32,7 +31,6 @@ func TestRequestAndResponseValidator_Request(t *testing.T) {
 			Request: &px.Request{
 				URL: nil,
 			},
-			ConnContext: &px.ConnContext{},
 		}
 		assert.NotPanics(t, func() {
 			validator.Request(flow)
@@ -47,7 +45,6 @@ func TestRequestAndResponseValidator_Request(t *testing.T) {
 			Request: &px.Request{
 				URL: &url.URL{},
 			},
-			ConnContext: &px.ConnContext{},
 		}
 		assert.NotPanics(t, func() {
 			validator.Request(flow)
@@ -62,7 +59,6 @@ func TestRequestAndResponseValidator_Request(t *testing.T) {
 			Request: &px.Request{
 				URL: &url.URL{Path: "/valid"},
 			},
-			ConnContext: &px.ConnContext{},
 		}
 		assert.NotPanics(t, func() {
 			validator.Request(flow)
@@ -80,8 +76,7 @@ func TestRequestAndResponseValidator_Response(t *testing.T) {
 			Request: &px.Request{
 				URL: &url.URL{Path: "/valid"},
 			},
-			Response:    nil,
-			ConnContext: &px.ConnContext{},
+			Response: nil,
 		}
 		assert.NotPanics(t, func() {
 			validator.Response(flow)
@@ -103,7 +98,6 @@ func TestRequestAndResponseValidator_Response(t *testing.T) {
 					"Content-Type": []string{"text/plain"},
 				},
 			},
-			ConnContext: &px.ConnContext{},
 		}
 		assert.NotPanics(t, func() {
 			validator.Response(flow)

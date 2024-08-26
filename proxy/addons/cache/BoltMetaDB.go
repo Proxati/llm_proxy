@@ -3,6 +3,7 @@ package cache
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"sync"
 
@@ -20,6 +21,7 @@ type BoltMetaDB struct {
 	dbFileDir string            // several DBs stored in the same directory, one for each base URL
 	db        *boltDB_Engine.DB // the main db struct
 	once      sync.Once
+	logger    *slog.Logger
 }
 
 // len return the number of items currently in the cache
@@ -49,7 +51,7 @@ func (c *BoltMetaDB) Get(identifier string, body []byte) (response *schema.Proxy
 		return nil, err
 	}
 	if valueBytes == nil {
-		getLogger().Debug("valueBytes empty", "identifier", identifier)
+		c.logger.Debug("valueBytes empty", "identifier", identifier)
 		return nil, nil
 	}
 
@@ -79,15 +81,15 @@ func (c *BoltMetaDB) Put(request *schema.ProxyRequest, response *schema.ProxyRes
 
 	err = c.db.SetBytes(identifier, key.NewKeyStr(request.Body), respJSON)
 	if err != nil {
-		getLogger().Error("set bytes error", "error", err)
+		c.logger.Error("set bytes error", "error", err)
 	}
 
-	getLogger().Debug("stored response in cache", "identifier", identifier)
+	c.logger.Debug("stored response in cache", "identifier", identifier)
 	return nil
 }
 
 // NewBoltMetaDB creates a new BoltMetaDB object, to load or create a new boltDB on disk
-func NewBoltMetaDB(dbFileDir string) (*BoltMetaDB, error) {
+func NewBoltMetaDB(logger *slog.Logger, dbFileDir string) (*BoltMetaDB, error) {
 	dbFile := filepath.Join(dbFileDir, defaultBoltDBFile)
 	db, err := boltDB_Engine.NewDB(dbFile)
 	if err != nil {
@@ -96,6 +98,7 @@ func NewBoltMetaDB(dbFileDir string) (*BoltMetaDB, error) {
 	bMeta := &BoltMetaDB{
 		dbFileDir: dbFileDir,
 		db:        db,
+		logger:    logger.WithGroup("BoltMetaDB"),
 	}
 	return bMeta, nil
 }

@@ -29,17 +29,7 @@ type MegaTrafficDumper struct {
 // Requestheaders is a callback that will receive a "flow" from the proxy, will create a
 // NewLogDumpContainer and will use the embedded writers to finally write the log.
 func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
-	if f.Request == nil {
-		d.logger.Error("Request is nil, not logging")
-		return
-	}
-
-	id := f.Id.String()
-	logger := d.logger.With(
-		"URL", f.Request.URL,
-		"proxy.ID", id,
-		"client.ID", f.ConnContext.ID(),
-	)
+	logger := configLoggerFieldsWithFlow(d.logger, f)
 
 	if d.closed.Load() {
 		logger.Warn("MegaDumpAddon is being closed, not logging a request")
@@ -65,9 +55,9 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 		dumpContainer := d.convertFlowToLogDump(logger, fa, doneAt)
 
 		// write the formatted log data to... somewhere
-		d.sendToLogDestinations(logger, id, dumpContainer)
+		d.sendToLogDestinations(logger, f.Id.String(), dumpContainer)
 
-		logger.Debug("Request completed")
+		configLoggerFieldsWithFlow(d.logger, f).Debug("Request completed")
 	}()
 }
 

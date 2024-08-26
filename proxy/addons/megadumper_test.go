@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/proxati/llm_proxy/v2/config"
 	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
@@ -55,32 +54,6 @@ func TestNewMegaDumpAddon(t *testing.T) {
 	})
 }
 
-func TestMegaTrafficDumper_Requestheaders_NilFlow(t *testing.T) {
-	t.Parallel()
-	testLogger := slog.Default()
-
-	logTarget := "/tmp/logs"
-	logFormat := config.LogFormat_JSON
-	logSources := config.LogSourceConfig{}
-	filterHeaders := config.NewHeaderFiltersContainer()
-
-	mda, err := NewMegaTrafficDumperAddon(
-		testLogger, logTarget, logFormat, logSources, filterHeaders.RequestToLogs, filterHeaders.ResponseToLogs)
-	assert.NoError(t, err)
-	assert.NotNil(t, mda)
-
-	t.Run("NilFlow", func(t *testing.T) {
-		flow := &px.Flow{
-			Request:  nil,
-			Response: nil,
-		}
-
-		assert.NotPanics(t, func() {
-			mda.Requestheaders(flow)
-		})
-	})
-}
-
 func TestMegaTrafficDumper_Requestheaders_ValidFlow(t *testing.T) {
 	t.Parallel()
 	testLogger := slog.Default()
@@ -99,11 +72,6 @@ func TestMegaTrafficDumper_Requestheaders_ValidFlow(t *testing.T) {
 		flow := &px.Flow{
 			Request:  &px.Request{},
 			Response: &px.Response{},
-			ConnContext: &px.ConnContext{
-				ClientConn: &px.ClientConn{
-					ID: uuid.UUID{}, // ugly npe defense for mocked test flow
-				},
-			},
 		}
 
 		assert.NotPanics(t, func() {

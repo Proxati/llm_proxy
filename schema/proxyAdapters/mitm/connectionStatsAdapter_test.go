@@ -12,7 +12,9 @@ import (
 func TestConnectionStatsAdapter(t *testing.T) {
 	pxFlow := &px.Flow{
 		ConnContext: &px.ConnContext{
-			ClientConn: &px.ClientConn{},
+			ClientConn: &px.ClientConn{
+				ID: uuid.New(),
+			},
 		},
 		Request: &px.Request{
 			URL: &url.URL{

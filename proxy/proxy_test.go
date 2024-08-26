@@ -145,7 +145,7 @@ func runProxy(
 	}
 
 	// create a proxy with the test config
-	p, err := configProxy(cfg)
+	p, err := configProxy(slog.Default(), cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func runProxy(
 
 	// start the proxy in the background
 	go func() {
-		err = startProxy(p, shutdownChan)
+		err = startProxy(slog.Default(), p, shutdownChan)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -669,7 +669,7 @@ func TestNewProxy(t *testing.T) {
 
 	tempDir := t.TempDir()
 
-	ca, err := newCA(tempDir)
+	ca, err := newCA(slog.Default(), tempDir)
 	assert.NoError(t, err)
 
 	p, err := newProxy("localhost:8080", false, ca)
@@ -682,7 +682,7 @@ func TestNewCA(t *testing.T) {
 
 	tempDir := t.TempDir()
 
-	ca, err := newCA(tempDir)
+	ca, err := newCA(slog.Default(), tempDir)
 	assert.NoError(t, err)
 	assert.NotNil(t, ca)
 }
@@ -697,7 +697,7 @@ func TestConfigProxy(t *testing.T) {
 		cfg.AppMode = config.ProxyRunMode
 
 		// Call the function with the mock configuration
-		p, err := configProxy(cfg)
+		p, err := configProxy(slog.Default(), cfg)
 
 		// Assert that no error was returned
 		assert.NoError(t, err)
@@ -727,7 +727,7 @@ func TestConfigProxy(t *testing.T) {
 		cfg.EnableOutputVerbose()
 
 		// Call the function with the mock configuration
-		p, err := configProxy(cfg)
+		p, err := configProxy(slog.Default(), cfg)
 
 		// Assert that no error was returned
 		assert.NoError(t, err)
@@ -757,7 +757,7 @@ func TestConfigProxy(t *testing.T) {
 		cfg.TrafficLogger.Output = t.TempDir() // Set the output directory, which should enable the logger addon
 
 		// Call the function with the mock configuration
-		p, err := configProxy(cfg)
+		p, err := configProxy(slog.Default(), cfg)
 
 		// Assert that no error was returned
 		assert.NoError(t, err)

@@ -3,6 +3,7 @@ package proxy
 import (
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons"
@@ -17,56 +18,60 @@ type metaAddon struct {
 	cfg            *config.Config
 	mitmAddons     []px.Addon
 	closableAddons []addons.ClosableAddon
+	logger         *slog.Logger
 }
 
 // NewMetaAddon creates a new MetaAddon with the given config and addons. The order of the addons
 // is important, as they will be processed in the order they are given. The first addon to return
 // with a response will be the final addon to process the request. Logging will be handled in a
 // separate system, and not in the addons (so the response can be captured).
-func newMetaAddon(cfg *config.Config, addons ...px.Addon) *metaAddon {
-	m := &metaAddon{cfg: cfg}
+func newMetaAddon(logger *slog.Logger, cfg *config.Config, addons ...px.Addon) *metaAddon {
+	m := &metaAddon{
+		cfg:    cfg,
+		logger: logger.WithGroup("MetaAddon"),
+	}
 
 	// iterate so the addons can be type asserted and added to the correct field
 	for _, a := range addons {
 		if err := m.addAddon(a); err != nil {
-			sLogger.Error("could not add the metaAddon", "error", err)
+			m.logger.Error("could not add the metaAddon", "error", err)
 		}
 	}
 
 	return m
 }
 
-func (addon *metaAddon) Close() error {
-	for _, a := range addon.closableAddons {
+func (ma *metaAddon) Close() error {
+	for _, a := range ma.closableAddons {
 		if err := a.Close(); err != nil {
-			sLogger.Error("could not close the addon", "error", err)
+			ma.logger.Error("could not close the addon", "error", err)
 		}
-		sLogger.Debug("Closed addon", "addonName", a.String())
+		ma.logger.Debug("Closed addon", "addonName", a.String())
 	}
 
 	return nil
 }
 
-func (addon *metaAddon) String() string {
+func (_ *metaAddon) String() string {
 	return "metaAddon"
 }
 
-func (addon *metaAddon) addAddon(a any) error {
+func (ma *metaAddon) addAddon(a any) error {
 	if a == nil {
-		sLogger.Debug("Skipping add for nil addon")
+		ma.logger.Debug("Skipping add for nil addon")
 		return nil
 	}
 
 	myAddon, ok := a.(addons.ClosableAddon)
 	if ok {
-		addon.closableAddons = append(addon.closableAddons, myAddon) // for closing later
-		sLogger.Debug("Loaded closable addon", "addonName", myAddon.String())
+		ma.closableAddons = append(ma.closableAddons, myAddon) // for closing later
+		ma.logger.Debug("Loaded closable addon", "addonName", myAddon.String())
 	}
 
 	mitmAddon, ok := a.(px.Addon)
 	if ok {
 		// the addon is a valid mitmproxy addon, but it lacks a .String() method so we can't log it
-		addon.mitmAddons = append(addon.mitmAddons, mitmAddon)
+		ma.mitmAddons = append(ma.mitmAddons, mitmAddon)
 		return nil
 	}
 

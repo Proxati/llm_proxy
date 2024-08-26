@@ -23,14 +23,10 @@ type APIAuditorAddon struct {
 }
 
 func (aud *APIAuditorAddon) Response(f *px.Flow) {
-	logger := aud.logger.With("URL", f.Request.URL, "StatusCode", f.Response.StatusCode, "ID", f.Id.String())
+	logger := configLoggerFieldsWithFlow(aud.logger, f).WithGroup("Response")
 
 	if aud.closed.Load() {
 		logger.Warn("APIAuditor is being closed, not processing request")
-		return
-	}
-	if f.Response == nil {
-		logger.Debug("skipping accounting for nil response")
 		return
 	}
 

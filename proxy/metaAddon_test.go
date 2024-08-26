@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"io"
+	"log/slog"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -68,13 +69,13 @@ func TestNewMetaAddon(t *testing.T) {
 	cfg := &config.Config{}
 	addons := []px.Addon{&mockAddon{}, &mockAddon{}}
 
-	meta := newMetaAddon(cfg, addons...)
+	meta := newMetaAddon(slog.Default(), cfg, addons...)
 	assert.Equal(t, cfg, meta.cfg)
 	assert.Equal(t, len(addons), len(meta.mitmAddons))
 }
 
 func TestAddAddon(t *testing.T) {
-	meta := newMetaAddon(&config.Config{})
+	meta := newMetaAddon(slog.Default(), &config.Config{})
 	mock := &mockAddon{}
 	meta.addAddon(mock)
 
@@ -88,7 +89,7 @@ func TestAllMethods(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// setup the metaAddon
-	meta := newMetaAddon(&config.Config{})
+	meta := newMetaAddon(slog.Default(), &config.Config{})
 	mock := &mockAddon{}
 	meta.addAddon(mock)
 

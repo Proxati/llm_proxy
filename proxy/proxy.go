@@ -82,7 +82,7 @@ func configureDumper(logger *slog.Logger, cfg *config.Config, logSources config.
 // configProxy returns a configured proxy object w/ addons. This proxy still needs to be "started"
 // with a blocking call to .Start() (which is handled elsewhere)
 func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
-	metaAdd := newMetaAddon(cfg)
+	metaAdd := newMetaAddon(logger, cfg)
 
 	ca, err := newCA(logger, cfg.HttpBehavior.CertDir)
 	if err != nil {

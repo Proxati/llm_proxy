@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	RequestTimeout           = 5
-	ID_Header                = "Llm_Proxy_Identifier"
-	MaxResponseBodyReadBytes = 1024 // 1KB
+	requestTimeout           = 5
+	headerID                 = "Llm_Proxy_Identifier"
+	maxResponseBodyReadBytes = 1024 // 1KB
 )
 
-// Endpoint represents a single REST endpoint, and implements the Endpoint interface
+// EndpointSyncREST represents a single REST endpoint, and implements the Endpoint interface
 type EndpointSyncREST struct {
 	Name   string
 	URL    string
@@ -45,7 +45,7 @@ func (e *EndpointSyncREST) GetURL() string {
 // POST is a simple blocking POST request to a REST endpoint
 func (e *EndpointSyncREST) POST(identifier string, data []byte) error {
 	logger := e.logger.With("identifier", identifier)
-	logger.Debug("POST'ing data", "endpoint", e.String(), "timeout", RequestTimeout)
+	logger.Debug("POST'ing data", "endpoint", e.String(), "timeout", requestTimeout)
 
 	// Create a new HTTP POST request
 	req, err := http.NewRequest(http.MethodPost, e.GetURL(), bytes.NewBuffer(data))
@@ -56,11 +56,11 @@ func (e *EndpointSyncREST) POST(identifier string, data []byte) error {
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	if identifier != "" {
-		req.Header.Set(ID_Header, identifier)
+		req.Header.Set(headerID, identifier)
 	}
 
 	// Create an HTTP client with a timeout
-	client := &http.Client{Timeout: RequestTimeout * time.Second}
+	client := &http.Client{Timeout: requestTimeout * time.Second}
 
 	// Send the request
 	resp, err := client.Do(req)
@@ -70,7 +70,7 @@ func (e *EndpointSyncREST) POST(identifier string, data []byte) error {
 	defer resp.Body.Close()
 
 	// Read the response body
-	limitedReader := io.LimitedReader{R: resp.Body, N: MaxResponseBodyReadBytes}
+	limitedReader := io.LimitedReader{R: resp.Body, N: maxResponseBodyReadBytes}
 	bodyBytes, err := io.ReadAll(&limitedReader)
 	if err != nil {
 		return fmt.Errorf("could not read response body: %w", err)

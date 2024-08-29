@@ -7,13 +7,24 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers/remote/rest"
 )
 
-const DefaultRestTimeout = 5
-
+// ToAsyncRest is a writer that sends data to a remote REST endpoint
 type ToAsyncRest struct {
 	endpoint  rest.Endpoint
 	target    string
 	formatter formatters.MegaDumpFormatter
 	logger    *slog.Logger
+}
+
+// NewToAsyncREST creates a new ToAsyncRest writer object
+func NewToAsyncREST(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (*ToAsyncRest, error) {
+	logger = logger.WithGroup("ToAsyncRest").With("target", target, "formatter", formatter)
+
+	return &ToAsyncRest{
+		endpoint:  rest.NewEndpointSyncREST(logger, "ToAsyncRest", target),
+		target:    target,
+		formatter: formatter,
+		logger:    logger,
+	}, nil
 }
 
 func (t *ToAsyncRest) Write(identifier string, data []byte) (int, error) {
@@ -27,19 +38,4 @@ func (t *ToAsyncRest) Write(identifier string, data []byte) (int, error) {
 
 func (t *ToAsyncRest) String() string {
 	return "ToAsyncRest: " + t.target
-}
-
-func newToAsyncREST(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (*ToAsyncRest, error) {
-	logger = logger.WithGroup("ToAsyncRest").With("target", target, "formatter", formatter)
-
-	return &ToAsyncRest{
-		endpoint:  rest.NewEndpointSyncREST(logger, "ToAsyncRest", target),
-		target:    target,
-		formatter: formatter,
-		logger:    logger,
-	}, nil
-}
-
-func NewToAsyncREST(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (MegaDumpWriter, error) {
-	return newToAsyncREST(logger, target, formatter)
 }

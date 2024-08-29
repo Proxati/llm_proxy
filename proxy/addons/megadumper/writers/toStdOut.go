@@ -6,25 +6,25 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 )
 
+// ToStdOut is a very basic writer that writes to stdout
 type ToStdOut struct {
 	logger *slog.Logger
 }
 
-func (t *ToStdOut) Write(identifier string, bytes []byte) (int, error) {
-	t.logger.Info(string(bytes), "identifier", identifier)
-	return len(bytes), nil
-}
-
-func (t *ToStdOut) String() string {
-	return "ToStdOut"
-}
-
-func newToStdOut(logger *slog.Logger) (*ToStdOut, error) {
+// NewToStdOut creates a new ToStdOut writer object
+func NewToStdOut(logger *slog.Logger, _ string, _ formatters.MegaDumpFormatter) (*ToStdOut, error) {
 	return &ToStdOut{
 		logger: logger.With("writer", "ToStdOut"),
 	}, nil
 }
 
-func NewToStdOut(logger *slog.Logger, _ string, _ formatters.MegaDumpFormatter) (MegaDumpWriter, error) {
-	return newToStdOut(logger)
+// Write writes the given bytes to standard out
+func (t *ToStdOut) Write(identifier string, bytes []byte) (int, error) {
+	t.logger.Info(string(bytes), "identifier", identifier)
+	return len(bytes), nil
+}
+
+// String returns the human-readable name of this writer
+func (t *ToStdOut) String() string {
+	return "ToStdOut"
 }

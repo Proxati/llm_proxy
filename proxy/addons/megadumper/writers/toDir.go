@@ -7,10 +7,25 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 )
 
+// ToDir is a writer that writes the bytes to a new file in the target directory
 type ToDir struct {
 	targetDir     string
 	fileExtension string
 	logger        *slog.Logger
+}
+
+// NewToDir creates a new ToDir writer object
+func NewToDir(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (*ToDir, error) {
+	err := fileutils.DirExistsOrCreate(target)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ToDir{
+		targetDir:     target,
+		fileExtension: formatter.GetFileExtension(),
+		logger:        logger,
+	}, nil
 }
 
 // Write writes the bytes to a new file in the target directory
@@ -28,21 +43,4 @@ func (t *ToDir) Write(identifier string, bytes []byte) (int, error) {
 // String returns the the name of this writer, and the target directory
 func (t *ToDir) String() string {
 	return "ToDir: " + t.targetDir
-}
-
-func newToDir(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (*ToDir, error) {
-	err := fileutils.DirExistsOrCreate(target)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ToDir{
-		targetDir:     target,
-		fileExtension: formatter.GetFileExtension(),
-		logger:        logger,
-	}, nil
-}
-
-func NewToDir(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (MegaDumpWriter, error) {
-	return newToDir(logger, target, formatter)
 }

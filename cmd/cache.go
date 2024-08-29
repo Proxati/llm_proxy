@@ -31,7 +31,7 @@ code, headers, and body as the original, except for responses with status codes 
 
 func init() {
 	rootCmd.AddCommand(cacheCmd)
-	cacheCmd.SuggestFor = cache_suggestions
+	cacheCmd.SuggestFor = cacheSuggestions
 
 	cacheCmd.Flags().StringVar(
 		&cfg.Cache.Dir, "cache-dir", cfg.Cache.Dir,

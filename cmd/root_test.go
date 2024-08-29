@@ -52,25 +52,25 @@ func TestPrintSplash(t *testing.T) {
 		isTerminal     bool
 		expectedOutput string
 	}{
-		{"LevelDebug_TXT_Terminal", slog.LevelDebug, config.LogFormat_TXT, true, splashText},
-		{"LevelDebug_TXT_NonTerminal", slog.LevelDebug, config.LogFormat_TXT, false, ""},
-		{"LevelDebug_JSON_Terminal", slog.LevelDebug, config.LogFormat_JSON, true, ""},
-		{"LevelDebug_JSON_NonTerminal", slog.LevelDebug, config.LogFormat_JSON, false, ""},
+		{"LevelDebug_TXT_Terminal", slog.LevelDebug, config.LogFormatTXT, true, splashText},
+		{"LevelDebug_TXT_NonTerminal", slog.LevelDebug, config.LogFormatTXT, false, ""},
+		{"LevelDebug_JSON_Terminal", slog.LevelDebug, config.LogFormatJSON, true, ""},
+		{"LevelDebug_JSON_NonTerminal", slog.LevelDebug, config.LogFormatJSON, false, ""},
 
-		{"LevelInfo_TXT_Terminal", slog.LevelInfo, config.LogFormat_TXT, true, splashText},
-		{"LevelInfo_TXT_NonTerminal", slog.LevelInfo, config.LogFormat_TXT, false, ""},
-		{"LevelInfo_JSON_Terminal", slog.LevelInfo, config.LogFormat_JSON, true, ""},
-		{"LevelInfo_JSON_NonTerminal", slog.LevelInfo, config.LogFormat_JSON, false, ""},
+		{"LevelInfo_TXT_Terminal", slog.LevelInfo, config.LogFormatTXT, true, splashText},
+		{"LevelInfo_TXT_NonTerminal", slog.LevelInfo, config.LogFormatTXT, false, ""},
+		{"LevelInfo_JSON_Terminal", slog.LevelInfo, config.LogFormatJSON, true, ""},
+		{"LevelInfo_JSON_NonTerminal", slog.LevelInfo, config.LogFormatJSON, false, ""},
 
-		{"LevelWarn_TXT_Terminal", slog.LevelWarn, config.LogFormat_TXT, true, ""},
-		{"LevelWarn_TXT_NonTerminal", slog.LevelWarn, config.LogFormat_TXT, false, ""},
-		{"LevelWarn_JSON_Terminal", slog.LevelWarn, config.LogFormat_JSON, true, ""},
-		{"LevelWarn_JSON_NonTerminal", slog.LevelWarn, config.LogFormat_JSON, false, ""},
+		{"LevelWarn_TXT_Terminal", slog.LevelWarn, config.LogFormatTXT, true, ""},
+		{"LevelWarn_TXT_NonTerminal", slog.LevelWarn, config.LogFormatTXT, false, ""},
+		{"LevelWarn_JSON_Terminal", slog.LevelWarn, config.LogFormatJSON, true, ""},
+		{"LevelWarn_JSON_NonTerminal", slog.LevelWarn, config.LogFormatJSON, false, ""},
 
-		{"LevelError_TXT_Terminal", slog.LevelError, config.LogFormat_TXT, true, ""},
-		{"LevelError_TXT_NonTerminal", slog.LevelError, config.LogFormat_TXT, false, ""},
-		{"LevelError_JSON_Terminal", slog.LevelError, config.LogFormat_JSON, true, ""},
-		{"LevelError_JSON_NonTerminal", slog.LevelError, config.LogFormat_JSON, false, ""},
+		{"LevelError_TXT_Terminal", slog.LevelError, config.LogFormatTXT, true, ""},
+		{"LevelError_TXT_NonTerminal", slog.LevelError, config.LogFormatTXT, false, ""},
+		{"LevelError_JSON_Terminal", slog.LevelError, config.LogFormatJSON, true, ""},
+		{"LevelError_JSON_NonTerminal", slog.LevelError, config.LogFormatJSON, false, ""},
 	}
 
 	for _, tt := range tests {
@@ -91,10 +91,10 @@ func TestSetupLogFormats(t *testing.T) {
 		expectedTrafficFmt config.LogFormat
 		expectError        bool
 	}{
-		{"ValidFormats_TXT_JSON", "txt", "json", config.LogFormat_TXT, config.LogFormat_JSON, false},
-		{"ValidFormats_JSON_TXT", "json", "txt", config.LogFormat_JSON, config.LogFormat_TXT, false},
-		{"InvalidTerminalFormat", "invalid", "json", config.LogFormat_TXT, config.LogFormat_JSON, true},
-		{"InvalidTrafficFormat", "txt", "invalid", config.LogFormat_TXT, config.LogFormat_JSON, true},
+		{"ValidFormats_TXT_JSON", "txt", "json", config.LogFormatTXT, config.LogFormatJSON, false},
+		{"ValidFormats_JSON_TXT", "json", "txt", config.LogFormatJSON, config.LogFormatTXT, false},
+		{"InvalidTerminalFormat", "invalid", "json", config.LogFormatTXT, config.LogFormatJSON, true},
+		{"InvalidTrafficFormat", "txt", "invalid", config.LogFormatTXT, config.LogFormatJSON, true},
 	}
 
 	for _, tt := range tests {
@@ -105,7 +105,7 @@ func TestSetupLogFormats(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err)
-				assert.Equal(t, config.LogFormat_TXT, cfg.GetTerminalOutputFormat())
+				assert.Equal(t, config.LogFormatTXT, cfg.GetTerminalOutputFormat())
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedTermFmt, cfg.GetTerminalOutputFormat())

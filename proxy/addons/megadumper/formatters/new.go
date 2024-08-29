@@ -11,9 +11,9 @@ func NewMegaDumpFormatter(format config.LogFormat) (MegaDumpFormatter, error) {
 	var f MegaDumpFormatter
 
 	switch format {
-	case config.LogFormat_JSON:
+	case config.LogFormatJSON:
 		f = &JSON{}
-	case config.LogFormat_TXT:
+	case config.LogFormatTXT:
 		f = &PlainText{}
 	default:
 		return nil, fmt.Errorf("unsupported log format: %v", format)

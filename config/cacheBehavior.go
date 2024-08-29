@@ -7,6 +7,7 @@ import (
 	config_cache "github.com/proxati/llm_proxy/v2/config/cache"
 )
 
+// CacheEngine is an enum that represents different cache storage engines
 type CacheEngine int
 
 func (c CacheEngine) String() string {
@@ -21,7 +22,10 @@ func (c CacheEngine) String() string {
 }
 
 const (
+	// CacheEngineMemory is an in-memory cache engine
 	CacheEngineMemory CacheEngine = iota
+
+	// CacheEngineBolt is a file-based cache engine
 	CacheEngineBolt
 )
 
@@ -32,8 +36,8 @@ type cacheBehavior struct {
 	Engine CacheEngine // Storage engine to use for cache
 }
 
-// NewCacheBehavior creates a new cacheBehavior object
-func NewCacheBehavior(dir string, engineTitle string) (*cacheBehavior, error) {
+// newCacheBehavior creates a new cacheBehavior object
+func newCacheBehavior(dir string, engineTitle string) (*cacheBehavior, error) {
 	cb := &cacheBehavior{Dir: dir}
 	err := cb.SetEngine(engineTitle)
 	if err != nil {

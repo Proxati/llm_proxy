@@ -20,7 +20,7 @@ func TestNewLogDestinations(t *testing.T) {
 	invalidPath := `/c:\/../*^`
 
 	t.Run("Empty logTarget defaults to stdout", func(t *testing.T) {
-		configs, err := NewLogDestinations(logger, "", config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, "", config.LogFormatJSON)
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
 		assert.Equal(t, "stdout", configs[0].target)
@@ -29,7 +29,7 @@ func TestNewLogDestinations(t *testing.T) {
 	t.Run("Valid file path with file:// prefix creates writer for directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		configs, err := NewLogDestinations(logger, "file://"+tmpDir, config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, "file://"+tmpDir, config.LogFormatJSON)
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
 		assert.Equal(t, tmpDir, configs[0].target)
@@ -38,7 +38,7 @@ func TestNewLogDestinations(t *testing.T) {
 	t.Run("Valid file path without file:// prefix creates writer for directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		configs, err := NewLogDestinations(logger, tmpDir, config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, tmpDir, config.LogFormatJSON)
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
 		assert.Equal(t, tmpDir, configs[0].target)
@@ -47,7 +47,7 @@ func TestNewLogDestinations(t *testing.T) {
 	t.Run("Valid file path with http:// prefix creates writer for an asyncREST", func(t *testing.T) {
 		exampleURL := "http://example.com"
 
-		configs, err := NewLogDestinations(logger, exampleURL, config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, exampleURL, config.LogFormatJSON)
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
 		assert.Equal(t, exampleURL, configs[0].target)
@@ -56,7 +56,7 @@ func TestNewLogDestinations(t *testing.T) {
 	t.Run("Valid file path with https:// prefix creates writer for an asyncREST", func(t *testing.T) {
 		exampleURL := "https://example.com"
 
-		configs, err := NewLogDestinations(logger, exampleURL, config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, exampleURL, config.LogFormatJSON)
 		require.NoError(t, err)
 		require.Len(t, configs, 1)
 		assert.Equal(t, exampleURL, configs[0].target)
@@ -66,7 +66,7 @@ func TestNewLogDestinations(t *testing.T) {
 		exampleURL := "https://example.com"
 		tmpDir := t.TempDir()
 
-		configs, err := NewLogDestinations(logger, exampleURL+","+tmpDir, config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, exampleURL+","+tmpDir, config.LogFormatJSON)
 		require.NoError(t, err)
 		require.Len(t, configs, 2)
 		assert.Equal(t, exampleURL, configs[0].target)
@@ -77,7 +77,7 @@ func TestNewLogDestinations(t *testing.T) {
 		tmpDir1 := t.TempDir()
 		tmpDir2 := t.TempDir()
 
-		configs, err := NewLogDestinations(logger, tmpDir1+","+tmpDir2, config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, tmpDir1+","+tmpDir2, config.LogFormatJSON)
 		require.NoError(t, err)
 		require.Len(t, configs, 2)
 		assert.Equal(t, tmpDir1, configs[0].target)
@@ -85,7 +85,7 @@ func TestNewLogDestinations(t *testing.T) {
 	})
 
 	t.Run("Invalid file path returns error", func(t *testing.T) {
-		_, err := NewLogDestinations(logger, invalidPath, config.LogFormat_JSON)
+		_, err := NewLogDestinations(logger, invalidPath, config.LogFormatJSON)
 		require.Error(t, err)
 	})
 
@@ -93,7 +93,7 @@ func TestNewLogDestinations(t *testing.T) {
 		tmpDir1 := t.TempDir()
 		tmpDir2 := t.TempDir()
 
-		configs, err := NewLogDestinations(logger, fmt.Sprintf("file://%s,%s,%s", tmpDir1, invalidPath, tmpDir2), config.LogFormat_JSON)
+		configs, err := NewLogDestinations(logger, fmt.Sprintf("file://%s,%s,%s", tmpDir1, invalidPath, tmpDir2), config.LogFormatJSON)
 		require.Error(t, err)
 		require.Nil(t, configs)
 	})
@@ -104,7 +104,7 @@ func TestLogDestination_Write(t *testing.T) {
 	logger := slog.Default()
 	tmpDir := t.TempDir()
 	logTarget := "file://" + tmpDir
-	format := config.LogFormat_JSON
+	format := config.LogFormatJSON
 
 	// Create LogDestination
 	logDestinations, err := NewLogDestinations(logger, logTarget, format)

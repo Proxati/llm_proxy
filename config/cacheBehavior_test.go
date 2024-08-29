@@ -15,7 +15,7 @@ func TestGetCacheStorageConfig(t *testing.T) {
 	logger := slog.Default()
 
 	t.Run("MemoryEngine", func(t *testing.T) {
-		cb, err := NewCacheBehavior("/tmp", "memory")
+		cb, err := newCacheBehavior("/tmp", "memory")
 		require.NotNil(t, cb)
 		require.NoError(t, err)
 
@@ -25,7 +25,7 @@ func TestGetCacheStorageConfig(t *testing.T) {
 	})
 
 	t.Run("BoltEngine", func(t *testing.T) {
-		cb, err := NewCacheBehavior("/tmp", "bolt")
+		cb, err := newCacheBehavior("/tmp", "bolt")
 		require.NotNil(t, cb)
 		require.NoError(t, err)
 
@@ -35,7 +35,7 @@ func TestGetCacheStorageConfig(t *testing.T) {
 	})
 
 	t.Run("InvalidEngine", func(t *testing.T) {
-		cb, err := NewCacheBehavior("/tmp", "invalid")
+		cb, err := newCacheBehavior("/tmp", "invalid")
 		require.Error(t, err)
 		require.Nil(t, cb)
 	})

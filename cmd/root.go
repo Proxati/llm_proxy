@@ -91,7 +91,7 @@ func printSplash(logLevel slog.Level, logFormat config.LogFormat, isTTY bool, tx
 		return ""
 	}
 
-	if logFormat != config.LogFormat_TXT {
+	if logFormat != config.LogFormatTXT {
 		return ""
 	}
 
@@ -146,21 +146,21 @@ func init() {
 	rootCmd.PersistentFlags().MarkHidden("trace")
 
 	rootCmd.PersistentFlags().StringVarP(
-		&cfg.HttpBehavior.Listen, "listen", "l", cfg.HttpBehavior.Listen,
+		&cfg.HTTPBehavior.Listen, "listen", "l", cfg.HTTPBehavior.Listen,
 		"Address to listen on",
 	)
 
 	// Certificate Settings
 	rootCmd.PersistentFlags().StringVarP(
-		&cfg.HttpBehavior.CertDir, "ca_dir", "c", cfg.HttpBehavior.CertDir,
+		&cfg.HTTPBehavior.CertDir, "ca_dir", "c", cfg.HTTPBehavior.CertDir,
 		"Path to the local trusted certificate, for TLS MITM",
 	)
 	rootCmd.PersistentFlags().BoolVarP(
-		&cfg.HttpBehavior.InsecureSkipVerifyTLS, "skip-upstream-tls-verify", "K", cfg.HttpBehavior.InsecureSkipVerifyTLS,
+		&cfg.HTTPBehavior.InsecureSkipVerifyTLS, "skip-upstream-tls-verify", "K", cfg.HTTPBehavior.InsecureSkipVerifyTLS,
 		"Skip upstream TLS cert verification",
 	)
 	rootCmd.PersistentFlags().BoolVarP(
-		&cfg.HttpBehavior.NoHttpUpgrader, "no-http-upgrader", "", cfg.HttpBehavior.NoHttpUpgrader,
+		&cfg.HTTPBehavior.NoHTTPUpgrader, "no-http-upgrader", "", cfg.HTTPBehavior.NoHTTPUpgrader,
 		"Disable the automatic http->https request upgrader",
 	)
 	// Logging Settings

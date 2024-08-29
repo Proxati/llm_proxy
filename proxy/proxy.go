@@ -84,12 +84,12 @@ func configureDumper(logger *slog.Logger, cfg *config.Config, logSources config.
 func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 	metaAdd := newMetaAddon(logger, cfg)
 
-	ca, err := newCA(logger, cfg.HttpBehavior.CertDir)
+	ca, err := newCA(logger, cfg.HTTPBehavior.CertDir)
 	if err != nil {
 		return nil, fmt.Errorf("setupCA error: %w", err)
 	}
 
-	p, err := newProxy(cfg.HttpBehavior.Listen, cfg.HttpBehavior.InsecureSkipVerifyTLS, ca)
+	p, err := newProxy(cfg.HTTPBehavior.Listen, cfg.HTTPBehavior.InsecureSkipVerifyTLS, ca)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create proxy: %w", err)
 	}
@@ -127,9 +127,9 @@ func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 	// Always add the request ID to the response headers
 	metaAdd.addAddon(addons.NewAddIDToHeaders())
 
-	logger.Debug("http to https upgrade", "enabled", !cfg.HttpBehavior.NoHttpUpgrader)
+	logger.Debug("http to https upgrade", "enabled", !cfg.HTTPBehavior.NoHTTPUpgrader)
 	// upgrade the request _after_ it's logged
-	if !cfg.HttpBehavior.NoHttpUpgrader {
+	if !cfg.HTTPBehavior.NoHTTPUpgrader {
 		// upgrade all http requests to https
 		metaAdd.addAddon(addons.NewSchemeUpgrader(logger))
 	}

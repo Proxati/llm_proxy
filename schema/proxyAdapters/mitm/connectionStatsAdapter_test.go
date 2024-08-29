@@ -30,7 +30,7 @@ func TestConnectionStatsAdapter(t *testing.T) {
 	assert.NotNil(t, statsAdapter)
 	assert.Equal(t, pxFlow, statsAdapter.f)
 
-	assert.Equal(t, UnknownAddr, statsAdapter.GetClientIP())
+	assert.Equal(t, unknownAddr, statsAdapter.GetClientIP())
 	assert.Equal(t, pxFlow.Id.String(), statsAdapter.GetProxyID())
 	assert.Equal(t, "http://example.com", statsAdapter.GetRequestURL())
 }

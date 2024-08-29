@@ -12,6 +12,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
+// ProxyRequest is a struct that represents a request to be proxied
 type ProxyRequest struct {
 	Method       string      `json:"method,omitempty"`
 	URL          *url.URL    `json:"url,omitempty"`

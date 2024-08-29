@@ -1,4 +1,4 @@
-package openai_com
+package openai
 
 import (
 	"embed"
@@ -10,8 +10,8 @@ import (
 //go:embed data.json
 var pricingDataJSON embed.FS
 
-// API_Endpoint_Data is populated from init() with data loaded from the embedded JSON file
-var API_Endpoint_Data []APIEndpoint
+// APIEndpointData is populated from init() with data loaded from the embedded JSON file
+var APIEndpointData []APIEndpoint
 
 // Product represents a model or other product attached to an endpoint
 type Product struct {
@@ -32,7 +32,7 @@ func loadEmbeddedDataJSON() error {
 	if err != nil {
 		return fmt.Errorf("failed to read embedded data.json: %w", err)
 	}
-	return json.Unmarshal(data, &API_Endpoint_Data)
+	return json.Unmarshal(data, &APIEndpointData)
 }
 
 func init() {

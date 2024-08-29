@@ -6,13 +6,12 @@ import (
 	"sync"
 
 	"github.com/bojanz/currency"
-
-	"github.com/proxati/llm_proxy/v2/schema/providers/openai_com"
+	openai "github.com/proxati/llm_proxy/v2/schema/providers/openai"
 )
 
 const (
-	OutputFormatFull    = "URL: {url} Model: {model} inputCost: {inputCost} outputCost {outputCost} = Request Cost: {totalReqCost} Grand Total: {grandTotal}"
-	OutputFormatCompact = "Request Cost: {totalReqCost} Grand Total: {grandTotal}"
+	outputFormatFull    = "URL: {url} Model: {model} inputCost: {inputCost} outputCost {outputCost} = Request Cost: {totalReqCost} Grand Total: {grandTotal}"
+	outputFormatCompact = "Request Cost: {totalReqCost} Grand Total: {grandTotal}"
 )
 
 // AuditOutput is a struct that holds the output data (cost totals) from a single transaction
@@ -26,13 +25,14 @@ type AuditOutput struct {
 }
 
 func (output *AuditOutput) String() string {
-	return output.OutputStringFormatter(OutputFormatFull)
+	return output.outputStringFormatter(outputFormatFull)
 }
 
-// OutputStringFormatter takes an AuditOutput and a format string and returns a formatted string
-func (output *AuditOutput) OutputStringFormatter(formatString string) string {
+// outputStringFormatter takes an AuditOutput and a format string and returns a formatted string.
+// This is currently unused, because the individual struct fields are being passed to slog fields.
+func (output *AuditOutput) outputStringFormatter(formatString string) string {
 	if formatString == "" {
-		formatString = OutputFormatFull
+		formatString = outputFormatFull
 	}
 
 	data := map[string]string{
@@ -56,8 +56,8 @@ func (output *AuditOutput) OutputStringFormatter(formatString string) string {
 // CostCounter is a struct that holds the state of the cost counter
 type CostCounter struct {
 	grandTotal  currency.Amount
-	providers   map[string][]*API_Provider // key: provider URL, value: slice of models/products
-	lookupCache map[string]*API_Provider   // key: provider URL + model, value: API_Provider
+	providers   map[string][]*APIProvider // key: provider URL, value: slice of models/products
+	lookupCache map[string]*APIProvider   // key: provider URL + model, value: API_Provider
 	formatter   *currency.Formatter
 	rwMutex     sync.RWMutex
 }
@@ -69,16 +69,16 @@ func NewCostCounter(currencyLocale string) *CostCounter {
 	loc := currency.NewLocale(currencyLocale) // "en-US" is the default
 
 	cc := &CostCounter{
-		providers:   make(map[string][]*API_Provider),
-		lookupCache: make(map[string]*API_Provider),
+		providers:   make(map[string][]*APIProvider),
+		lookupCache: make(map[string]*APIProvider),
 		formatter:   currency.NewFormatter(loc),
 		rwMutex:     sync.RWMutex{},
 	}
 
-	// iterate over the pricing data and populate this struct, data loaded from json in the openai_com package
-	for _, provider := range openai_com.API_Endpoint_Data {
+	// iterate over the pricing data and populate this struct, data loaded from json in the openai package
+	for _, provider := range openai.APIEndpointData {
 		for _, product := range provider.Products {
-			apiProvider, err := newAPI_Provider(provider.URL, product.Name, product.InputTokenCost, product.OutputTokenCost, "USD")
+			apiProvider, err := newAPIProvider(provider.URL, product.Name, product.InputTokenCost, product.OutputTokenCost, "USD")
 			if err != nil {
 				panic(fmt.Sprintf("Error creating API_Provider: %v", err))
 			}
@@ -99,7 +99,7 @@ func (cc *CostCounter) String() string {
 	return cc.grandTotal.String()
 }
 
-func (cc *CostCounter) providerCacheLookup(cacheKey string) *API_Provider {
+func (cc *CostCounter) providerCacheLookup(cacheKey string) *APIProvider {
 	cc.rwMutex.RLock()
 	defer cc.rwMutex.RUnlock()
 
@@ -109,7 +109,7 @@ func (cc *CostCounter) providerCacheLookup(cacheKey string) *API_Provider {
 	return nil
 }
 
-func (cc *CostCounter) providerLookup(url, product string) *API_Provider {
+func (cc *CostCounter) providerLookup(url, product string) *APIProvider {
 	cacheKey := fmt.Sprintf("%s|%s", url, product)
 
 	// Check if the result is already in the cache
@@ -135,7 +135,7 @@ func (cc *CostCounter) providerLookup(url, product string) *API_Provider {
 // and calculates the cost of the transaction, returning a struct with the output data
 func (cc *CostCounter) Add(req ProxyRequest, resp ProxyResponse) (*AuditOutput, error) {
 	// parse the request
-	chatCompReq, err := openai_com.NewOpenAIChatCompletionRequest(&req.Body)
+	chatCompReq, err := openai.NewOpenAIChatCompletionRequest(&req.Body)
 	if err != nil || chatCompReq == nil {
 		return nil, fmt.Errorf("failed to create OpenAI completion request: %v", err)
 	}
@@ -150,7 +150,7 @@ func (cc *CostCounter) Add(req ProxyRequest, resp ProxyResponse) (*AuditOutput, 
 	provider.addRequest(&req, chatCompReq)
 
 	// parse the response object
-	chatCompResp, err := openai_com.NewOpenAIChatCompletionResponse(&resp.Body)
+	chatCompResp, err := openai.NewOpenAIChatCompletionResponse(&resp.Body)
 	if err != nil || chatCompResp == nil {
 		return nil, fmt.Errorf("failed to create OpenAI completion response: %v", err)
 	}

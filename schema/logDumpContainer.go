@@ -9,7 +9,11 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 )
 
+// SchemaVersion is the version of the schema, used for backwards compatibility.
 const SchemaVersion string = "v2"
+
+// ObjectTypeDefault is the default object type for the log dump container, used for identifying
+// the file type when loading various objects from json files.
 const ObjectTypeDefault string = "llm_proxy_traffic_log"
 
 // LogDumpContainer holds the request and response data for a given flow

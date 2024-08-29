@@ -8,7 +8,8 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-type API_Provider struct {
+// APIProvider holds the various pricing and model data for a single API provider, e.g., OpenAI.com
+type APIProvider struct {
 	name               string
 	model              string
 	currencyUnit       string
@@ -22,8 +23,8 @@ type API_Provider struct {
 	rwMutex            sync.RWMutex
 }
 
-// newAPI_Provider creates a single object for a URL/Model combination
-func newAPI_Provider(name, model, inputCost, outputCost, currencyUnit string) (*API_Provider, error) {
+// newAPIProvider creates a single object for a URL/Model combination
+func newAPIProvider(name, model, inputCost, outputCost, currencyUnit string) (*APIProvider, error) {
 	iCost, err := currency.NewAmount(inputCost, currencyUnit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create input currency amount: %v", err)
@@ -36,7 +37,7 @@ func newAPI_Provider(name, model, inputCost, outputCost, currencyUnit string) (*
 
 	total, _ := currency.NewAmount("0", currencyUnit)
 
-	return &API_Provider{
+	return &APIProvider{
 		name:               name,
 		model:              model,
 		currencyUnit:       currencyUnit,
@@ -50,27 +51,27 @@ func newAPI_Provider(name, model, inputCost, outputCost, currencyUnit string) (*
 		rwMutex:            sync.RWMutex{},
 	}, nil
 }
-func (cc *API_Provider) String() string {
+func (cc *APIProvider) String() string {
 	cc.rwMutex.RLock()
 	defer cc.rwMutex.RUnlock()
 	return cc.totalCost.Round().String()
 }
 
-func (cc *API_Provider) addRequest(req *ProxyRequest, chatCompReq *openai.ChatCompletionRequest) {
+func (cc *APIProvider) addRequest(req *ProxyRequest, chatCompReq *openai.ChatCompletionRequest) {
 	cc.rwMutex.Lock()
 	defer cc.rwMutex.Unlock()
 	cc.apiRequests = append(cc.apiRequests, req)
 	cc.apiRequestBodies = append(cc.apiRequestBodies, chatCompReq)
 }
 
-func (cc *API_Provider) addResponse(resp *ProxyResponse, chatCompResp *openai.ChatCompletionResponse) {
+func (cc *APIProvider) addResponse(resp *ProxyResponse, chatCompResp *openai.ChatCompletionResponse) {
 	cc.rwMutex.Lock()
 	defer cc.rwMutex.Unlock()
 	cc.apiResponses = append(cc.apiResponses, resp)
 	cc.apiResponseBodies = append(cc.apiResponseBodies, chatCompResp)
 }
 
-func (cc *API_Provider) calculateCost(chatCompResp *openai.ChatCompletionResponse) (inputCost, outputCost currency.Amount, err error) {
+func (cc *APIProvider) calculateCost(chatCompResp *openai.ChatCompletionResponse) (inputCost, outputCost currency.Amount, err error) {
 	// extract token quant, and calculate cost of transaction
 	inputTokens := fmt.Sprint(chatCompResp.Usage.PromptTokens)
 	outputTokens := fmt.Sprint(chatCompResp.Usage.CompletionTokens)

@@ -1,4 +1,4 @@
-package openai_com
+package openai
 
 import (
 	"fmt"
@@ -9,18 +9,18 @@ import (
 )
 
 func TestLoadEmbeddedDataJSON(t *testing.T) {
-	assert.NotEmpty(t, API_Endpoint_Data, "init() populates this variable")
+	assert.NotEmpty(t, APIEndpointData, "init() populates this variable")
 
 	// Reset API_Endpoint_Pricing before test
-	API_Endpoint_Data = nil
+	APIEndpointData = nil
 
 	err := loadEmbeddedDataJSON()
 	assert.Nil(t, err, "Expected no error loading data.json, but got an error")
 
-	assert.NotEmpty(t, API_Endpoint_Data, "Expected API_Endpoint_Pricing to be populated, but it was empty")
+	assert.NotEmpty(t, APIEndpointData, "Expected API_Endpoint_Pricing to be populated, but it was empty")
 
 	// alphabetize the list of products, to confirm the JSON file is sorted correctly
-	for _, endpoint := range API_Endpoint_Data {
+	for _, endpoint := range APIEndpointData {
 		unSortedProducts := make([]Product, len(endpoint.Products))
 		copy(unSortedProducts, endpoint.Products)
 

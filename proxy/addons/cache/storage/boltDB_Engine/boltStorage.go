@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
+	"github.com/proxati/llm_proxy/v2/internal/fileutils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache/key"
 	bolt "go.etcd.io/bbolt"
 )
@@ -118,7 +118,7 @@ func NewDB(dbFileName string) (*DB, error) {
 	}
 
 	dirPath := filepath.Dir(dbFileName)
-	err := fileUtils.DirExistsOrCreate(dirPath)
+	err := fileutils.DirExistsOrCreate(dirPath)
 	if err != nil {
 		return nil, fmt.Errorf("error creating db parent directory: %s", dirPath)
 	}

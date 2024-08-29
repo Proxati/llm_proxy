@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
+	"github.com/proxati/llm_proxy/v2/internal/fileutils"
 )
 
 // JSONConfigFile is a struct that backs a llm_proxy_cache.json file, which configures the cache storage object
@@ -44,7 +44,7 @@ func NewStorageJSON(
 		cacheConfigFileName: cacheConfigFileName,
 	}
 
-	if fileUtils.FileExists(iFile.filePath) {
+	if fileutils.FileExists(iFile.filePath) {
 		logger.Debug("Loading existing cache config file", "filePath", iFile.filePath)
 		if err := iFile.Read(); err != nil {
 			return nil, fmt.Errorf("failed to load cache config file: %s", err)

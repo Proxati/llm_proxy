@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
+	"github.com/proxati/llm_proxy/v2/internal/fileutils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
@@ -264,7 +264,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		hitCounter.Store(0) // reset the counter
 
 		// setup a new watcher
-		watch, err := fileUtils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
+		watch, err := fileutils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
 		require.NoError(t, err)
 
 		// make a request using that client, through the proxy
@@ -281,7 +281,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		assert.Equal(t, expectedResponse, body)
 
 		// wait for the proxy to write the log file
-		err = fileUtils.WaitForFile(logger, watch, defaultSleepTime)
+		err = fileutils.WaitForFile(logger, watch, defaultSleepTime)
 		require.NoError(t, err)
 
 		// check that the log file was created
@@ -301,7 +301,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.NoError(t, err)
 
 		// setup a new watcher
-		watch, err = fileUtils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
+		watch, err = fileutils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
 		require.NoError(t, err)
 
 		// make another request using that client, through the proxy
@@ -311,7 +311,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.Equal(t, int32(2), hitCounter.Load())
 
 		// sleep to allow the proxy to write the log file
-		err = fileUtils.WaitForFile(logger, watch, defaultSleepTime)
+		err = fileutils.WaitForFile(logger, watch, defaultSleepTime)
 		require.NoError(t, err)
 
 		// check the log
@@ -331,7 +331,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 	t.Run("TestDirLoggerJSON", func(t *testing.T) {
 		hitCounter.Store(0) // reset the counter
 
-		watch, err := fileUtils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
+		watch, err := fileutils.NewFileWatcher(logger, tmpDir+"/"+outputSubdir)
 		require.NoError(t, err)
 
 		// make another request using that client, through the proxy
@@ -341,7 +341,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		require.Equal(t, int32(1), hitCounter.Load())
 
 		// sleep to allow the proxy to write the log file
-		err = fileUtils.WaitForFile(logger, watch, defaultSleepTime)
+		err = fileutils.WaitForFile(logger, watch, defaultSleepTime)
 		require.NoError(t, err)
 
 		// check the log

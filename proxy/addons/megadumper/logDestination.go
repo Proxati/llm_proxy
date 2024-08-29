@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/internal/fileUtils"
+	"github.com/proxati/llm_proxy/v2/internal/fileutils"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers"
 	"github.com/proxati/llm_proxy/v2/schema"
@@ -89,7 +89,7 @@ func NewLogDestinations(
 			formatter: formatter,
 		}
 
-		if fileUtils.IsValidFilePathFormat(target) {
+		if fileutils.IsValidFilePathFormat(target) {
 			ld.writer, err = writers.NewToDir(logger, target, formatter)
 			if err != nil {
 				return nil, fmt.Errorf("could not create writer: %w", err)

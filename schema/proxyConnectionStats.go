@@ -6,6 +6,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 )
 
+// ProxyConnectionStats is a struct that holds the output data (connection stats) from a single transaction
 type ProxyConnectionStats struct {
 	ClientAddress string `json:"client_address"`
 	URL           string `json:"url"`
@@ -13,6 +14,7 @@ type ProxyConnectionStats struct {
 	ProxyID       string `json:"proxy_id,omitempty"`
 }
 
+// ToJSON converts the ProxyConnectionStats object to a JSON byte slice
 func (obj *ProxyConnectionStats) ToJSON() []byte {
 	jsonData, err := json.Marshal(obj)
 	if err != nil {
@@ -22,14 +24,13 @@ func (obj *ProxyConnectionStats) ToJSON() []byte {
 	return jsonData
 }
 
+// ToJSONstr converts the ProxyConnectionStats object to a JSON string
 func (obj *ProxyConnectionStats) ToJSONstr() string {
 	return string(obj.ToJSON())
 }
 
 func newConnectionStats(cs proxyadapters.ConnectionStatsReaderAdapter) *ProxyConnectionStats {
 	logOutput := &ProxyConnectionStats{
-		// ClientAddress: getClientAddr(f),
-		// ProxyID:       f.Id.String(),
 		ClientAddress: cs.GetClientIP(),
 		ProxyID:       cs.GetProxyID(),
 		URL:           cs.GetRequestURL(),

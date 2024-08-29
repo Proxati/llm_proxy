@@ -11,6 +11,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
+// ProxyResponse is a struct that represents a response from a proxied request
 type ProxyResponse struct {
 	Status       int         `json:"status,omitempty"`
 	Header       http.Header `json:"header"`
@@ -18,14 +19,17 @@ type ProxyResponse struct {
 	headerFilter *config.HeaderFilterGroup
 }
 
+// GetStatusCode returns the status code in the ProxyResponse object
 func (pRes *ProxyResponse) GetStatusCode() int {
 	return pRes.Status
 }
 
+// GetHeaders returns the headers in the ProxyResponse object
 func (pRes *ProxyResponse) GetHeaders() http.Header {
 	return pRes.Header
 }
 
+// GetBodyBytes returns the body as a byte slice
 func (pRes *ProxyResponse) GetBodyBytes() []byte {
 	return []byte(pRes.Body)
 }
@@ -39,10 +43,10 @@ func (pRes *ProxyResponse) filterHeaders() {
 }
 
 // loadBody loads the request body into the ProxyRequest object
-func (pRes *ProxyResponse) loadBody(body []byte, content_encoding string) error {
+func (pRes *ProxyResponse) loadBody(body []byte, contentEncoding string) error {
 	var bodyIsPrintable bool
 
-	decodedBody, err := utils.DecodeBody(body, content_encoding)
+	decodedBody, err := utils.DecodeBody(body, contentEncoding)
 	if err != nil {
 		return fmt.Errorf("error decoding body: %w", err)
 	}
@@ -118,7 +122,7 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// NewFromMITMRequest creates a new ProxyRequest from a MITM proxy request object
+// NewProxyResponse creates a new ProxyRequest from a MITM proxy request object
 func NewProxyResponse(req proxyadapters.ResponseReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("response is nil, unable to create ProxyResponse")
@@ -138,7 +142,8 @@ func NewProxyResponse(req proxyadapters.ResponseReaderAdapter, headerFilter *con
 	return pRes, nil
 }
 
-// NewFromJSONBytes unmarshals a JSON object into a TrafficObject. Headers must be filtered later.
+// NewProxyResponseFromJSONBytes unmarshals a JSON object into a TrafficObject.
+// Headers must be filtered later.
 func NewProxyResponseFromJSONBytes(data []byte) (*ProxyResponse, error) {
 	pRes := &ProxyResponse{}
 	err := json.Unmarshal(data, pRes)

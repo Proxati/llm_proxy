@@ -32,7 +32,7 @@ func TestCostCounterString(t *testing.T) {
 func TestProviderLookup(t *testing.T) {
 	cc := NewCostCounterDefaults()
 	// Assuming there's a provider with URL "http://example.com" and product "testModel" for testing
-	productURL := openai.API_Endpoint_Data[0]
+	productURL := openai.APIEndpointData[0]
 	model := productURL.Products[0]
 
 	provider := cc.providerLookup(productURL.URL, model.Name)
@@ -59,7 +59,7 @@ func TestProviderLookup(t *testing.T) {
 func TestAdd(t *testing.T) {
 	cc := NewCostCounterDefaults()
 	// Setup: Assuming there's a provider with URL "http://example.com" and product "testModel" for testing
-	productURL := openai.API_Endpoint_Data[0]
+	productURL := openai.APIEndpointData[0]
 	model := productURL.Products[0]
 	provider := cc.providerLookup(productURL.URL, model.Name)
 

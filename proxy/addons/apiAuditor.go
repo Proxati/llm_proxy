@@ -37,7 +37,7 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 
 		// only account when the request domain is supported
 		reqHostname := f.Request.URL.Hostname()
-		_, shouldAudit := providers.API_Hostnames[reqHostname]
+		_, shouldAudit := providers.APIHostnames[reqHostname]
 		if !shouldAudit {
 			logger.Debug(
 				"skipping accounting for unsupported API",

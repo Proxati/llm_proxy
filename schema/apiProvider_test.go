@@ -11,37 +11,37 @@ import (
 
 func TestNewAPI_Provider(t *testing.T) {
 	t.Run("Valid parameters", func(t *testing.T) {
-		provider, err := newAPI_Provider("test", "model", "0.01", "0.02", "USD")
+		provider, err := newAPIProvider("test", "model", "0.01", "0.02", "USD")
 		assert.NotNil(t, provider)
 		assert.NoError(t, err)
 	})
 	t.Run("Invalid input cost", func(t *testing.T) {
-		provider, err := newAPI_Provider("test", "model", "invalid", "0.02", "USD")
+		provider, err := newAPIProvider("test", "model", "invalid", "0.02", "USD")
 		assert.Nil(t, provider)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid output cost", func(t *testing.T) {
-		provider, err := newAPI_Provider("test", "model", "0.01", "invalid", "USD")
+		provider, err := newAPIProvider("test", "model", "0.01", "invalid", "USD")
 		assert.Nil(t, provider)
 		assert.Error(t, err)
 	})
 
 	t.Run("Invalid currency type", func(t *testing.T) {
-		provider, err := newAPI_Provider("test", "model", "0.01", "0.02", "nope")
+		provider, err := newAPIProvider("test", "model", "0.01", "0.02", "nope")
 		assert.Nil(t, provider)
 		assert.Error(t, err)
 	})
 }
 
 func TestAPI_ProviderString(t *testing.T) {
-	provider, _ := newAPI_Provider("test", "model", "0.01", "0.02", "USD")
+	provider, _ := newAPIProvider("test", "model", "0.01", "0.02", "USD")
 	provider.totalCost, _ = currency.NewAmount("1", "USD")
 	assert.Equal(t, "1.00 USD", provider.String())
 }
 
 func TestAddRequest(t *testing.T) {
-	provider, _ := newAPI_Provider("test", "model", "0.01", "0.02", "USD")
+	provider, _ := newAPIProvider("test", "model", "0.01", "0.02", "USD")
 	req := &ProxyRequest{}
 	chatCompReq := &openai.ChatCompletionRequest{}
 	provider.addRequest(req, chatCompReq)
@@ -51,7 +51,7 @@ func TestAddRequest(t *testing.T) {
 
 func TestAddResponse(t *testing.T) {
 	t.Run("Normal cost summing", func(t *testing.T) {
-		provider, _ := newAPI_Provider("test", "model", "0.01", "0.02", "USD")
+		provider, _ := newAPIProvider("test", "model", "0.01", "0.02", "USD")
 		resp := &ProxyResponse{}
 		chatCompResp := &openai.ChatCompletionResponse{
 			Usage: openai.Usage{
@@ -95,7 +95,7 @@ func TestAddResponse(t *testing.T) {
 	})
 
 	t.Run("Empty cost summing", func(t *testing.T) {
-		provider, _ := newAPI_Provider("test", "model", "0.01", "0.02", "USD")
+		provider, _ := newAPIProvider("test", "model", "0.01", "0.02", "USD")
 		resp := &ProxyResponse{}
 		chatCompResp := &openai.ChatCompletionResponse{} // empty usage, no tokens spent
 

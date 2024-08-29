@@ -177,9 +177,9 @@ func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 func startProxy(logger *slog.Logger, p *px.Proxy, shutdown chan os.Signal) error {
 	go func() {
 		<-shutdown
-		logger.Info("Received SIGINT, shutting down now...")
+		logger.Info("Received shutdown signal, closing addons and proxy...")
 
-		// Then close all of the addon connections
+		// Close all of the "closable" addons (prevent leaking goroutines or truncating network/file writes)
 		for _, addon := range p.Addons {
 			myAddon, ok := addon.(addons.ClosableAddon)
 			if !ok {
@@ -187,16 +187,20 @@ func startProxy(logger *slog.Logger, p *px.Proxy, shutdown chan os.Signal) error
 			}
 			logger.Debug("Closing addon", "addonName", myAddon)
 			if err := myAddon.Close(); err != nil {
-				logger.Error("Could not close", "addon", myAddon, "error", err)
+				logger.Error(
+					"Could not close addon",
+					"addon", myAddon,
+					"error", err,
+				)
 			}
 		}
-		// Close the http client/server connections first
+
 		logger.Debug("Closing proxy server...")
 
-		// Manual sleep to avoid race condition on connection close
+		// Manual sleep to avoid a race condition on connection close
 		time.Sleep(100 * time.Millisecond)
 
-		// Create a context that will be cancelled after N seconds
+		// Create a context that will be cancelled after timeout
 		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(60*time.Second))
 		defer cancel()
 
@@ -205,7 +209,7 @@ func startProxy(logger *slog.Logger, p *px.Proxy, shutdown chan os.Signal) error
 		}
 	}()
 
-	// block here while the proxy is running
+	// Block here while the proxy is running
 	if err := p.Start(); err != http.ErrServerClosed {
 		return fmt.Errorf("proxy server error: %v", err)
 	}

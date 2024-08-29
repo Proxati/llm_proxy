@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
@@ -140,7 +140,7 @@ func (pReq *ProxyRequest) MarshalJSON() ([]byte, error) {
 }
 
 // NewProxyRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyRequest(req proxyAdapters.RequestReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyRequest, error) {
+func NewProxyRequest(req proxyadapters.RequestReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyRequest, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request is nil, unable to create ProxyRequest")
 	}

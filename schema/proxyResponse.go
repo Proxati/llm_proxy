@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
@@ -119,7 +119,7 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 }
 
 // NewFromMITMRequest creates a new ProxyRequest from a MITM proxy request object
-func NewProxyResponse(req proxyAdapters.ResponseReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyResponse, error) {
+func NewProxyResponse(req proxyadapters.ResponseReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("response is nil, unable to create ProxyResponse")
 	}

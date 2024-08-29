@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 )
 
 const SchemaVersion string = "v2"
@@ -24,7 +24,7 @@ type LogDumpContainer struct {
 }
 
 // NewLogDumpContainer returns a LogDumpContainer with *only* the fields requested in logSources populated
-func NewLogDumpContainer(f proxyAdapters.FlowReaderAdapter, logSources config.LogSourceConfig, doneAt int64, filterReqHeaders, filterRespHeaders *config.HeaderFilterGroup) (*LogDumpContainer, error) {
+func NewLogDumpContainer(f proxyadapters.FlowReaderAdapter, logSources config.LogSourceConfig, doneAt int64, filterReqHeaders, filterRespHeaders *config.HeaderFilterGroup) (*LogDumpContainer, error) {
 	if f == nil {
 		return nil, errors.New("flow is nil")
 	}

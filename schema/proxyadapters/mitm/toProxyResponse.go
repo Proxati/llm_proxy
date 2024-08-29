@@ -3,7 +3,7 @@ package mitm
 import (
 	"fmt"
 
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 	px "github.com/proxati/mitmproxy/proxy"
 )
@@ -12,7 +12,7 @@ import (
 // matching the new request's acceptEncodingHeader. Since all responses are stored as uncompressed
 // strings, the cached response might need to be encoded before being sent. This function encodes
 // the response body based on the requested acceptEncodingHeader argument.
-func ToProxyResponse(pRes proxyAdapters.ResponseReaderAdapter, acceptEncodingHeader string) (*px.Response, error) {
+func ToProxyResponse(pRes proxyadapters.ResponseReaderAdapter, acceptEncodingHeader string) (*px.Response, error) {
 	resp := &px.Response{
 		StatusCode: pRes.GetStatusCode(),
 		Header:     pRes.GetHeaders(),

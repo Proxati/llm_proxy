@@ -3,7 +3,7 @@ package mitm
 import (
 	"net/url"
 
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
@@ -62,16 +62,16 @@ func (fa *FlowAdapter) SetFlow(flow *px.Flow) {
 }
 
 // GetRequest returns the request adapter, to implement the FlowReaderAdapter interface
-func (fa *FlowAdapter) GetRequest() proxyAdapters.RequestReaderAdapter {
+func (fa *FlowAdapter) GetRequest() proxyadapters.RequestReaderAdapter {
 	return fa.req
 }
 
 // GetResponse returns the response adapter, to implement the FlowReaderAdapter interface
-func (fa *FlowAdapter) GetResponse() proxyAdapters.ResponseReaderAdapter {
+func (fa *FlowAdapter) GetResponse() proxyadapters.ResponseReaderAdapter {
 	return fa.res
 }
 
 // GetConnectionStats returns the connection stats adapter, to implement the FlowReaderAdapter interface
-func (fa *FlowAdapter) GetConnectionStats() proxyAdapters.ConnectionStatsReaderAdapter {
+func (fa *FlowAdapter) GetConnectionStats() proxyadapters.ConnectionStatsReaderAdapter {
 	return fa.connectionStats
 }

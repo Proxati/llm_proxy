@@ -52,7 +52,7 @@ func (ma *metaAddon) Close() error {
 	return nil
 }
 
-func (_ *metaAddon) String() string {
+func (*metaAddon) String() string {
 	return "metaAddon"
 }
 

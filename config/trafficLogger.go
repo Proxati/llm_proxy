@@ -23,6 +23,7 @@ func (l *LogSourceConfig) String() string {
 	return string(bytes)
 }
 
+// LogSourceConfigAllTrue is a LogSourceConfig with all fields set to true
 var LogSourceConfigAllTrue = LogSourceConfig{
 	LogConnectionStats: true,
 	LogRequestHeaders:  true,

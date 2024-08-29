@@ -11,15 +11,15 @@ func TestNoDuplicateSuggestions(t *testing.T) {
 	}{
 		{
 			name:        "api_auditor_suggestions",
-			suggestions: api_auditor_suggestions,
+			suggestions: apiAuditorSuggestions,
 		},
 		{
 			name:        "cache_suggestions",
-			suggestions: cache_suggestions,
+			suggestions: cacheSuggestions,
 		},
 		{
 			name:        "simple_suggestions",
-			suggestions: proxyRun_suggestions,
+			suggestions: proxyRunSuggestions,
 		},
 	}
 

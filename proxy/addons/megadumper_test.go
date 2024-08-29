@@ -17,7 +17,7 @@ func TestNewMegaDumpAddon(t *testing.T) {
 
 	t.Run("JSON", func(t *testing.T) {
 		logTarget := "/tmp/logs"
-		logFormat := config.LogFormat_JSON
+		logFormat := config.LogFormatJSON
 		mda, err := NewMegaTrafficDumperAddon(
 			testLogger, logTarget, logFormat, logSources, hfc.RequestToLogs, hfc.ResponseToLogs)
 
@@ -29,7 +29,7 @@ func TestNewMegaDumpAddon(t *testing.T) {
 
 	t.Run("TXT", func(t *testing.T) {
 		logTarget := "/tmp/logs"
-		logFormat := config.LogFormat_TXT
+		logFormat := config.LogFormatTXT
 
 		mda, err := NewMegaTrafficDumperAddon(
 			testLogger, logTarget, logFormat, logSources, hfc.RequestToLogs, hfc.ResponseToLogs)
@@ -42,7 +42,7 @@ func TestNewMegaDumpAddon(t *testing.T) {
 
 	t.Run("< empty >", func(t *testing.T) {
 		logTarget := ""
-		logFormat := config.LogFormat_TXT
+		logFormat := config.LogFormatTXT
 
 		mda, err := NewMegaTrafficDumperAddon(
 			testLogger, logTarget, logFormat, logSources, hfc.RequestToLogs, hfc.ResponseToLogs)
@@ -59,7 +59,7 @@ func TestMegaTrafficDumper_Requestheaders_ValidFlow(t *testing.T) {
 	testLogger := slog.Default()
 
 	logTarget := "/tmp/logs"
-	logFormat := config.LogFormat_JSON
+	logFormat := config.LogFormatJSON
 	logSources := config.LogSourceConfig{}
 	filterHeaders := config.NewHeaderFiltersContainer()
 
@@ -85,7 +85,7 @@ func TestMegaTrafficDumper_Close(t *testing.T) {
 	testLogger := slog.Default()
 
 	logTarget := "/tmp/logs"
-	logFormat := config.LogFormat_JSON
+	logFormat := config.LogFormatJSON
 	logSources := config.LogSourceConfig{}
 	filterHeaders := config.NewHeaderFiltersContainer()
 

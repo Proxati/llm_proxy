@@ -24,9 +24,9 @@ func (tLo *terminalLogger) setupLoggerFormat() *slog.Logger {
 	w := os.Stderr
 
 	switch tLo.TerminalSloggerFormat {
-	case LogFormat_JSON:
+	case LogFormatJSON:
 		handler = slog.NewJSONHandler(w, tLo.slogHandlerOpts)
-	case LogFormat_TXT:
+	case LogFormatTXT:
 		var lvl chrmLog.Level
 		switch tLo.slogHandlerOpts.Level {
 		case slog.LevelDebug:

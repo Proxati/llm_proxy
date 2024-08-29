@@ -132,12 +132,12 @@ func runProxy(
 	t.Helper()
 	// Create a simple proxy config
 	cfg := config.NewDefaultConfig()
-	cfg.HttpBehavior.Listen = proxyPort
-	cfg.HttpBehavior.CertDir = filepath.Join(tempDir, certSubdir)
+	cfg.HTTPBehavior.Listen = proxyPort
+	cfg.HTTPBehavior.CertDir = filepath.Join(tempDir, certSubdir)
 	cfg.TrafficLogger.Output = filepath.Join(tempDir, outputSubdir)
 	cfg.Cache.Dir = filepath.Join(tempDir, cacheSubdir)
 	cfg.AppMode = proxyAppMode
-	cfg.HttpBehavior.NoHttpUpgrader = true // disable TLS because our test server doesn't support it
+	cfg.HTTPBehavior.NoHTTPUpgrader = true // disable TLS because our test server doesn't support it
 	cfg.Cache.Engine = cacheEngine
 
 	if debugOutput {
@@ -693,7 +693,7 @@ func TestConfigProxy(t *testing.T) {
 	t.Run("TestConfigProxy quiet mode", func(t *testing.T) {
 		// Create a mock configuration
 		cfg := config.NewDefaultConfig()
-		cfg.HttpBehavior.CertDir = t.TempDir()
+		cfg.HTTPBehavior.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
 
 		// Call the function with the mock configuration
@@ -722,7 +722,7 @@ func TestConfigProxy(t *testing.T) {
 	t.Run("TestConfigProxy verbose mode", func(t *testing.T) {
 		// Create a mock configuration
 		cfg := config.NewDefaultConfig()
-		cfg.HttpBehavior.CertDir = t.TempDir()
+		cfg.HTTPBehavior.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
 		cfg.EnableOutputVerbose()
 
@@ -752,7 +752,7 @@ func TestConfigProxy(t *testing.T) {
 	t.Run("TestConfigProxy output mode", func(t *testing.T) {
 		// Create a mock configuration
 		cfg := config.NewDefaultConfig()
-		cfg.HttpBehavior.CertDir = t.TempDir()
+		cfg.HTTPBehavior.CertDir = t.TempDir()
 		cfg.AppMode = config.ProxyRunMode
 		cfg.TrafficLogger.Output = t.TempDir() // Set the output directory, which should enable the logger addon
 

@@ -20,5 +20,5 @@ var proxyRunCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(proxyRunCmd)
-	proxyRunCmd.SuggestFor = proxyRun_suggestions
+	proxyRunCmd.SuggestFor = proxyRunSuggestions
 }

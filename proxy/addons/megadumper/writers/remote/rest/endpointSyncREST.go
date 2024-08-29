@@ -22,6 +22,8 @@ type EndpointSyncREST struct {
 	logger *slog.Logger
 }
 
+// NewEndpointSyncREST creates the EndpointSyncREST object, which implements the Endpoint interface
+// it requires a slogger, a human-readable name, and a target REST URL
 func NewEndpointSyncREST(logger *slog.Logger, name, url string) *EndpointSyncREST {
 	return &EndpointSyncREST{
 		Name:   name,
@@ -40,7 +42,7 @@ func (e *EndpointSyncREST) GetURL() string {
 	return e.URL
 }
 
-// PostData is a simple blocking POST to a REST endpoint
+// POST is a simple blocking POST request to a REST endpoint
 func (e *EndpointSyncREST) POST(identifier string, data []byte) error {
 	logger := e.logger.With("identifier", identifier)
 	logger.Debug("POST'ing data", "endpoint", e.String(), "timeout", RequestTimeout)

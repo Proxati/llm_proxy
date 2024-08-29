@@ -14,8 +14,8 @@ func TestNewMegaDumpFormatter(t *testing.T) {
 		expectedType interface{}
 		expectError  bool
 	}{
-		{config.LogFormat_JSON, &JSON{}, false},
-		{config.LogFormat_TXT, &PlainText{}, false},
+		{config.LogFormatJSON, &JSON{}, false},
+		{config.LogFormatTXT, &PlainText{}, false},
 		{config.LogFormat(999), nil, true}, // Unsupported format
 	}
 

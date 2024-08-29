@@ -51,11 +51,11 @@ var defaultFiltersResponses = []string{
 }
 
 const (
-	flagTitle_FilterResponseHeadersToCache   = "filter-response-headers-to-cache"
-	flagTitle_FilterRequestHeadersToLogs     = "filter-request-headers-to-logs"
-	flagTitle_FilterResponseHeadersToLogs    = "filter-response-headers-to-logs"
-	flagTitle_FilterRequestHeadersToUpstream = "filter-request-headers-to-upstream"
-	flagTitle_FilterResponseHeadersToClient  = "filter-response-headers-to-client"
+	flagTitleFilterResponseHeadersToCache   = "filter-response-headers-to-cache"
+	flagTitleFilterRequestHeadersToLogs     = "filter-request-headers-to-logs"
+	flagTitleFilterResponseHeadersToLogs    = "filter-response-headers-to-logs"
+	flagTitleFilterRequestHeadersToUpstream = "filter-request-headers-to-upstream"
+	flagTitleFilterResponseHeadersToClient  = "filter-response-headers-to-client"
 )
 
 type headerIndex map[string]any
@@ -102,18 +102,18 @@ func (hfg *HeaderFilterGroup) buildIndex() {
 }
 
 // IsHeaderInGroup returns true if the header should be filtered by this group
-func (hg *HeaderFilterGroup) IsHeaderInGroup(header string) bool {
-	_, exists := hg.index[header]
+func (hfg *HeaderFilterGroup) IsHeaderInGroup(header string) bool {
+	_, exists := hfg.index[header]
 	return exists
 }
 
 // FilterHeaders makes a shallow copy of the headers map and removes any headers that are in the
 // filter group. additionalHeaders is a variadic parameter that allows for additional headers to be
 // removed from the new map that will be returned by this method.
-func (hg *HeaderFilterGroup) FilterHeaders(headers http.Header, additionalHeaders ...string) http.Header {
+func (hfg *HeaderFilterGroup) FilterHeaders(headers http.Header, additionalHeaders ...string) http.Header {
 	filteredHeaders := make(http.Header)
 	for header, values := range headers {
-		if !hg.IsHeaderInGroup(header) {
+		if !hfg.IsHeaderInGroup(header) {
 			filteredHeaders[header] = values
 		}
 	}
@@ -148,24 +148,24 @@ type HeaderFiltersContainer struct {
 func NewHeaderFiltersContainer() *HeaderFiltersContainer {
 	hfc := &HeaderFiltersContainer{
 		ResponseToCache: NewHeaderFilterGroup(
-			flagTitle_FilterResponseHeadersToCache,
+			flagTitleFilterResponseHeadersToCache,
 			defaultFiltersResponses,
 			persistentFiltersResponses,
 		),
 		RequestToLogs: NewHeaderFilterGroup(
-			flagTitle_FilterRequestHeadersToLogs,
+			flagTitleFilterRequestHeadersToLogs,
 			defaultFiltersRequests,
 			persistentFiltersRequests,
 		),
 		ResponseToLogs: NewHeaderFilterGroup(
-			flagTitle_FilterResponseHeadersToLogs,
+			flagTitleFilterResponseHeadersToLogs,
 			defaultFiltersResponses,
 			persistentFiltersResponses,
 		),
 		RequestToUpstream: NewHeaderFilterGroup(
-			flagTitle_FilterRequestHeadersToUpstream, []string{}, []string{}),
+			flagTitleFilterRequestHeadersToUpstream, []string{}, []string{}),
 		ResponseToClient: NewHeaderFilterGroup(
-			flagTitle_FilterResponseHeadersToClient, []string{}, []string{}),
+			flagTitleFilterResponseHeadersToClient, []string{}, []string{}),
 	}
 	return hfc
 }

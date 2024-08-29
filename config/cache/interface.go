@@ -1,5 +1,7 @@
 package cache
 
+// ConfigStorage is the interface that all cache config objects must implement, it's used to save
+// or load cache config, from disk, database, or just RAM for the in-memory cache.
 type ConfigStorage interface {
 	// GetStorageEngine returns the storage engine name used for this cache config
 	GetStorageEngine() string

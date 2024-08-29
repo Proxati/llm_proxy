@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var emptyStringSlice = []string{}
-
 // Mock implementation of ProxyRequestReaderAdapter
 type MockProxyRequestReaderAdapter struct {
 	Method  string

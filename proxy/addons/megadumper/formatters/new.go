@@ -6,7 +6,8 @@ import (
 	"github.com/proxati/llm_proxy/v2/config"
 )
 
-// MegaDumpFormatter is an interface for formatting log dumps
+// NewMegaDumpFormatter returns an object that implements the MegaDumpFormatter interface based on
+// the requested format.
 func NewMegaDumpFormatter(format config.LogFormat) (MegaDumpFormatter, error) {
 	var f MegaDumpFormatter
 

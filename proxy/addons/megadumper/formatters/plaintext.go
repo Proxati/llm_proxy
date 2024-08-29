@@ -6,8 +6,9 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema"
 )
 
-const text_ext = "log"
+const textExt = "log"
 
+// PlainText is a formatter that flattens the LogDumpContainer into a plain text format
 type PlainText struct {
 	container *schema.LogDumpContainer
 }
@@ -49,7 +50,7 @@ func (pt *PlainText) Read(container *schema.LogDumpContainer) ([]byte, error) {
 
 // GetFileExtension returns the file extension for a plain text file
 func (pt *PlainText) GetFileExtension() string {
-	return text_ext
+	return textExt
 }
 
 // String returns the name of the formatter

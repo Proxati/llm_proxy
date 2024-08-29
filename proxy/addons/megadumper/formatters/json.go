@@ -7,8 +7,9 @@ import (
 	"github.com/proxati/llm_proxy/v2/schema"
 )
 
-const json_ext = "json"
+const jsonExt = "json"
 
+// JSON is a formatter that converts the LogDumpContainer into a JSON formatted byte array
 type JSON struct {
 	container *schema.LogDumpContainer
 }
@@ -34,7 +35,7 @@ func (f *JSON) Read(container *schema.LogDumpContainer) ([]byte, error) {
 
 // GetFileExtension returns the file extension for a plain text file
 func (f *JSON) GetFileExtension() string {
-	return json_ext
+	return jsonExt
 }
 
 // String returns the name of the formatter

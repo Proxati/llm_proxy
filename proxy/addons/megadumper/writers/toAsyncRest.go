@@ -7,8 +7,6 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/writers/remote/rest"
 )
 
-const defaultRestTimeout = 5
-
 // ToAsyncRest is a writer that sends data to a remote REST endpoint
 type ToAsyncRest struct {
 	endpoint  rest.Endpoint

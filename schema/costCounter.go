@@ -6,8 +6,7 @@ import (
 	"sync"
 
 	"github.com/bojanz/currency"
-
-	"github.com/proxati/llm_proxy/v2/schema/providers/openai_com"
+	openai "github.com/proxati/llm_proxy/v2/schema/providers/openai"
 )
 
 const (
@@ -75,8 +74,8 @@ func NewCostCounter(currencyLocale string) *CostCounter {
 		rwMutex:     sync.RWMutex{},
 	}
 
-	// iterate over the pricing data and populate this struct, data loaded from json in the openai_com package
-	for _, provider := range openai_com.API_Endpoint_Data {
+	// iterate over the pricing data and populate this struct, data loaded from json in the openai package
+	for _, provider := range openai.API_Endpoint_Data {
 		for _, product := range provider.Products {
 			apiProvider, err := newAPI_Provider(provider.URL, product.Name, product.InputTokenCost, product.OutputTokenCost, "USD")
 			if err != nil {
@@ -135,7 +134,7 @@ func (cc *CostCounter) providerLookup(url, product string) *API_Provider {
 // and calculates the cost of the transaction, returning a struct with the output data
 func (cc *CostCounter) Add(req ProxyRequest, resp ProxyResponse) (*AuditOutput, error) {
 	// parse the request
-	chatCompReq, err := openai_com.NewOpenAIChatCompletionRequest(&req.Body)
+	chatCompReq, err := openai.NewOpenAIChatCompletionRequest(&req.Body)
 	if err != nil || chatCompReq == nil {
 		return nil, fmt.Errorf("failed to create OpenAI completion request: %v", err)
 	}
@@ -150,7 +149,7 @@ func (cc *CostCounter) Add(req ProxyRequest, resp ProxyResponse) (*AuditOutput, 
 	provider.addRequest(&req, chatCompReq)
 
 	// parse the response object
-	chatCompResp, err := openai_com.NewOpenAIChatCompletionResponse(&resp.Body)
+	chatCompResp, err := openai.NewOpenAIChatCompletionResponse(&resp.Body)
 	if err != nil || chatCompResp == nil {
 		return nil, fmt.Errorf("failed to create OpenAI completion response: %v", err)
 	}

@@ -1,4 +1,4 @@
-package openai_com
+package openai
 
 import (
 	"fmt"

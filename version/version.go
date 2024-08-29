@@ -1,6 +1,7 @@
 package version
 
 import (
+	// embed is used to embed the VERSION file into the binary
 	_ "embed"
 	"fmt"
 	"strings"
@@ -22,10 +23,10 @@ var dev string = "yes"
 // This will be populated with linker flags when building dev binaries.
 var gitHeadChecksum string
 
-// The main version number that is being run at the moment, populated from the raw version.
+// Version stores the main version number for this binary, populated from the raw version.
 var Version string
 
-// A pre-release marker for the version, populated using a combination of the raw version
+// Prerelease stores an optional version string, populated using a combination of the raw version
 // and the dev flag.
 var Prerelease string
 

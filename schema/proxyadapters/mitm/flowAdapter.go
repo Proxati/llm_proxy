@@ -3,7 +3,7 @@ package mitm
 import (
 	"net/url"
 
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
@@ -14,6 +14,7 @@ type FlowAdapter struct {
 	res             *ProxyResponseAdapter
 }
 
+// NewFlowAdapter creates a new flow adapter object
 func NewFlowAdapter(flow *px.Flow) *FlowAdapter {
 	if flow == nil {
 		return nil
@@ -40,10 +41,14 @@ func (fa *FlowAdapter) SetRequest(req *px.Request) {
 	fa.req = NewProxyRequestAdapter(req)
 }
 
+// SetResponse copies the response, to keep the original flow
 func (fa *FlowAdapter) SetResponse(res *px.Response) {
 	fa.res = NewProxyResponseAdapter(res)
 }
 
+// SetFlow sets the connectionStats, request, and response (but only if the request and response
+// weren't previously set). If SetRequest or SetResponse was run before this, the request/response
+// in this flow will be ignored.
 func (fa *FlowAdapter) SetFlow(flow *px.Flow) {
 	fa.connectionStats = NewProxyConnectionStatsAdapter(flow)
 
@@ -56,14 +61,17 @@ func (fa *FlowAdapter) SetFlow(flow *px.Flow) {
 	}
 }
 
-func (fa *FlowAdapter) GetRequest() proxyAdapters.RequestReaderAdapter {
+// GetRequest returns the request adapter, to implement the FlowReaderAdapter interface
+func (fa *FlowAdapter) GetRequest() proxyadapters.RequestReaderAdapter {
 	return fa.req
 }
 
-func (fa *FlowAdapter) GetResponse() proxyAdapters.ResponseReaderAdapter {
+// GetResponse returns the response adapter, to implement the FlowReaderAdapter interface
+func (fa *FlowAdapter) GetResponse() proxyadapters.ResponseReaderAdapter {
 	return fa.res
 }
 
-func (fa *FlowAdapter) GetConnectionStats() proxyAdapters.ConnectionStatsReaderAdapter {
+// GetConnectionStats returns the connection stats adapter, to implement the FlowReaderAdapter interface
+func (fa *FlowAdapter) GetConnectionStats() proxyadapters.ConnectionStatsReaderAdapter {
 	return fa.connectionStats
 }

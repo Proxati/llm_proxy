@@ -11,8 +11,8 @@ import (
 )
 
 // DecodeBody decompresses a byte array (response body) based on the content encoding
-func DecodeBody(body []byte, content_encoding string) (decodedBody []byte, err error) {
-	switch content_encoding {
+func DecodeBody(body []byte, contentEncoding string) (decodedBody []byte, err error) {
+	switch contentEncoding {
 	case gzipEncoding:
 		reader, err := gzip.NewReader(bytes.NewReader(body))
 		if err != nil {
@@ -40,7 +40,7 @@ func DecodeBody(body []byte, content_encoding string) (decodedBody []byte, err e
 		// no encoding, do nothing
 		return body, nil
 	default:
-		return nil, fmt.Errorf("unsupported encoding: %s", content_encoding)
+		return nil, fmt.Errorf("unsupported encoding: %s", contentEncoding)
 	}
 
 	return decodedBody, nil

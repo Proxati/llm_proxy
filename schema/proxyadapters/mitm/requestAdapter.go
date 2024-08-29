@@ -14,6 +14,7 @@ type ProxyRequestAdapter struct {
 	headerCopy http.Header
 }
 
+// NewProxyRequestAdapter creates a new request adapter object
 func NewProxyRequestAdapter(pxReq *px.Request) *ProxyRequestAdapter {
 	if pxReq == nil {
 		return &ProxyRequestAdapter{
@@ -34,22 +35,27 @@ func NewProxyRequestAdapter(pxReq *px.Request) *ProxyRequestAdapter {
 	return &ProxyRequestAdapter{pxReq: pxReq, headerCopy: headerCopy}
 }
 
+// GetMethod returns the HTTP request method, to implement the RequestReaderAdapter interface
 func (r *ProxyRequestAdapter) GetMethod() string {
 	return r.pxReq.Method
 }
 
+// GetURL returns the request URL, to implement the RequestReaderAdapter interface
 func (r *ProxyRequestAdapter) GetURL() *url.URL {
 	return r.pxReq.URL
 }
 
+// GetProto returns the HTTP protocol version, to implement the RequestReaderAdapter interface
 func (r *ProxyRequestAdapter) GetProto() string {
 	return r.pxReq.Proto
 }
 
+// GetHeaders returns the headers, to implement the RequestReaderAdapter interface
 func (r *ProxyRequestAdapter) GetHeaders() http.Header {
 	return r.headerCopy
 }
 
+// GetBodyBytes returns the request body, to implement the RequestReaderAdapter interface
 func (r *ProxyRequestAdapter) GetBodyBytes() []byte {
 	return r.pxReq.Body
 }

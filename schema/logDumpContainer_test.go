@@ -11,7 +11,7 @@ import (
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 )
 
 type MockFlow struct {
@@ -22,19 +22,19 @@ type MockFlow struct {
 	Id uuid.UUID
 }
 
-func (m MockFlow) GetRequest() proxyAdapters.RequestReaderAdapter {
+func (m MockFlow) GetRequest() proxyadapters.RequestReaderAdapter {
 	return m.Request
 }
 
-func (m MockFlow) GetResponse() proxyAdapters.ResponseReaderAdapter {
+func (m MockFlow) GetResponse() proxyadapters.ResponseReaderAdapter {
 	return m.Response
 }
 
-func (m MockFlow) GetConnectionStats() proxyAdapters.ConnectionStatsReaderAdapter {
+func (m MockFlow) GetConnectionStats() proxyadapters.ConnectionStatsReaderAdapter {
 	return m.ConnectionStats
 }
 
-func getDefaultFlow() proxyAdapters.FlowReaderAdapter {
+func getDefaultFlow() proxyadapters.FlowReaderAdapter {
 	req := &MockProxyRequestReaderAdapter{
 		Method: "GET",
 		URL: &url.URL{
@@ -87,7 +87,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 
 	testCases := []struct {
 		name                    string
-		flow                    proxyAdapters.FlowReaderAdapter
+		flow                    proxyadapters.FlowReaderAdapter
 		logSources              config.LogSourceConfig
 		filterReqHeaders        *config.HeaderFilterGroup
 		filterRespHeaders       *config.HeaderFilterGroup

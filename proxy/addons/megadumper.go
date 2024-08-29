@@ -12,7 +12,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/config"
 	md "github.com/proxati/llm_proxy/v2/proxy/addons/megadumper"
 	"github.com/proxati/llm_proxy/v2/schema"
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
 )
 
 type MegaTrafficDumper struct {

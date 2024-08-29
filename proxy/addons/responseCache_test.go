@@ -10,7 +10,7 @@ import (
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters/mitm"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 	px "github.com/proxati/mitmproxy/proxy"
 

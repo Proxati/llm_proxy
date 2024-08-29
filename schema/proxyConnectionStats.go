@@ -3,7 +3,7 @@ package schema
 import (
 	"encoding/json"
 
-	"github.com/proxati/llm_proxy/v2/schema/proxyAdapters"
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 )
 
 type ProxyConnectionStats struct {
@@ -26,7 +26,7 @@ func (obj *ProxyConnectionStats) ToJSONstr() string {
 	return string(obj.ToJSON())
 }
 
-func newConnectionStats(cs proxyAdapters.ConnectionStatsReaderAdapter) *ProxyConnectionStats {
+func newConnectionStats(cs proxyadapters.ConnectionStatsReaderAdapter) *ProxyConnectionStats {
 	logOutput := &ProxyConnectionStats{
 		// ClientAddress: getClientAddr(f),
 		// ProxyID:       f.Id.String(),
@@ -40,7 +40,7 @@ func newConnectionStats(cs proxyAdapters.ConnectionStatsReaderAdapter) *ProxyCon
 
 // NewProxyConnectionStatsWithDuration is a slightly leaky abstraction, the doneAt param is for logging
 // the entire session length, and comes from the proxy addon layer.
-func NewProxyConnectionStatsWithDuration(cs proxyAdapters.ConnectionStatsReaderAdapter, doneAt int64) *ProxyConnectionStats {
+func NewProxyConnectionStatsWithDuration(cs proxyadapters.ConnectionStatsReaderAdapter, doneAt int64) *ProxyConnectionStats {
 	if cs == nil {
 		return nil
 	}

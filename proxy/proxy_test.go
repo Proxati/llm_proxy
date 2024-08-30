@@ -360,7 +360,7 @@ func TestProxyDirLoggerMode(t *testing.T) {
 		fmt.Println(string(logFile))
 
 		// check the logDumpContainer
-		assert.Equal(t, schema.SchemaVersion, lDump.SchemaVersion)
+		assert.Equal(t, schema.DefaultSchemaVersion, lDump.SchemaVersion)
 		assert.NotNil(t, lDump.Timestamp)
 		assert.NotNil(t, lDump.ConnectionStats)
 

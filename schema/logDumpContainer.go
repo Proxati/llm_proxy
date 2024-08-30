@@ -10,7 +10,10 @@ import (
 )
 
 // SchemaVersion is the version of the schema, used for backwards compatibility.
-const SchemaVersion string = "v2"
+const (
+	SchemaVersionV2      string = "v2"
+	DefaultSchemaVersion string = SchemaVersionV2
+)
 
 // ObjectTypeDefault is the default object type for the log dump container, used for identifying
 // the file type when loading various objects from json files.
@@ -38,7 +41,7 @@ func NewLogDumpContainer(f proxyadapters.FlowReaderAdapter, logSources config.Lo
 
 	ldc := &LogDumpContainer{
 		ObjectType:    ObjectTypeDefault,
-		SchemaVersion: SchemaVersion,
+		SchemaVersion: DefaultSchemaVersion,
 		Timestamp:     time.Now(),
 		logConfig:     logSources,
 		Request: &ProxyRequest{

@@ -1,7 +1,9 @@
 package schema
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -10,7 +12,10 @@ import (
 )
 
 // SchemaVersion is the version of the schema, used for backwards compatibility.
-const SchemaVersion string = "v2"
+const (
+	SchemaVersionV2      string = "v2"
+	DefaultSchemaVersion string = SchemaVersionV2
+)
 
 // ObjectTypeDefault is the default object type for the log dump container, used for identifying
 // the file type when loading various objects from json files.
@@ -28,7 +33,12 @@ type LogDumpContainer struct {
 }
 
 // NewLogDumpContainer returns a LogDumpContainer with *only* the fields requested in logSources populated
-func NewLogDumpContainer(f proxyadapters.FlowReaderAdapter, logSources config.LogSourceConfig, doneAt int64, filterReqHeaders, filterRespHeaders *config.HeaderFilterGroup) (*LogDumpContainer, error) {
+func NewLogDumpContainer(
+	f proxyadapters.FlowReaderAdapter,
+	logSources config.LogSourceConfig,
+	doneAt int64,
+	filterReqHeaders, filterRespHeaders *config.HeaderFilterGroup,
+) (*LogDumpContainer, error) {
 	if f == nil {
 		return nil, errors.New("flow is nil")
 	}
@@ -38,7 +48,7 @@ func NewLogDumpContainer(f proxyadapters.FlowReaderAdapter, logSources config.Lo
 
 	ldc := &LogDumpContainer{
 		ObjectType:    ObjectTypeDefault,
-		SchemaVersion: SchemaVersion,
+		SchemaVersion: DefaultSchemaVersion,
 		Timestamp:     time.Now(),
 		logConfig:     logSources,
 		Request: &ProxyRequest{
@@ -72,12 +82,122 @@ func NewLogDumpContainer(f proxyadapters.FlowReaderAdapter, logSources config.Lo
 		ldc.ConnectionStats = NewProxyConnectionStatsWithDuration(f.GetConnectionStats(), doneAt)
 	}
 
-	for _, err := range errs {
-		if err != nil {
-			// TODO: need to reconsider how to handle errors here
-			getLogger().Error("errors encountered while creating LogDumpContainer", "error", err)
+	if len(errs) > 0 {
+		for _, err := range errs {
+			if err != nil {
+				// TODO: need to reconsider how to handle errors here
+				getLogger().Error("errors encountered while creating LogDumpContainer", "error", err)
+			}
 		}
+		return ldc, fmt.Errorf("errors encountered while creating LogDumpContainer: %w", errors.Join(errs...))
 	}
 
 	return ldc, nil
+}
+
+func (ldc *LogDumpContainer) unmarshalJSON_V2(data []byte) error {
+	// Create a temporary struct to unmarshal the top-level fields
+	type Alias LogDumpContainer
+	aux := &struct {
+		*Alias
+		Timestamp       string          `json:"timestamp,omitempty"`
+		ConnectionStats json.RawMessage `json:"connection_stats,omitempty"`
+		Request         json.RawMessage `json:"request,omitempty"`
+		Response        json.RawMessage `json:"response,omitempty"`
+	}{
+		Alias: (*Alias)(ldc),
+	}
+
+	// Unmarshal the raw JSON into the temporary struct
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Parse the timestamp if provided
+	if aux.Timestamp != "" {
+		t, err := time.Parse(time.RFC3339, aux.Timestamp)
+		if err != nil {
+			return err
+		}
+		ldc.Timestamp = t
+	}
+
+	// Unmarshal connection stats if they exist
+	if aux.ConnectionStats != nil {
+		ldc.ConnectionStats = &ProxyConnectionStats{}
+		if err := json.Unmarshal(aux.ConnectionStats, ldc.ConnectionStats); err != nil {
+			return err
+		}
+	}
+
+	// Unmarshal request if it exists
+	if aux.Request != nil {
+		ldc.Request = &ProxyRequest{}
+		if err := json.Unmarshal(aux.Request, ldc.Request); err != nil {
+			return err
+		}
+	}
+
+	// Unmarshal response if it exists
+	if aux.Response != nil {
+		ldc.Response = &ProxyResponse{}
+		if err := json.Unmarshal(aux.Response, ldc.Response); err != nil {
+			return err
+		}
+	}
+
+	ldc.SchemaVersion = SchemaVersionV2
+	return nil
+}
+
+func (ldc *LogDumpContainer) UnmarshalJSON(data []byte) error {
+	r := make(map[string]interface{})
+	err := json.Unmarshal(data, &r)
+	if err != nil {
+		return err
+	}
+
+	// filter unknown/unset object_type
+	objectType, ok := r["object_type"]
+	if !ok {
+		return errors.New("object_type is required")
+	}
+
+	objectTypeStr, ok := objectType.(string)
+	if !ok {
+		return errors.New("object_type must be a string")
+	}
+
+	if objectTypeStr != ObjectTypeDefault {
+		return errors.New("unsupported object_type: " + objectTypeStr)
+	}
+
+	// handle schema version
+	schemaVersion, ok := r["schema"]
+	if !ok {
+		// assume latest schema version if not provided
+		schemaVersion = DefaultSchemaVersion
+	}
+
+	schemaVersionStr, ok := schemaVersion.(string)
+	if !ok {
+		return errors.New("schema must be a string")
+	}
+
+	switch schemaVersionStr {
+	case SchemaVersionV2:
+		return ldc.unmarshalJSON_V2(data)
+	default:
+		return errors.New("unsupported schema version")
+	}
+}
+
+// UnmarshalLogDumpContainer unmarshals JSON data into a LogDumpContainer
+func UnmarshalLogDumpContainer(data []byte) (*LogDumpContainer, error) {
+	var ldc LogDumpContainer
+	err := json.Unmarshal(data, &ldc)
+	if err != nil {
+		return nil, err
+	}
+	return &ldc, nil
 }

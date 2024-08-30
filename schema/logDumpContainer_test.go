@@ -34,7 +34,8 @@ func (m MockFlow) GetConnectionStats() proxyadapters.ConnectionStatsReaderAdapte
 	return m.ConnectionStats
 }
 
-func getDefaultFlow() proxyadapters.FlowReaderAdapter {
+func getDefaultFlow(t *testing.T) proxyadapters.FlowReaderAdapter {
+	t.Helper()
 	req := &MockProxyRequestReaderAdapter{
 		Method: "GET",
 		URL: &url.URL{
@@ -68,7 +69,7 @@ func getDefaultFlow() proxyadapters.FlowReaderAdapter {
 	}
 }
 
-func getDefaultConnectionStats() *schema.ProxyConnectionStats {
+func getDefaultConnectionStats(t *testing.T) *schema.ProxyConnectionStats {
 	cs := &MockConnectionStatsReaderAdapter{}
 
 	return &schema.ProxyConnectionStats{
@@ -103,7 +104,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 	}{
 		{
 			name: "all fields enabled",
-			flow: getDefaultFlow(),
+			flow: getDefaultFlow(t),
 			logSources: config.LogSourceConfig{
 				LogConnectionStats: true,
 				LogRequestHeaders:  true,
@@ -113,7 +114,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        emptyHeaderFilterGroup,
 			filterRespHeaders:       emptyHeaderFilterGroup,
-			expectedConnectionStats: getDefaultConnectionStats(),
+			expectedConnectionStats: getDefaultConnectionStats(t),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
 			expectedRequestProto:    "HTTP/1.1",
@@ -125,7 +126,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 		},
 		{
 			name: "all fields disabled",
-			flow: getDefaultFlow(),
+			flow: getDefaultFlow(t),
 			logSources: config.LogSourceConfig{
 				LogConnectionStats: false,
 				LogRequestHeaders:  false,
@@ -139,7 +140,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 		},
 		{
 			name: "all fields enabled, with filter",
-			flow: getDefaultFlow(),
+			flow: getDefaultFlow(t),
 			logSources: config.LogSourceConfig{
 				LogConnectionStats: true,
 				LogRequestHeaders:  true,
@@ -149,7 +150,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        basicHeaderFilterGroupReq,
 			filterRespHeaders:       basicHeaderFilterGroupResp,
-			expectedConnectionStats: getDefaultConnectionStats(),
+			expectedConnectionStats: getDefaultConnectionStats(t),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
 			expectedRequestProto:    "HTTP/1.1",
@@ -161,7 +162,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 		},
 		{
 			name: "all fields enabled, with filter, request headers disabled",
-			flow: getDefaultFlow(),
+			flow: getDefaultFlow(t),
 			logSources: config.LogSourceConfig{
 				LogConnectionStats: true,
 				LogRequestHeaders:  false,
@@ -171,7 +172,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        basicHeaderFilterGroupReq,
 			filterRespHeaders:       basicHeaderFilterGroupResp,
-			expectedConnectionStats: getDefaultConnectionStats(),
+			expectedConnectionStats: getDefaultConnectionStats(t),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
 			expectedRequestProto:    "HTTP/1.1",
@@ -183,7 +184,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 		},
 		{
 			name: "all fields enabled, with filter, request disabled",
-			flow: getDefaultFlow(),
+			flow: getDefaultFlow(t),
 			logSources: config.LogSourceConfig{
 				LogConnectionStats: true,
 				LogRequestHeaders:  true,
@@ -193,7 +194,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        basicHeaderFilterGroupReq,
 			filterRespHeaders:       basicHeaderFilterGroupResp,
-			expectedConnectionStats: getDefaultConnectionStats(),
+			expectedConnectionStats: getDefaultConnectionStats(t),
 			expectedRequestHeaders:  "",
 			expectedResponseHeaders: "Content-Type: [application/json]\r\n",
 			expectedResponseCode:    http.StatusOK,
@@ -201,7 +202,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 		},
 		{
 			name: "all fields enabled, with filter, response headers disabled",
-			flow: getDefaultFlow(),
+			flow: getDefaultFlow(t),
 			logSources: config.LogSourceConfig{
 				LogConnectionStats: true,
 				LogRequestHeaders:  true,
@@ -211,7 +212,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        basicHeaderFilterGroupReq,
 			filterRespHeaders:       basicHeaderFilterGroupResp,
-			expectedConnectionStats: getDefaultConnectionStats(),
+			expectedConnectionStats: getDefaultConnectionStats(t),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
 			expectedRequestProto:    "HTTP/1.1",
@@ -223,7 +224,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 		},
 		{
 			name: "all fields enabled, with filter, response disabled",
-			flow: getDefaultFlow(),
+			flow: getDefaultFlow(t),
 			logSources: config.LogSourceConfig{
 				LogConnectionStats: true,
 				LogRequestHeaders:  true,
@@ -233,7 +234,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			},
 			filterReqHeaders:        basicHeaderFilterGroupReq,
 			filterRespHeaders:       basicHeaderFilterGroupResp,
-			expectedConnectionStats: getDefaultConnectionStats(),
+			expectedConnectionStats: getDefaultConnectionStats(t),
 			expectedRequestMethod:   "GET",
 			expectedRequestURL:      "http://example.com/",
 			expectedRequestProto:    "HTTP/1.1",

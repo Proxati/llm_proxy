@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -78,6 +79,15 @@ func getDefaultConnectionStats(t *testing.T) *schema.ProxyConnectionStats {
 		Duration:      0,
 		ProxyID:       cs.GetProxyID(),
 	}
+}
+
+func parseTimeStampString(t *testing.T, ts string) time.Time {
+	t.Helper()
+	expectedTimestamp, err := time.Parse(time.RFC3339Nano, ts)
+	if err != nil {
+		t.Fatalf("failed to parse expected test timestamp: %v", err)
+	}
+	return expectedTimestamp
 }
 
 func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
@@ -259,6 +269,132 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 			assert.Equal(t, tc.expectedResponseCode, container.Response.Status)
 			assert.Equal(t, tc.expectedResponseHeaders, container.Response.HeaderString())
 			assert.Equal(t, tc.expectedResponseBody, container.Response.Body)
+		})
+	}
+}
+
+func TestUnmarshalLogDumpContainer(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		jsonInput     string
+		expectedError string
+		expectedLDC   *schema.LogDumpContainer
+	}{
+		{
+			name: "valid JSON with all fields",
+			jsonInput: `
+{
+  "object_type": "llm_proxy_traffic_log",
+  "schema": "v2",
+  "timestamp": "2024-08-30T15:21:02.486594-04:00",
+  "connection_stats": {
+    "client_address": "127.0.0.1:49871",
+    "url": "https://api.openai.com/v1/chat/completions",
+    "duration_ms": 864,
+    "proxy_id": "5d6f0016-d276-49ed-bb1d-788231477eae"
+  },
+  "request": {
+    "url": "https://api.openai.com/v1/chat/completions",
+    "method": "POST",
+    "proto": "HTTP/1.1",
+    "header": {
+      "Content-Length": [
+        "98"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Proxy-Connection": [
+        "Keep-Alive"
+      ]
+    },
+    "body": "{\"messages\": [{\"role\": \"user\", \"content\": \"Hello, you are amazing?????\"}], \"model\": \"gpt-4o-mini\"}"
+  },
+  "response": {
+    "status": 200,
+    "header": {
+	  "Content-Type": [
+		"application/json"
+	],
+      "X-Request-Id": [
+        "req_6f4313a0eed9f18da393ae94979bf6ed"
+      ]
+    },
+    "body": "{\n  \"id\": \"chatcmpl-A21T4t9VS4OTmUDC2dEuA7X9TuwrQ\",\n  \"object\": \"chat.completion\",\n  \"created\": 1725045662,\n  \"model\": \"gpt-4o-mini-2024-07-18\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"Thank you! I appreciate the kind words. How can I assist you today?\",\n        \"refusal\": null\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 14,\n    \"completion_tokens\": 16,\n    \"total_tokens\": 30\n  },\n  \"system_fingerprint\": \"fp_f33667828e\"\n}\n"
+  }
+}`,
+			expectedError: "",
+			expectedLDC: &schema.LogDumpContainer{
+				ObjectType:    schema.ObjectTypeDefault,
+				SchemaVersion: schema.SchemaVersionV2,
+				Timestamp:     parseTimeStampString(t, "2024-08-30T15:21:02.486594-04:00"),
+				ConnectionStats: &schema.ProxyConnectionStats{
+					ClientAddress: "127.0.0.1:49871",
+					URL:           "https://api.openai.com/v1/chat/completions",
+					Duration:      864,
+					ProxyID:       "5d6f0016-d276-49ed-bb1d-788231477eae",
+				},
+				Request: &schema.ProxyRequest{
+					Method: "POST",
+					URL: &url.URL{
+						Scheme:  "https",
+						Opaque:  "",
+						Host:    "api.openai.com",
+						Path:    "/v1/chat/completions",
+						RawPath: "",
+					},
+					Proto: "HTTP/1.1",
+					Header: http.Header{
+						"Content-Length":   []string{"98"},
+						"Content-Type":     []string{"application/json"},
+						"Proxy-Connection": []string{"Keep-Alive"},
+					},
+					Body: "{\"messages\": [{\"role\": \"user\", \"content\": \"Hello, you are amazing?????\"}], \"model\": \"gpt-4o-mini\"}",
+				},
+				Response: &schema.ProxyResponse{
+					Status: 200,
+					Header: http.Header{
+						"Content-Type": []string{"application/json"},
+						"X-Request-Id": []string{"req_6f4313a0eed9f18da393ae94979bf6ed"},
+					},
+					Body: "{\n  \"id\": \"chatcmpl-A21T4t9VS4OTmUDC2dEuA7X9TuwrQ\",\n  \"object\": \"chat.completion\",\n  \"created\": 1725045662,\n  \"model\": \"gpt-4o-mini-2024-07-18\",\n  \"choices\": [\n    {\n      \"index\": 0,\n      \"message\": {\n        \"role\": \"assistant\",\n        \"content\": \"Thank you! I appreciate the kind words. How can I assist you today?\",\n        \"refusal\": null\n      },\n      \"logprobs\": null,\n      \"finish_reason\": \"stop\"\n    }\n  ],\n  \"usage\": {\n    \"prompt_tokens\": 14,\n    \"completion_tokens\": 16,\n    \"total_tokens\": 30\n  },\n  \"system_fingerprint\": \"fp_f33667828e\"\n}\n",
+				},
+			},
+		},
+		{
+			name: "invalid JSON missing object_type",
+			jsonInput: `{
+                "schema": "v2",
+                "timestamp": "2023-10-01T12:00:00Z"
+            }`,
+			expectedError: "object_type is required",
+			expectedLDC:   nil,
+		},
+		{
+			name: "invalid JSON unsupported schema version",
+			jsonInput: `{
+                "object_type": "llm_proxy_traffic_log",
+                "schema": "v1",
+                "timestamp": "2023-10-01T12:00:00Z"
+            }`,
+			expectedError: "unsupported schema version",
+			expectedLDC:   nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ldc, err := schema.UnmarshalLogDumpContainer([]byte(tc.jsonInput))
+			if tc.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.expectedError)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.expectedLDC, ldc)
+			}
 		})
 	}
 }

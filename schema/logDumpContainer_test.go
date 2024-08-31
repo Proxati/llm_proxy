@@ -365,6 +365,17 @@ func TestUnmarshalLogDumpContainer(t *testing.T) {
 			},
 		},
 		{
+			name: "default schema version",
+			jsonInput: `{
+			    "object_type": "llm_proxy_traffic_log"
+            }`,
+			expectedError: "",
+			expectedLDC: &schema.LogDumpContainer{
+				ObjectType:    schema.ObjectTypeDefault,
+				SchemaVersion: schema.DefaultSchemaVersion,
+			},
+		},
+		{
 			name: "invalid JSON missing object_type",
 			jsonInput: `{
                 "schema": "v2",
@@ -381,6 +392,33 @@ func TestUnmarshalLogDumpContainer(t *testing.T) {
                 "timestamp": "2023-10-01T12:00:00Z"
             }`,
 			expectedError: "unsupported schema version",
+			expectedLDC:   nil,
+		},
+		{
+			name: "invalid schema type",
+			jsonInput: `{
+                "object_type": "llm_proxy_traffic_log",
+                "schema": 1
+            }`,
+			expectedError: "schema must be a string",
+			expectedLDC:   nil,
+		},
+		{
+			name: "invalid object type",
+			jsonInput: `{
+                "object_type": 1,
+                "schema": "v1"
+            }`,
+			expectedError: "object_type must be a string",
+			expectedLDC:   nil,
+		},
+		{
+			name: "invalid object type",
+			jsonInput: `{
+                "object_type": "foo",
+                "schema": "v1"
+            }`,
+			expectedError: "unsupported object_type: foo",
 			expectedLDC:   nil,
 		},
 	}

@@ -71,6 +71,7 @@ func getDefaultFlow(t *testing.T) proxyadapters.FlowReaderAdapter {
 }
 
 func getDefaultConnectionStats(t *testing.T) *schema.ProxyConnectionStats {
+	t.Helper()
 	cs := &MockConnectionStatsReaderAdapter{}
 
 	return &schema.ProxyConnectionStats{

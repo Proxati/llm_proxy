@@ -1,6 +1,7 @@
 [{ 
     "url": "https://api.openai.com/v1/chat/completions",
     "products": [
+        { "name": "chatgpt-4o-latest", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD", "description": "Similar to gpt-4o" },
         { "name": "gpt-3.5-turbo", "inputTokenCost": "0.000003", "outputTokenCost": "0.000006", "currency": "USD" },
         { "name": "gpt-3.5-turbo-0125", "inputTokenCost": "0.0000005", "outputTokenCost": "0.0000015", "currency": "USD" },
         { "name": "gpt-3.5-turbo-1106", "inputTokenCost": "0.000001", "outputTokenCost": "0.000002", "currency": "USD" },

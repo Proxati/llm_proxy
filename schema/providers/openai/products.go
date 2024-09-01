@@ -19,6 +19,7 @@ type Product struct {
 	InputTokenCost  string `json:"inputTokenCost"`
 	OutputTokenCost string `json:"outputTokenCost"`
 	Currency        string `json:"currency"`
+	Description     string `json:"description,omitempty"`
 }
 
 // APIEndpoint represents the pricing data for a single API endpoint, such as "https://api.openai.com/v1/chat/completions"

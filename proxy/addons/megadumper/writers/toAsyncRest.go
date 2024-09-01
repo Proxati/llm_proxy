@@ -16,7 +16,15 @@ type ToAsyncRest struct {
 }
 
 // NewToAsyncREST creates a new ToAsyncRest writer object
-func NewToAsyncREST(logger *slog.Logger, target string, formatter formatters.MegaDumpFormatter) (*ToAsyncRest, error) {
+// Parameters:
+// - logger: a slog.Logger object
+// - target: the target URL to send the data to
+// - formatter: a formatters.MegaDumpFormatter object, probably a JSON formatter
+func NewToAsyncREST(
+	logger *slog.Logger,
+	target string,
+	formatter formatters.MegaDumpFormatter,
+) (*ToAsyncRest, error) {
 	logger = logger.WithGroup("ToAsyncRest").With("target", target, "formatter", formatter)
 
 	return &ToAsyncRest{

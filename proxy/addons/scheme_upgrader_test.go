@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/proxati/llm_proxy/v2/schema/headers"
 	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +22,7 @@ func TestSchemeUpgrader_Request(t *testing.T) {
 
 	upgrader.Request(flow)
 	assert.Equal(t, "https", flow.Request.URL.Scheme)
-	assert.Equal(t, "true", flow.Request.Header.Get(upgradedHeader))
+	assert.Equal(t, "true", flow.Request.Header.Get(headers.SchemeUpgraded))
 }
 
 func TestSchemeUpgrader_Request_HTTPS(t *testing.T) {
@@ -37,5 +38,5 @@ func TestSchemeUpgrader_Request_HTTPS(t *testing.T) {
 
 	upgrader.Request(flow)
 	assert.Equal(t, "https", flow.Request.URL.Scheme)
-	assert.Equal(t, "", flow.Request.Header.Get(upgradedHeader))
+	assert.Equal(t, "", flow.Request.Header.Get(headers.SchemeUpgraded))
 }

@@ -3,11 +3,8 @@ package addons
 import (
 	"log/slog"
 
+	"github.com/proxati/llm_proxy/v2/schema/headers"
 	px "github.com/proxati/mitmproxy/proxy"
-)
-
-const (
-	upgradedHeader = "X-Llm_proxy-scheme-upgraded"
 )
 
 type SchemeUpgrader struct {
@@ -31,14 +28,14 @@ func (c *SchemeUpgrader) Request(f *px.Flow) {
 	}
 
 	// add a header to the request to indicate that the scheme was upgraded
-	f.Request.Header.Add(upgradedHeader, "true")
+	f.Request.Header.Add(headers.SchemeUpgraded, "true")
 
 	// upgrade the connection from http to https, so when sent upstream it will be encrypted
 	f.Request.URL.Scheme = "https"
 }
 
 func (c *SchemeUpgrader) Response(f *px.Flow) {
-	if f.Request.Header.Get(upgradedHeader) != "" {
-		f.Response.Header.Add(upgradedHeader, "true")
+	if f.Request.Header.Get(headers.SchemeUpgraded) != "" {
+		f.Response.Header.Add(headers.SchemeUpgraded, "true")
 	}
 }

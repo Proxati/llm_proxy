@@ -1,7 +1,15 @@
 package headers
 
 const (
-	ProxyID        = "X-Llm_proxy-id"
-	Version        = "X-Llm_proxy-version"
+	// ProxyID is a response header with a request ID assigned by this proxy to track the request
+	ProxyID = "X-Llm_proxy-id"
+
+	// ProxyVersion is a response header that indicates the version of this proxy
+	Version = "X-Llm_proxy-version"
+
+	// SchemeUpgraded is a response header that indicates that the scheme was upgraded (http->https)
 	SchemeUpgraded = "X-Llm_proxy-scheme-upgraded"
+
+	// WorkflowName is an optional request header that can be used to specify the name of the workflow
+	WorkflowName = "X-Llm_workflow-name"
 )

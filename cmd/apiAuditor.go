@@ -10,12 +10,26 @@ import (
 var apiAuditorCmd = &cobra.Command{
 	Use:   "apiAuditor",
 	Short: "A realtime view of how much you are spending on 3rd party AI services",
-	Long: `Services currently supported:
+	Long: `Provides a real-time view of your spending on third-party AI services.
+
+## Services Currently Supported
 - OpenAI (Completions API only)
 
-Disclaimer:
-This tool is not affiliated with any of these APIs.
-All information & calculations are an approximation, and should not be used for billing or budgeting purposes.
+## Important Disclaimer
+This tool is not affiliated with any of these APIs. All billing information is an approximation
+based on the latest available information. The calculations made are approximations and should
+not be used for billing or budgeting purposes.
+
+## Features
+- Real-time Cost Monitoring: Track the cost of API calls in real-time.
+
+## Example Usage
+
+# Start the apiAuditor with default settings
+./llm_proxy apiAuditor
+
+# Start the apiAuditor with verbose logging
+./llm_proxy apiAuditor --verbose
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg.AppMode = config.APIAuditMode

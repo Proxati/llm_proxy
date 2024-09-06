@@ -17,7 +17,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/bbolt v1.3.11
 	go.uber.org/goleak v1.3.0
-	golang.org/x/crypto v0.26.0
+	golang.org/x/crypto v0.27.0
 )
 
 require (
@@ -36,7 +36,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
-	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

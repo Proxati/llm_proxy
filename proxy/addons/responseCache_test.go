@@ -192,7 +192,8 @@ func TestRequest(t *testing.T) {
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 
-		respCacheAddon.cache.Put(tReq, tResp)
+		err = respCacheAddon.cache.Put(tReq, tResp)
+		require.NoError(t, err, "Expected no error storing response in cache")
 
 		// Simulate the request hitting the addon
 		respCacheAddon.Request(flow)
@@ -512,7 +513,8 @@ func TestRequestOpen(t *testing.T) {
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
 
-		respCacheAddon.cache.Put(tReq, tResp)
+		err = respCacheAddon.cache.Put(tReq, tResp)
+		require.NoError(t, err, "Expected no error storing response in cache")
 
 		// Simulate the request hitting the addon
 		respCacheAddon.requestOpen(testLogger, flow)

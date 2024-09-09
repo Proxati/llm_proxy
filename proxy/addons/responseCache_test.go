@@ -56,6 +56,7 @@ func TestCleanCachePath(t *testing.T) {
 }
 
 func TestNewCacheAddonErr(t *testing.T) {
+	t.Parallel()
 	testLogger := slog.Default()
 	emptyHeaderFilterGroup := config.NewHeaderFilterGroup(t.Name(), []string{}, []string{})
 
@@ -94,55 +95,82 @@ func TestNewCacheAddonErr(t *testing.T) {
 }
 
 func TestRequest(t *testing.T) {
+	t.Parallel()
 	testLogger := slog.Default()
-	tmpDir := t.TempDir()
 	filterReqHeaders := config.NewHeaderFilterGroup(t.Name()+"req", []string{}, []string{"Header1"})
 	filterRespHeaders := config.NewHeaderFilterGroup(t.Name()+"resp", []string{}, []string{"Header2"})
 
-	respCacheAddon, err := NewCacheAddon(
-		testLogger,
-		"bolt", tmpDir,
-		filterReqHeaders,
-		filterRespHeaders,
-	)
-	require.Nil(t, err, "No error creating cache addon")
+	newAddon := func() *ResponseCacheAddon {
+		t.Helper()
+		tmpDir := t.TempDir()
+		t.Log("TempDir: ", tmpDir)
+		respCacheAddon, err := NewCacheAddon(
+			testLogger,
+			"bolt", tmpDir,
+			filterReqHeaders,
+			filterRespHeaders,
+		)
+		require.Nil(t, err, "No error creating cache addon")
+		return respCacheAddon
+	}
 
-	t.Run("cache miss", func(t *testing.T) {
-		// first request made with an empty request body
+	t.Run("closed addon", func(t *testing.T) {
+		respCacheAddon := newAddon()
+		err := respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
+
 		flow := &px.Flow{
 			Request: &px.Request{
-				Method: "POST",
+				Method: http.MethodPost,
 				URL:    &url.URL{Path: "/test"},
 				Header: http.Header{
-					"Host":    []string{"example.com"},
-					"Header1": []string{"value1"},
+					"Host": []string{"example.com"},
+				},
+			},
+		}
+
+		respCacheAddon.Request(flow)
+		require.NotNil(t, flow.Response, "Response should not be nil")
+		assert.Equal(t, http.StatusServiceUnavailable, flow.Response.StatusCode, "Expected status code 503")
+		assert.Equal(t, "LLM_Proxy is not available", string(flow.Response.Body), "Expected response body to match")
+		assert.Equal(t, "text/plain", flow.Response.Header.Get("Content-Type"), "Expected Content-Type header to be text/plain")
+		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+		assert.Equal(t, "close", flow.Response.Header.Get("Connection"), "Expected Connection header to be close")
+
+		err = respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
+	})
+
+	t.Run("open addon - cache miss", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: http.MethodPost,
+				URL:    &url.URL{Path: "/test-miss"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
 				},
 				Body: []byte("req"),
 			},
 		}
-		require.Empty(t, flow.Request.Header.Get(CacheStatusHeader))
 
-		// simulate the request hitting the addon
 		respCacheAddon.Request(flow)
-		require.Nil(t, flow.Response, "nil response means cache miss")
-		require.NotEmpty(t, flow.Request.Header.Get(CacheStatusHeader), "expected X-Cache header to exist")
-		assert.Equal(t, "MISS", flow.Request.Header.Get(CacheStatusHeader), "expected X-Cache value to be MISS")
+		assert.Equal(t, "MISS", flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be MISS")
+
+		err := respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
 	})
 
-	t.Run("cache hit", func(t *testing.T) {
-		// simulate a response populating the cache after a miss
+	t.Run("open addon - cache hit", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
 		flow := &px.Flow{
 			Request: &px.Request{
-				Method: "POST",
-				URL: &url.URL{
-					Scheme: "http",
-					Host:   "example.com",
-					Path:   "/test",
-				},
+				Method: http.MethodPost,
+				URL:    &url.URL{Path: "/test"},
 				Header: http.Header{
-					"Host":    []string{"example.com"},
-					"Header1": []string{"value1"},
-					"Header2": []string{"value2"},
+					"Host": []string{"example.com"},
 				},
 				Body: []byte("req"),
 			},
@@ -151,55 +179,154 @@ func TestRequest(t *testing.T) {
 			StatusCode: http.StatusOK,
 			Header: http.Header{
 				"Content-Type": []string{"text/plain"},
-				"Header1":      []string{"value1"},
-				"Header2":      []string{"value2"},
 			},
 			Body: []byte("resp"),
 		}
 
-		identifier := flow.Request.URL.String()
-		len, err := respCacheAddon.cache.Len(identifier)
-		require.Error(t, err, "error expected when checking length of non-existent bucket")
-		require.Zero(t, len, "nothing in cache yet")
-
-		// convert the request to a RequestAdapter
+		// Store the response in cache
 		reqAdapter := mitm.NewProxyRequestAdapter(flow.Request)
-		require.NotNil(t, reqAdapter)
-
-		// create traffic objects for the request and response, check header loading
 		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
 		require.NoError(t, err)
-		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
-		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
-		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
 		respAdapter := mitm.NewProxyResponseAdapter(resp)
-		require.NotNil(t, respAdapter)
-
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
-		require.Empty(t, tResp.Header.Get(CacheStatusHeader))
-		require.NotEmpty(t, tResp.Header.Get("header1"), "header should be deleted by factory function")
-		require.Empty(t, tResp.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
-		// store the response in cache using an internal method, to simulate the real response storage
 		respCacheAddon.cache.Put(tReq, tResp)
 
-		// check length again, should work now
-		len, err = respCacheAddon.cache.Len(identifier)
-		require.NoError(t, err)
-		require.Equal(t, 1, len)
-
-		// simulate a new request with the same URL, should be a hit now that it's in the cache
-		require.Empty(t, resp.Header.Get(CacheStatusHeader))
+		// Simulate the request hitting the addon
 		respCacheAddon.Request(flow)
-		require.NotNil(t, flow.Response)
-		assert.Equal(t, resp.StatusCode, flow.Response.StatusCode)
-		assert.Equal(t, resp.Body, flow.Response.Body)
-		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader))
+		require.NotNil(t, flow.Response, "Response should not be nil")
+		assert.Equal(t, http.StatusOK, flow.Response.StatusCode, "Expected status code to match cached response")
+		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader), "Expected cache status to be HIT")
+
+		err = respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
 	})
 
-	t.Run("cache hit with gzip accept-encoding", func(t *testing.T) {
+	t.Run("unsupported method: delete", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: http.MethodDelete,
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		respCacheAddon.Request(flow)
+		assert.Equal(
+			t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+
+		err := respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
+	})
+
+	t.Run("Cache-Control: no-cache", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: http.MethodPost,
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host":          []string{"example.com"},
+					"Cache-Control": []string{"no-cache"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		respCacheAddon.Request(flow)
+		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+
+		err := respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
+	})
+
+	t.Run("Cache-Control: no-store", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: http.MethodPost,
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host":          []string{"example.com"},
+					"Cache-Control": []string{"no-store"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		respCacheAddon.Request(flow)
+		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+
+		err := respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
+	})
+
+	t.Run("gzip encoding: hit", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: http.MethodPost,
+				URL: &url.URL{
+					Scheme: "http",
+					Host:   "example.com",
+					Path:   "/test",
+				},
+				Header: http.Header{
+					"Host":            []string{"example.com"},
+					"Accept-Encoding": []string{"gzip"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		// use internal gzipEncode function to encode the response body
+		encodedBody, _, err := utils.EncodeBody([]byte("resp"), "gzip")
+		require.NoError(t, err)
+
+		resp := &px.Response{
+			StatusCode: http.StatusOK,
+			Header: http.Header{
+				"Content-Type":     []string{"text/plain"},
+				"Content-Encoding": []string{"gzip"},
+			},
+			Body: encodedBody,
+		}
+
+		// Store the response in cache
+		reqAdapter := mitm.NewProxyRequestAdapter(flow.Request)
+		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
+		require.NoError(t, err)
+
+		respAdapter := mitm.NewProxyResponseAdapter(resp)
+		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
+		require.NoError(t, err)
+
+		respCacheAddon.cache.Put(tReq, tResp)
+
+		// Simulate the request hitting the addon
+		respCacheAddon.Request(flow)
+		require.NotNil(t, flow.Response, "Response should not be nil")
+		assert.Equal(t, http.StatusOK, flow.Response.StatusCode, "Expected status code to match cached response")
+		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader), "Expected cache status to be HIT")
+		assert.Equal(t, "gzip", flow.Response.Header.Get("Content-Encoding"), "Expected Content-Encoding to be gzip")
+
+		err = respCacheAddon.Close()
+		require.NoError(t, err, "Expected no error closing addon")
+	})
+
+	t.Run("gzip encoding, miss/hit", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
 		flow := &px.Flow{
 			Request: &px.Request{
 				Method: "POST",
@@ -264,8 +391,332 @@ func TestRequest(t *testing.T) {
 		assert.Equal(t, resp.Body, flow.Response.Body, fmt.Sprintf("expected resp.Body=%s to match flow.Response.Body=%s", string(resp.Body), string(flow.Response.Body)))
 		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader))
 	})
+}
 
-	t.Cleanup(func() {
-		respCacheAddon.Close()
+func TestRequestClosed(t *testing.T) {
+	t.Parallel()
+	testLogger := slog.Default()
+	respCacheAddon := &ResponseCacheAddon{}
+
+	t.Run("requestClosed sets correct response", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+			},
+		}
+
+		respCacheAddon.requestClosed(testLogger, flow)
+
+		require.NotNil(t, flow.Response, "Response should not be nil")
+		assert.Equal(t, http.StatusServiceUnavailable, flow.Response.StatusCode, "Expected status code 503")
+		assert.Equal(t, "LLM_Proxy is not available", string(flow.Response.Body), "Expected response body to match")
+		assert.Equal(t, "text/plain", flow.Response.Header.Get("Content-Type"), "Expected Content-Type header to be text/plain")
+		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+		assert.Equal(t, "close", flow.Response.Header.Get("Connection"), "Expected Connection header to be close")
+	})
+}
+
+func TestRequestOpen(t *testing.T) {
+	t.Parallel()
+	testLogger := slog.Default()
+	tmpDir := t.TempDir()
+	filterReqHeaders := config.NewHeaderFilterGroup(t.Name()+"req", []string{}, []string{"Header1"})
+	filterRespHeaders := config.NewHeaderFilterGroup(t.Name()+"resp", []string{}, []string{"Header2"})
+
+	respCacheAddon, err := NewCacheAddon(
+		testLogger,
+		"memory", tmpDir,
+		filterReqHeaders,
+		filterRespHeaders,
+	)
+	require.Nil(t, err, "No error creating cache addon")
+
+	t.Run("no Cache-Control header", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		respCacheAddon.requestOpen(testLogger, flow)
+		assert.Equal(t, "MISS", flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be MISS")
+	})
+
+	t.Run("Cache-Control: no-cache", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host":          []string{"example.com"},
+					"Cache-Control": []string{"no-cache"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		respCacheAddon.requestOpen(testLogger, flow)
+		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+	})
+
+	t.Run("unsupported method", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "PUT",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		respCacheAddon.requestOpen(testLogger, flow)
+		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+	})
+
+	t.Run("cache hit", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+				Body: []byte("req"),
+			},
+		}
+		resp := &px.Response{
+			StatusCode: http.StatusOK,
+			Header: http.Header{
+				"Content-Type": []string{"text/plain"},
+			},
+			Body: []byte("resp"),
+		}
+
+		// Store the response in cache
+		reqAdapter := mitm.NewProxyRequestAdapter(flow.Request)
+		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
+		require.NoError(t, err)
+
+		respAdapter := mitm.NewProxyResponseAdapter(resp)
+		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
+		require.NoError(t, err)
+
+		respCacheAddon.cache.Put(tReq, tResp)
+
+		// Simulate the request hitting the addon
+		respCacheAddon.requestOpen(testLogger, flow)
+		require.NotNil(t, flow.Response, "Response should not be nil")
+		assert.Equal(t, http.StatusOK, flow.Response.StatusCode, "Expected status code to match cached response")
+		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader), "Expected cache status to be HIT")
+	})
+
+	t.Run("cache miss", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test-miss"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+				Body: []byte("req"),
+			},
+		}
+
+		respCacheAddon.requestOpen(testLogger, flow)
+		assert.Equal(t, "MISS", flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be MISS")
+	})
+}
+
+func TestResponseCommon(t *testing.T) {
+	t.Parallel()
+	testLogger := slog.Default()
+	tmpDir := t.TempDir()
+	filterReqHeaders := config.NewHeaderFilterGroup(t.Name()+"req", []string{}, []string{"Header1"})
+	filterRespHeaders := config.NewHeaderFilterGroup(t.Name()+"resp", []string{}, []string{"Header2"})
+
+	respCacheAddon, err := NewCacheAddon(
+		testLogger,
+		"memory", tmpDir,
+		filterReqHeaders,
+		filterRespHeaders,
+	)
+	require.Nil(t, err, "No error creating cache addon")
+
+	t.Run("CacheStatusHeader is set to SKIP", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host":            []string{"example.com"},
+					CacheStatusHeader: []string{CacheStatusSkip},
+				},
+			},
+			Response: &px.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{},
+			},
+		}
+
+		err := respCacheAddon.responseCommon(flow)
+		require.Error(t, err, "Expected error for CacheStatusHeader set to SKIP")
+		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+	})
+
+	t.Run("CacheStatusHeader is set to MISS", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host":            []string{"example.com"},
+					CacheStatusHeader: []string{CacheStatusMiss},
+				},
+			},
+			Response: &px.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{},
+			},
+		}
+
+		err := respCacheAddon.responseCommon(flow)
+		require.NoError(t, err, "Expected no error for CacheStatusHeader set to MISS")
+		assert.Equal(t, CacheStatusMiss, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be MISS")
+	})
+
+	t.Run("Unsupported response status code", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+			},
+			Response: &px.Response{
+				StatusCode: http.StatusBadRequest,
+				Header:     http.Header{},
+			},
+		}
+
+		err := respCacheAddon.responseCommon(flow)
+		require.Error(t, err, "Expected error for unsupported response status code")
+		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+	})
+
+	t.Run("Supported response status code", func(t *testing.T) {
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: "GET",
+				URL:    &url.URL{Path: "/test"},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+			},
+			Response: &px.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{},
+			},
+		}
+
+		err := respCacheAddon.responseCommon(flow)
+		require.NoError(t, err, "Expected no error for supported response status code")
+		assert.NotEqual(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader not to be SKIP")
+	})
+}
+
+func TestResponseStorage(t *testing.T) {
+	t.Parallel()
+	testLogger := slog.Default()
+	filterReqHeaders := config.NewHeaderFilterGroup(t.Name()+"req", []string{}, []string{"Header1"})
+	filterRespHeaders := config.NewHeaderFilterGroup(t.Name()+"resp", []string{}, []string{"Header2"})
+
+	newAddon := func() *ResponseCacheAddon {
+		t.Helper()
+		tmpDir := t.TempDir()
+		// t.Log("TempDir: ", tmpDir)
+		respCacheAddon, err := NewCacheAddon(
+			testLogger,
+			"memory", tmpDir,
+			filterReqHeaders,
+			filterRespHeaders,
+		)
+		require.Nil(t, err, "No error creating cache addon")
+		return respCacheAddon
+	}
+
+	t.Run("successful storage", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
+		flow := &px.Flow{
+			Request: &px.Request{
+				Method: http.MethodPost,
+				URL: &url.URL{
+					Scheme: "http",
+					Host:   "example.com",
+					Path:   "/test",
+				},
+				Header: http.Header{
+					"Host": []string{"example.com"},
+				},
+				Body: []byte("req"),
+			},
+			Response: &px.Response{
+				StatusCode: http.StatusOK,
+				Header: http.Header{
+					"Content-Type":  []string{"text/plain"},
+					"Random-Header": []string{"random"},
+				},
+				Body: []byte("resp"),
+			},
+		}
+
+		err := respCacheAddon.responseStorage(flow)
+		assert.NoError(t, err, "Expected no error during response storage")
+
+		// lookup the response in the cache
+		resp, err := respCacheAddon.cache.Get(flow.Request.URL.String(), flow.Request.Body)
+		require.NoError(t, err, "Expected no error getting response from cache")
+		require.NotNil(t, resp, "Expected response to be in cache")
+		assert.Equal(
+			t, http.StatusOK, resp.GetStatusCode(),
+			"Expected status code to match cached response")
+		assert.Equal(
+			t, "text/plain", resp.GetHeaders().Get("Content-Type"),
+			"Expected Content-Type header to match cached response")
+		assert.Equal(
+			t, "random", resp.GetHeaders().Get("Random-Header"),
+			"Expected Random-Header to match cached response")
+		assert.Equal(
+			t, "resp", string(resp.GetBodyBytes()),
+			"Expected response body to match cached response")
+	})
+
+	t.Run("error during request conversion", func(t *testing.T) {
+		respCacheAddon := newAddon()
+
+		flow := &px.Flow{
+			Response: &px.Response{
+				StatusCode: http.StatusOK,
+				Header: http.Header{
+					"Content-Type": []string{"text/plain"},
+				},
+				Body: []byte("resp"),
+			},
+		}
+
+		err := respCacheAddon.responseStorage(flow)
+		assert.Error(t, err, "Expected error during request conversion")
 	})
 }

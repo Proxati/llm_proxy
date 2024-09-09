@@ -53,26 +53,24 @@ type ResponseCacheAddon struct {
 	logger            *slog.Logger
 }
 
-func (c *ResponseCacheAddon) Request(f *px.Flow) {
-	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Request")
-
-	if c.closed.Load() {
-		logger.Warn("ResponseCacheAddon is being closed, skipping request")
-		f.Response = &px.Response{
-			StatusCode: http.StatusServiceUnavailable,
-			Body:       []byte("LLM_Proxy is not available"),
-			Header: http.Header{
-				"Content-Type":    {"text/plain"},
-				CacheStatusHeader: {CacheStatusSkip},
-			},
-		}
-		return
+// requestClosed is the function used by the Request method when the addon is closed. It doesn't
+// return anything, but instead attaches a 503 response to the flow, and sets a few headers on
+// the response. When the proxy sees the response != nil, it will skip the rest of the addons.
+func (c *ResponseCacheAddon) requestClosed(logger *slog.Logger, f *px.Flow) {
+	logger.WithGroup("closed").Warn("sending a 503 response to client, because this addon is being closed")
+	f.Response = &px.Response{
+		StatusCode: http.StatusServiceUnavailable,
+		Body:       []byte("LLM_Proxy is not available"),
+		Header: http.Header{
+			"Content-Type":    {"text/plain"},
+			CacheStatusHeader: {CacheStatusSkip},
+			"Connection":      {"close"},
+		},
 	}
+}
 
-	// wg incremented after the closed check, otherwise close may wait forever as new requests pile up
-	c.wg.Add(1)
-	defer c.wg.Done()
-
+// requestOpen is the function typically used by the Request method
+func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 	// check if the request has a no-cache or no-store header, bypass the cache lookup if true
 	cacheControlHeader := strings.ToLower(f.Request.Header.Get("Cache-Control"))
 	for _, header := range []string{"no-cache", "no-store"} {
@@ -121,7 +119,9 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// header, because next we will be re-encoding the body according to the request's
 	// Accept-Encoding header, and a new Content-Encoding header will be added.
 	cachedResponse.Header = c.filterReqHeaders.FilterHeaders(
-		cachedResponse.Header, "Content-Encoding", "Content-Length")
+		cachedResponse.Header,
+		"Content-Encoding", "Content-Length",
+	)
 
 	// convert the cached response to a ProxyResponse, and encode the body according to the request's Accept-Encoding header
 	encodedCachedResponse, err := mitm.ToProxyResponse(cachedResponse, f.Request.Header.Get("Accept-Encoding"))
@@ -133,23 +133,35 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	// set the cache status header to indicate a hit
 	encodedCachedResponse.Header.Set(CacheStatusHeader, CacheStatusHit)
 
-	// other pending addons will be skipped after setting f.Response and returning from this method
+	// other pending addons will be skipped after setting f.Response and returning from the caller method
 	f.Response = encodedCachedResponse
 }
 
-func (c *ResponseCacheAddon) Response(f *px.Flow) {
+func (c *ResponseCacheAddon) Request(f *px.Flow) {
+	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Request")
 	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+	defer c.wg.Done()
+
+	if c.closed.Load() {
+		c.requestClosed(logger, f)
+		return
+	}
+
+	c.requestOpen(logger, f)
+}
+
+// responseCommon is the function used by the Response method when the addon is both open or closed.
+// It returns true if the addon should return early, and false otherwise.
+func (c *ResponseCacheAddon) responseCommon(f *px.Flow) error {
 	// Get the request header for CacheStatusHeader and set the response header to whatever it's set to
 	cacheStatus := f.Request.Header.Get(CacheStatusHeader)
-	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Response")
 
 	if cacheStatus != "" {
 		// Set the response header to the same value as the request header
 		f.Response.Header.Set(CacheStatusHeader, cacheStatus)
 		if cacheStatus == CacheStatusSkip {
-			logger.Debug("skipping cache storage", "CacheStatus", cacheStatus)
-			c.wg.Done()
-			return
+			// not *really* an error, just a way to communicate the reason for skipping cache storage
+			return fmt.Errorf("Cache header is set to: %s", cacheStatus)
 		}
 	}
 
@@ -157,16 +169,57 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 	_, shouldCache := cacheOnlyResponseCodes[f.Response.StatusCode]
 	if !shouldCache {
 		f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
-		logger.Debug(
-			"skipping cache storage for non-200 response",
-			"statusCode", f.Response.StatusCode,
-		)
+		return fmt.Errorf("response status code is not cacheable: %d", f.Response.StatusCode)
+	}
+
+	return nil
+}
+
+// responseStorage is the function used by the Response method (when the addon is open) to store
+// the response in the cache. It will store the response in the cache, after filtering out the
+// Content-Encoding and Content-Length headers. The lookup key is the request URL and the request
+// body, and the cached value is the response object.
+func (c *ResponseCacheAddon) responseStorage(f *px.Flow) error {
+	// convert the request to an internal TrafficObject
+	reqAdapter := mitm.NewProxyRequestAdapter(f.Request) // generic wrapper for the mitm request
+
+	tObjReq, err := schema.NewProxyRequest(reqAdapter, c.filterReqHeaders)
+	if err != nil {
+		return fmt.Errorf("could not create TrafficObject from request: %w", err)
+	}
+
+	// convert the response to an internal TrafficObject
+	respAdapter := mitm.NewProxyResponseAdapter(f.Response) // generic wrapper for the mitm response
+	tObjResp, err := schema.NewProxyResponse(respAdapter, c.filterRespHeaders)
+	if err != nil {
+		return fmt.Errorf("could not create TrafficObject from response: %w", err)
+	}
+
+	// remove the Content-Encoding header to avoid storing this in the cache
+	tObjResp.Header.Del("Content-Encoding")
+	tObjResp.Header.Del("Content-Length")
+
+	// store the response in the cache
+	if err := c.cache.Put(tObjReq, tObjResp); err != nil {
+		return fmt.Errorf("could not store response in cache: %w", err)
+	}
+
+	return nil
+}
+
+func (c *ResponseCacheAddon) Response(f *px.Flow) {
+	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Response")
+
+	earlyReturnErr := c.responseCommon(f)
+	if earlyReturnErr != nil {
+		logger.Debug("Skipping cache storage", "reason", earlyReturnErr.Error())
 		c.wg.Done()
 		return
 	}
 
 	if c.closed.Load() {
-		logger.Warn("ResponseCacheAddon is being closed, not storing response in cache")
+		logger.Warn("Skipping cache storage", "reason", "ResponseCacheAddon is being closed")
 		c.wg.Done()
 		return
 	}
@@ -176,40 +229,12 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 		defer c.wg.Done() // .Done() must be inside the goroutine, so that .Close() waits for the storage to finish
 		<-f.Done()        // block until the response from upstream is fully read into proxy memory, and other addons have run
 
-		// convert the request to an internal TrafficObject
-		reqAdapter := mitm.NewProxyRequestAdapter(f.Request) // generic wrapper for the mitm request
-
-		tObjReq, err := schema.NewProxyRequest(reqAdapter, c.filterReqHeaders)
+		err := c.responseStorage(f)
 		if err != nil {
-			logger.Error("could not create TrafficObject from request", "error", err)
+			logger.Error("error storing response in cache", "error", err)
 			return
 		}
-
-		// remove the Accept-Encoding header to avoid storing this in the cache
-		originalAcceptEncoding := tObjReq.Header.Get("Accept-Encoding")
-
-		// convert the response to an internal TrafficObject
-		respAdapter := mitm.NewProxyResponseAdapter(f.Response) // generic wrapper for the mitm response
-		tObjResp, err := schema.NewProxyResponse(respAdapter, c.filterRespHeaders)
-		if err != nil {
-			logger.Error("could not create TrafficObject from response", "error", err)
-			return
-		}
-
-		// remove the Content-Encoding header to avoid storing this in the cache
-		tObjResp.Header.Del("Content-Encoding")
-		tObjResp.Header.Del("Content-Length")
-		logger.Debug(
-			"removed header from request before storing in cache",
-			"Accept-Encoding", originalAcceptEncoding,
-		)
-
-		// store the response in the cache
-		if err := c.cache.Put(tObjReq, tObjResp); err != nil {
-			logger.Error("could not store response in cache", "error", err)
-		}
-
-		logger.Debug("Response cache storage complete")
+		logger.Debug("Response cache storage completed successfully")
 	}()
 }
 
@@ -224,6 +249,7 @@ func (d *ResponseCacheAddon) Close() error {
 		if err != nil {
 			d.logger.Error("error closing cacheDB", "error", err)
 		}
+		d.logger.Debug("Waiting for any remaining cache storage operations to complete...")
 		d.wg.Wait()
 	}
 

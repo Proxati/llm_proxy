@@ -256,6 +256,7 @@ func (d *ResponseCacheAddon) Close() error {
 	return nil
 }
 
+// cleanCacheDir ensures that the cache directory string is valid and returns the absolute path.
 func cleanCacheDir(cacheDir string) (string, error) {
 	if cacheDir == "" {
 		cacheDir = "."

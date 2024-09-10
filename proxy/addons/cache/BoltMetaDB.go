@@ -24,9 +24,9 @@ type BoltMetaDB struct {
 	logger    *slog.Logger
 }
 
-// len return the number of items currently in the cache
-func (c *BoltMetaDB) Len(identifier string) (int, error) {
-	return c.db.Len(identifier)
+// String returns a string representation of the BoltMetaDB object
+func (c *BoltMetaDB) String() string {
+	return fmt.Sprintf("BoltMetaDB: %s", c.dbFileDir)
 }
 
 // Close closes all the BadgerDBs in the collection
@@ -36,6 +36,11 @@ func (c *BoltMetaDB) Close() error {
 		err = c.db.Close()
 	})
 	return err
+}
+
+// len return the number of items currently in the cache
+func (c *BoltMetaDB) Len(identifier string) (int, error) {
+	return c.db.Len(identifier)
 }
 
 // Get receives a request, pulls out the request URL, uses that URL as a

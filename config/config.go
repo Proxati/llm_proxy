@@ -13,7 +13,7 @@ type Config struct {
 	Cache          *cacheBehavior
 	HeaderFilters  *HeaderFiltersContainer
 	HTTPBehavior   *httpBehavior
-	TrafficLogger  *trafficLogger
+	TrafficLogger  *TrafficLogger
 	terminalLogger *terminalLogger
 }
 
@@ -139,7 +139,7 @@ func NewDefaultConfig() *Config {
 				Level: slog.LevelWarn,
 			},
 		},
-		TrafficLogger: &trafficLogger{
+		TrafficLogger: &TrafficLogger{
 			Output: "",
 			LogFmt: LogFormatJSON,
 		},

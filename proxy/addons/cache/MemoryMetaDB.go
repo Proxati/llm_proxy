@@ -27,6 +27,11 @@ func NewMemoryMetaDB(logger *slog.Logger, maxEntries int) (*MemoryMetaDB, error)
 	}, nil
 }
 
+// String returns a string representation of the MemoryMetaDB object
+func (c *MemoryMetaDB) String() string {
+	return fmt.Sprintf("MemoryMetaDB: %d entries", len(c.metaDB))
+}
+
 func (c *MemoryMetaDB) Close() error {
 	for _, db := range c.metaDB {
 		db.Close()

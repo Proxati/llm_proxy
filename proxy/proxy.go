@@ -55,30 +55,6 @@ func newProxy(listenOn string, skipVerifyTLS bool, ca *cert.CA) (*px.Proxy, erro
 	return p, nil
 }
 
-// configureDumper creates and configure MegaDirDumper addon object, but bypass traffic logs when
-// no output target is requested (or when verbose is disabled)
-func configureDumper(logger *slog.Logger, cfg *config.Config, logSources config.LogSourceConfig) (*addons.MegaTrafficDumper, error) {
-	// create and configure MegaDirDumper addon object, but bypass traffic logs when no output is requested
-	if cfg.TrafficLogger.Output == "" && !cfg.IsVerboseOrHigher() {
-		// no output dir specified and verbose is disabled
-		return nil, nil
-	}
-
-	dumperAddon, err := addons.NewMegaTrafficDumperAddon(
-		logger,
-		cfg.TrafficLogger.Output,
-		cfg.TrafficLogger.LogFmt,
-		logSources,
-		cfg.HeaderFilters.RequestToLogs,
-		cfg.HeaderFilters.ResponseToLogs,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create traffic log dumper: %v", err)
-	}
-
-	return dumperAddon, nil
-}
-
 // configProxy returns a configured proxy object w/ addons. This proxy still needs to be "started"
 // with a blocking call to .Start() (which is handled elsewhere)
 func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
@@ -137,26 +113,11 @@ func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 	logger.Debug("Building proxy config", "AppMode", cfg.AppMode.String())
 	switch cfg.AppMode {
 	case config.CacheMode:
-		cacheConfig, err := cfg.Cache.GetCacheStorageConfig(logger)
+		cacheAddon, err := configureCacheAddon(logger, cfg)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create cache config: %w", err)
+			return nil, fmt.Errorf("failed to create cache addon: %w", err)
 		}
-
-		cacheAddon, err := addons.NewCacheAddon(
-			logger,
-			cacheConfig.GetStorageEngine(),
-			cacheConfig.GetStoragePath(),
-			cfg.HeaderFilters.RequestToLogs,
-			cfg.HeaderFilters.ResponseToLogs,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load cache addon: %w", err)
-		}
-		logger.Debug(
-			"Created "+cacheAddon.String(),
-			"storageEngine", cacheConfig.GetStorageEngine(),
-			"storagePath", cacheConfig.GetStoragePath(),
-		)
+		logger.Debug("Created " + cacheAddon.String())
 		metaAdd.addAddon(cacheAddon)
 	case config.APIAuditMode:
 		metaAdd.addAddon(addons.NewAPIAuditor(logger))

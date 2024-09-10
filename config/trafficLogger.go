@@ -32,9 +32,9 @@ var LogSourceConfigAllTrue = LogSourceConfig{
 	LogResponse:        true,
 }
 
-// trafficLogger stores config filtering options for the *output* of the proxy traffic. To
+// TrafficLogger stores config filtering options for the *output* of the proxy traffic. To
 // turn off logging of a part of the transaction, if needed.
-type trafficLogger struct {
+type TrafficLogger struct {
 	Output           string    // Directory or Address to write logs
 	LogFmt           LogFormat // Traffic log output format (json, txt)
 	NoLogConnStats   bool      // if true, do not log connection stats
@@ -44,7 +44,7 @@ type trafficLogger struct {
 	NoLogRespBody    bool      // if true, log response body
 }
 
-func (t *trafficLogger) GetLogSourceConfig() LogSourceConfig {
+func (t *TrafficLogger) GetLogSourceConfig() LogSourceConfig {
 	return LogSourceConfig{
 		LogConnectionStats: !t.NoLogConnStats,
 		LogRequestHeaders:  !t.NoLogReqHeaders,

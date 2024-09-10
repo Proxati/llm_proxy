@@ -239,7 +239,7 @@ func (c *ResponseCacheAddon) Response(f *px.Flow) {
 }
 
 func (d *ResponseCacheAddon) String() string {
-	return "ResponseCacheAddon"
+	return fmt.Sprintf("ResponseCacheAddon (%s)", d.cache)
 }
 
 func (d *ResponseCacheAddon) Close() error {

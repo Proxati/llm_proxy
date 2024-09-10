@@ -90,7 +90,7 @@ func TestNewCacheAddonErr(t *testing.T) {
 		cache, err := NewCacheAddon(testLogger, storageEngineName, cacheDir, emptyHeaderFilterGroup, emptyHeaderFilterGroup)
 		assert.NoError(t, err, "Expected no error for valid cacheDir")
 		assert.NotNil(t, cache)
-		assert.Equal(t, "ResponseCacheAddon", cache.String())
+		assert.Contains(t, cache.String(), "ResponseCacheAddon (BoltMetaDB:")
 	})
 }
 

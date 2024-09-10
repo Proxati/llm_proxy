@@ -36,8 +36,18 @@ func (t *ToDir) Write(identifier string, bytes []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer fileObj.Close()
-	return fileObj.Write(bytes)
+	defer fileObj.Close() // redundant close, just to make sure
+
+	b, writeErr := fileObj.Write(bytes)
+	if writeErr != nil {
+		return 0, writeErr
+	}
+
+	closeErr := fileObj.Close()
+	if closeErr != nil {
+		return 0, closeErr
+	}
+	return b, nil
 }
 
 // String returns the the name of this writer, and the target directory

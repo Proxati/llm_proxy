@@ -17,6 +17,7 @@
         { "name": "gpt-4-turbo-preview", "inputTokenCost": "0.00001", "outputTokenCost": "0.00003", "currency": "USD" },
         { "name": "gpt-4o", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD" },
         { "name": "gpt-4o-2024-05-13", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD" },
+        { "name": "gpt-4o-2024-08-06", "inputTokenCost": "0.000005", "outputTokenCost": "0.000015", "currency": "USD" },
         { "name": "gpt-4o-mini", "inputTokenCost": "0.00000015", "outputTokenCost": "0.0000006", "currency": "USD" },
         { "name": "gpt-4o-mini-2024-07-18", "inputTokenCost": "0.00000015", "outputTokenCost": "0.0000006", "currency": "USD" }
     ]

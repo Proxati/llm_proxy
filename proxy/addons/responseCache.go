@@ -132,7 +132,8 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 	// Accept-Encoding header, and a new Content-Encoding header will be added.
 	cachedResponse.Header = c.filterReqHeaders.FilterHeaders(
 		cachedResponse.Header,
-		// remove these headers from the cached response before returning
+		// remove these headers from the cached response before returning, the CacheStatusHeader
+		// will be re-added in the defer block
 		"Content-Encoding", "Content-Length", headers.CacheStatusHeader,
 	)
 

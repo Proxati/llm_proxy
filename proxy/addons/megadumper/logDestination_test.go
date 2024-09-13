@@ -121,7 +121,7 @@ func TestLogDestination_Write(t *testing.T) {
 
 	// Write LogDumpContainer
 	identifier := "test_identifier"
-	_, err = logDestination.Write(identifier, logDumpContainer)
+	_, err = logDestination.Write(identifier, *logDumpContainer)
 	require.NoError(t, err)
 
 	// Verify Output

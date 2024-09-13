@@ -35,8 +35,8 @@ func (ld *LogDestination) String() string {
 // Write writes a log dump container object to it's log destination. The
 // formatter is responsible for converting the log dump container the correct
 // format (json, text, etc) before writing.
-func (ld *LogDestination) Write(identifier string, logDumpContainer *schema.LogDumpContainer) (int, error) {
-	bytes, err := ld.formatter.Read(logDumpContainer)
+func (ld *LogDestination) Write(identifier string, logDumpContainer schema.LogDumpContainer) (int, error) {
+	bytes, err := ld.formatter.Read(&logDumpContainer)
 	if err != nil {
 		return 0, fmt.Errorf("could not format log dump container: %w", err)
 	}

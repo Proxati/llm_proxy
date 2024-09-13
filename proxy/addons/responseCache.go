@@ -15,15 +15,12 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/headers"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 )
 
 const (
-	CacheStatusHeader      = "X-Llm_proxy-Cache"
-	CacheStatusHit         = "HIT"
-	CacheStatusMiss        = "MISS"
-	CacheStatusSkip        = "SKIP"
 	DefaultMemoryCacheSize = 1000 // number of records to cache per URL
 )
 
@@ -62,9 +59,9 @@ func (c *ResponseCacheAddon) requestClosed(logger *slog.Logger, f *px.Flow) {
 		StatusCode: http.StatusServiceUnavailable,
 		Body:       []byte("LLM_Proxy is not available"),
 		Header: http.Header{
-			"Content-Type":    {"text/plain"},
-			CacheStatusHeader: {CacheStatusSkip},
-			"Connection":      {"close"},
+			"Content-Type":            {"text/plain"},
+			headers.CacheStatusHeader: {headers.CacheStatusValueSkip},
+			"Connection":              {"close"},
 		},
 	}
 }
@@ -79,7 +76,7 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 				"skipping cache lookup because of the Cache-Control header value",
 				"Cache-Control", header,
 			)
-			f.Request.Header.Set(CacheStatusHeader, CacheStatusSkip) // hack to store the cache status in the request
+			f.Request.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueSkip) // hack to store the cache status in the request
 			return
 		}
 	}
@@ -87,7 +84,7 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 	// Only cache these request methods (and empty string for GET)
 	if _, ok := cacheOnlyMethods[f.Request.Method]; !ok {
 		logger.Debug("skipping cache lookup for unsupported method", "method", f.Request.Method)
-		f.Request.Header.Set(CacheStatusHeader, CacheStatusSkip) // hack to store the cache status state in the request
+		f.Request.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueSkip) // hack to store the cache status state in the request
 		return
 	}
 
@@ -107,7 +104,7 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 
 	// handle cache miss, return early otherwise NPEs below
 	if cachedResponse == nil {
-		f.Request.Header.Set(CacheStatusHeader, CacheStatusMiss)
+		f.Request.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueMiss)
 		logger.Info("Cache miss")
 		return
 	}
@@ -131,7 +128,7 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 	}
 
 	// set the cache status header to indicate a hit
-	encodedCachedResponse.Header.Set(CacheStatusHeader, CacheStatusHit)
+	encodedCachedResponse.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueHit)
 
 	// other pending addons will be skipped after setting f.Response and returning from the caller method
 	f.Response = encodedCachedResponse
@@ -153,13 +150,13 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 // responseCommon is the function used by the Response method when the addon is both open or closed.
 // It returns true if the addon should return early, and false otherwise.
 func (c *ResponseCacheAddon) responseCommon(f *px.Flow) error {
-	// Get the request header for CacheStatusHeader and set the response header to whatever it's set to
-	cacheStatus := f.Request.Header.Get(CacheStatusHeader)
+	// Get the request header for headers.CacheStatusHeader and set the response header to whatever it's set to
+	cacheStatus := f.Request.Header.Get(headers.CacheStatusHeader)
 
 	if cacheStatus != "" {
 		// Set the response header to the same value as the request header
-		f.Response.Header.Set(CacheStatusHeader, cacheStatus)
-		if cacheStatus == CacheStatusSkip {
+		f.Response.Header.Set(headers.CacheStatusHeader, cacheStatus)
+		if cacheStatus == headers.CacheStatusValueSkip {
 			// not *really* an error, just a way to communicate the reason for skipping cache storage
 			return fmt.Errorf("Cache header is set to: %s", cacheStatus)
 		}
@@ -168,7 +165,7 @@ func (c *ResponseCacheAddon) responseCommon(f *px.Flow) error {
 	// Only cache good response codes
 	_, shouldCache := cacheOnlyResponseCodes[f.Response.StatusCode]
 	if !shouldCache {
-		f.Response.Header.Set(CacheStatusHeader, CacheStatusSkip)
+		f.Response.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueSkip)
 		return fmt.Errorf("response status code is not cacheable: %d", f.Response.StatusCode)
 	}
 

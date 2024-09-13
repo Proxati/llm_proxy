@@ -20,8 +20,8 @@ import (
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/internal/fileutils"
-	"github.com/proxati/llm_proxy/v2/proxy/addons"
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/headers"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 	px "github.com/proxati/mitmproxy/proxy"
 	"github.com/stretchr/testify/assert"
@@ -422,7 +422,7 @@ func TestProxyCache(t *testing.T) {
 
 				assert.Equal(t, expectedResponse, body)
 				assert.Equal(t, int32(1), hitCounter.Load())
-				assert.Equal(t, addons.CacheStatusMiss, resp.Header.Get(addons.CacheStatusHeader))
+				assert.Equal(t, headers.CacheStatusValueMiss, resp.Header.Get(headers.CacheStatusHeader))
 			})
 
 			t.Run("Hit", func(t *testing.T) {
@@ -441,7 +441,7 @@ func TestProxyCache(t *testing.T) {
 
 				assert.Equal(t, expectedResponse, body)
 				assert.Equal(t, int32(1), hitCounter.Load())
-				assert.Equal(t, addons.CacheStatusMiss, resp.Header.Get(addons.CacheStatusHeader))
+				assert.Equal(t, headers.CacheStatusValueMiss, resp.Header.Get(headers.CacheStatusHeader))
 
 				// wait for the cache to be written, waiting for a file event is not reliable here
 				time.Sleep(defaultSleepTime)
@@ -461,7 +461,7 @@ func TestProxyCache(t *testing.T) {
 
 				assert.Equal(t, expectedResponse, body)
 				assert.Equal(t, int32(1), hitCounter.Load()) // the counter should not be 6, because we got a cache hit
-				assert.Equal(t, addons.CacheStatusHit, resp.Header.Get(addons.CacheStatusHeader))
+				assert.Equal(t, headers.CacheStatusValueHit, resp.Header.Get(headers.CacheStatusHeader))
 			})
 
 			t.Run("HitNoGzip", func(t *testing.T) {
@@ -494,7 +494,7 @@ func TestProxyCache(t *testing.T) {
 				expectedResponseBody := respBuilder(t, 1, strings.NewReader(t.Name()))
 				assert.Equal(t, expectedResponseBody, decodedBody)
 				assert.Equal(t, int32(1), hitCounter.Load())
-				assert.Equal(t, addons.CacheStatusMiss, resp1.Header.Get(addons.CacheStatusHeader))
+				assert.Equal(t, headers.CacheStatusValueMiss, resp1.Header.Get(headers.CacheStatusHeader))
 
 				// wait for the cache to be written, waiting for a file event is not reliable here
 				time.Sleep(defaultSleepTime)
@@ -515,7 +515,7 @@ func TestProxyCache(t *testing.T) {
 				// no decoding for this body check, because it should be plain-text (no gzip)
 				assert.Equal(t, expectedResponseBody, body2)
 				assert.Equal(t, int32(1), hitCounter.Load(), "test server hit counter hasn't incremented, bc cache hit")
-				assert.Equal(t, addons.CacheStatusHit, resp2.Header.Get(addons.CacheStatusHeader))
+				assert.Equal(t, headers.CacheStatusValueHit, resp2.Header.Get(headers.CacheStatusHeader))
 
 				require.Equal(t, decodedBody, body2, "body1 and body2 are equal, because 1 is live and the 2 is from cache")
 			})

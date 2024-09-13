@@ -10,6 +10,7 @@ import (
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
+	"github.com/proxati/llm_proxy/v2/schema/headers"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 	px "github.com/proxati/mitmproxy/proxy"
@@ -134,7 +135,7 @@ func TestRequest(t *testing.T) {
 		assert.Equal(t, http.StatusServiceUnavailable, flow.Response.StatusCode, "Expected status code 503")
 		assert.Equal(t, "LLM_Proxy is not available", string(flow.Response.Body), "Expected response body to match")
 		assert.Equal(t, "text/plain", flow.Response.Header.Get("Content-Type"), "Expected Content-Type header to be text/plain")
-		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Response.Header.Get(headers.CacheStatusHeader), "Expected headers.CacheStatusHeader to be SKIP")
 		assert.Equal(t, "close", flow.Response.Header.Get("Connection"), "Expected Connection header to be close")
 
 		err = respCacheAddon.Close()
@@ -156,7 +157,7 @@ func TestRequest(t *testing.T) {
 		}
 
 		respCacheAddon.Request(flow)
-		assert.Equal(t, "MISS", flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be MISS")
+		assert.Equal(t, "MISS", flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be MISS")
 
 		err := respCacheAddon.Close()
 		require.NoError(t, err, "Expected no error closing addon")
@@ -199,7 +200,7 @@ func TestRequest(t *testing.T) {
 		respCacheAddon.Request(flow)
 		require.NotNil(t, flow.Response, "Response should not be nil")
 		assert.Equal(t, http.StatusOK, flow.Response.StatusCode, "Expected status code to match cached response")
-		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader), "Expected cache status to be HIT")
+		assert.Equal(t, "HIT", flow.Response.Header.Get(headers.CacheStatusHeader), "Expected cache status to be HIT")
 
 		err = respCacheAddon.Close()
 		require.NoError(t, err, "Expected no error closing addon")
@@ -221,7 +222,7 @@ func TestRequest(t *testing.T) {
 
 		respCacheAddon.Request(flow)
 		assert.Equal(
-			t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+			t, headers.CacheStatusValueSkip, flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be SKIP")
 
 		err := respCacheAddon.Close()
 		require.NoError(t, err, "Expected no error closing addon")
@@ -243,7 +244,7 @@ func TestRequest(t *testing.T) {
 		}
 
 		respCacheAddon.Request(flow)
-		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be SKIP")
 
 		err := respCacheAddon.Close()
 		require.NoError(t, err, "Expected no error closing addon")
@@ -265,7 +266,7 @@ func TestRequest(t *testing.T) {
 		}
 
 		respCacheAddon.Request(flow)
-		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be SKIP")
 
 		err := respCacheAddon.Close()
 		require.NoError(t, err, "Expected no error closing addon")
@@ -318,7 +319,7 @@ func TestRequest(t *testing.T) {
 		respCacheAddon.Request(flow)
 		require.NotNil(t, flow.Response, "Response should not be nil")
 		assert.Equal(t, http.StatusOK, flow.Response.StatusCode, "Expected status code to match cached response")
-		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader), "Expected cache status to be HIT")
+		assert.Equal(t, "HIT", flow.Response.Header.Get(headers.CacheStatusHeader), "Expected cache status to be HIT")
 		assert.Equal(t, "gzip", flow.Response.Header.Get("Content-Encoding"), "Expected Content-Encoding to be gzip")
 
 		err = respCacheAddon.Close()
@@ -367,7 +368,7 @@ func TestRequest(t *testing.T) {
 		// create traffic objects for the request and response, check header loading
 		tReq, err := schema.NewProxyRequest(reqAdapter, filterReqHeaders)
 		require.NoError(t, err)
-		require.Empty(t, tReq.Header.Get(CacheStatusHeader))
+		require.Empty(t, tReq.Header.Get(headers.CacheStatusHeader))
 		require.Empty(t, tReq.Header.Get("header1"), "header should be deleted by factory function")
 		require.NotEmpty(t, tReq.Header.Get("header2"), "header shouldn't be deleted by factory function")
 
@@ -376,7 +377,7 @@ func TestRequest(t *testing.T) {
 
 		tResp, err := schema.NewProxyResponse(respAdapter, filterRespHeaders)
 		require.NoError(t, err)
-		require.Empty(t, tResp.Header.Get(CacheStatusHeader))
+		require.Empty(t, tResp.Header.Get(headers.CacheStatusHeader))
 		require.NotEmpty(t, tResp.Header.Get("header1"), "header should be deleted by factory function")
 		require.Empty(t, tResp.Header.Get("header2"), "header shouldn't be deleted by factory function")
 		require.Equal(t, "gzip", tResp.Header.Get("Content-Encoding"))
@@ -385,12 +386,12 @@ func TestRequest(t *testing.T) {
 		respCacheAddon.cache.Put(tReq, tResp)
 
 		// simulate a new request with the same URL, should be a hit now that it's in the cache
-		require.Empty(t, resp.Header.Get(CacheStatusHeader))
+		require.Empty(t, resp.Header.Get(headers.CacheStatusHeader))
 		respCacheAddon.Request(flow)
 		require.NotNil(t, flow.Response)
 		assert.Equal(t, resp.StatusCode, flow.Response.StatusCode)
 		assert.Equal(t, resp.Body, flow.Response.Body, fmt.Sprintf("expected resp.Body=%s to match flow.Response.Body=%s", string(resp.Body), string(flow.Response.Body)))
-		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader))
+		assert.Equal(t, "HIT", flow.Response.Header.Get(headers.CacheStatusHeader))
 	})
 }
 
@@ -416,7 +417,7 @@ func TestRequestClosed(t *testing.T) {
 		assert.Equal(t, http.StatusServiceUnavailable, flow.Response.StatusCode, "Expected status code 503")
 		assert.Equal(t, "LLM_Proxy is not available", string(flow.Response.Body), "Expected response body to match")
 		assert.Equal(t, "text/plain", flow.Response.Header.Get("Content-Type"), "Expected Content-Type header to be text/plain")
-		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Response.Header.Get(headers.CacheStatusHeader), "Expected headers.CacheStatusHeader to be SKIP")
 		assert.Equal(t, "close", flow.Response.Header.Get("Connection"), "Expected Connection header to be close")
 	})
 }
@@ -449,7 +450,7 @@ func TestRequestOpen(t *testing.T) {
 		}
 
 		respCacheAddon.requestOpen(testLogger, flow)
-		assert.Equal(t, "MISS", flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be MISS")
+		assert.Equal(t, "MISS", flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be MISS")
 	})
 
 	t.Run("Cache-Control: no-cache", func(t *testing.T) {
@@ -466,7 +467,7 @@ func TestRequestOpen(t *testing.T) {
 		}
 
 		respCacheAddon.requestOpen(testLogger, flow)
-		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be SKIP")
 	})
 
 	t.Run("unsupported method", func(t *testing.T) {
@@ -482,7 +483,7 @@ func TestRequestOpen(t *testing.T) {
 		}
 
 		respCacheAddon.requestOpen(testLogger, flow)
-		assert.Equal(t, CacheStatusSkip, flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be SKIP")
 	})
 
 	t.Run("cache hit", func(t *testing.T) {
@@ -520,7 +521,7 @@ func TestRequestOpen(t *testing.T) {
 		respCacheAddon.requestOpen(testLogger, flow)
 		require.NotNil(t, flow.Response, "Response should not be nil")
 		assert.Equal(t, http.StatusOK, flow.Response.StatusCode, "Expected status code to match cached response")
-		assert.Equal(t, "HIT", flow.Response.Header.Get(CacheStatusHeader), "Expected cache status to be HIT")
+		assert.Equal(t, "HIT", flow.Response.Header.Get(headers.CacheStatusHeader), "Expected cache status to be HIT")
 	})
 
 	t.Run("cache miss", func(t *testing.T) {
@@ -536,7 +537,7 @@ func TestRequestOpen(t *testing.T) {
 		}
 
 		respCacheAddon.requestOpen(testLogger, flow)
-		assert.Equal(t, "MISS", flow.Request.Header.Get(CacheStatusHeader), "Expected cache status to be MISS")
+		assert.Equal(t, "MISS", flow.Request.Header.Get(headers.CacheStatusHeader), "Expected cache status to be MISS")
 	})
 }
 
@@ -555,14 +556,14 @@ func TestResponseCommon(t *testing.T) {
 	)
 	require.Nil(t, err, "No error creating cache addon")
 
-	t.Run("CacheStatusHeader is set to SKIP", func(t *testing.T) {
+	t.Run("headers.CacheStatusHeader is set to SKIP", func(t *testing.T) {
 		flow := &px.Flow{
 			Request: &px.Request{
 				Method: "GET",
 				URL:    &url.URL{Path: "/test"},
 				Header: http.Header{
-					"Host":            []string{"example.com"},
-					CacheStatusHeader: []string{CacheStatusSkip},
+					"Host":                    []string{"example.com"},
+					headers.CacheStatusHeader: []string{headers.CacheStatusValueSkip},
 				},
 			},
 			Response: &px.Response{
@@ -572,18 +573,18 @@ func TestResponseCommon(t *testing.T) {
 		}
 
 		err := respCacheAddon.responseCommon(flow)
-		require.Error(t, err, "Expected error for CacheStatusHeader set to SKIP")
-		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+		require.Error(t, err, "Expected error for headers.CacheStatusHeader set to SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Response.Header.Get(headers.CacheStatusHeader), "Expected headers.CacheStatusHeader to be SKIP")
 	})
 
-	t.Run("CacheStatusHeader is set to MISS", func(t *testing.T) {
+	t.Run("headers.CacheStatusHeader is set to MISS", func(t *testing.T) {
 		flow := &px.Flow{
 			Request: &px.Request{
 				Method: "GET",
 				URL:    &url.URL{Path: "/test"},
 				Header: http.Header{
-					"Host":            []string{"example.com"},
-					CacheStatusHeader: []string{CacheStatusMiss},
+					"Host":                    []string{"example.com"},
+					headers.CacheStatusHeader: []string{headers.CacheStatusValueMiss},
 				},
 			},
 			Response: &px.Response{
@@ -593,8 +594,8 @@ func TestResponseCommon(t *testing.T) {
 		}
 
 		err := respCacheAddon.responseCommon(flow)
-		require.NoError(t, err, "Expected no error for CacheStatusHeader set to MISS")
-		assert.Equal(t, CacheStatusMiss, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be MISS")
+		require.NoError(t, err, "Expected no error for headers.CacheStatusHeader set to MISS")
+		assert.Equal(t, headers.CacheStatusValueMiss, flow.Response.Header.Get(headers.CacheStatusHeader), "Expected headers.CacheStatusHeader to be MISS")
 	})
 
 	t.Run("Unsupported response status code", func(t *testing.T) {
@@ -614,7 +615,7 @@ func TestResponseCommon(t *testing.T) {
 
 		err := respCacheAddon.responseCommon(flow)
 		require.Error(t, err, "Expected error for unsupported response status code")
-		assert.Equal(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader to be SKIP")
+		assert.Equal(t, headers.CacheStatusValueSkip, flow.Response.Header.Get(headers.CacheStatusHeader), "Expected headers.CacheStatusHeader to be SKIP")
 	})
 
 	t.Run("Supported response status code", func(t *testing.T) {
@@ -634,7 +635,7 @@ func TestResponseCommon(t *testing.T) {
 
 		err := respCacheAddon.responseCommon(flow)
 		require.NoError(t, err, "Expected no error for supported response status code")
-		assert.NotEqual(t, CacheStatusSkip, flow.Response.Header.Get(CacheStatusHeader), "Expected CacheStatusHeader not to be SKIP")
+		assert.NotEqual(t, headers.CacheStatusValueSkip, flow.Response.Header.Get(headers.CacheStatusHeader), "Expected headers.CacheStatusHeader not to be SKIP")
 	})
 }
 

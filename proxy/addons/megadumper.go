@@ -88,16 +88,26 @@ func (d *MegaTrafficDumper) convertFlowToLogDump(logger *slog.Logger, flowAdapte
 
 // sendToLogDestinations writes the log data to the configured log destinations
 func (d *MegaTrafficDumper) sendToLogDestinations(logger *slog.Logger, id string, dumpContainer *schema.LogDumpContainer) {
+	wg := sync.WaitGroup{}
 	for _, ldc := range d.logDestinationConfigs {
-		wLogger := logger.With("logDestinationConfig", ldc.String())
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			wLogger := logger.With("logDestinationConfig", ldc.String())
+			if dumpContainer == nil {
+				wLogger.Error("LogDumpContainer is nil, skipping write")
+				return
+			}
 
-		bytesWritten, err := ldc.Write(id, dumpContainer)
-		if err != nil {
-			wLogger.Error("Could not write log", "error", err)
-			continue
-		}
-		wLogger.Info("Wrote log", "bytesWritten", bytesWritten)
+			bytesWritten, err := ldc.Write(id, *dumpContainer)
+			if err != nil {
+				wLogger.Error("Could not write log", "error", err)
+				return
+			}
+			wLogger.Info("Wrote log", "bytesWritten", bytesWritten)
+		}()
 	}
+	wg.Wait()
 }
 
 // NewMegaTrafficDumperAddon creates a new dumper that creates a new log file for each request

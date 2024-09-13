@@ -70,21 +70,36 @@ func (c *ResponseCacheAddon) requestClosed(logger *slog.Logger, f *px.Flow) {
 func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 	// check if the request has a no-cache or no-store header, bypass the cache lookup if true
 	cacheControlHeader := strings.ToLower(f.Request.Header.Get("Cache-Control"))
+	var cacheStatusHeaderValue string
+
+	// Send a log message and set the Request header after this function returns.
+	// The response header with cache status will be set in the Response method.
+	// This is a bit of a hack because we don't have an easy way to store context.
+	defer func() {
+		if cacheStatusHeaderValue == "" {
+			return
+		}
+
+		logger.Info("Cache", "status", cacheStatusHeaderValue)
+		f.Request.Header.Set(headers.CacheStatusHeader, cacheStatusHeaderValue)
+	}()
+
 	for _, header := range []string{"no-cache", "no-store"} {
 		if cacheControlHeader == header {
 			logger.Debug(
 				"skipping cache lookup because of the Cache-Control header value",
 				"Cache-Control", header,
 			)
-			f.Request.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueSkip) // hack to store the cache status in the request
-			return
+			// hack to store the cache status in the request, the defer will set the header
+			cacheStatusHeaderValue = headers.CacheStatusValueSkip
+			return // return here to stop processing the rest of this function
 		}
 	}
 
 	// Only cache these request methods (and empty string for GET)
 	if _, ok := cacheOnlyMethods[f.Request.Method]; !ok {
 		logger.Debug("skipping cache lookup for unsupported method", "method", f.Request.Method)
-		f.Request.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueSkip) // hack to store the cache status state in the request
+		cacheStatusHeaderValue = headers.CacheStatusValueSkip
 		return
 	}
 
@@ -92,6 +107,7 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 	decodedBody, err := utils.DecodeBody(f.Request.Body, f.Request.Header.Get("Content-Encoding"))
 	if err != nil {
 		logger.Error("error decoding request body", "error", err)
+		cacheStatusHeaderValue = headers.CacheStatusValueSkip
 		return
 	}
 
@@ -99,31 +115,33 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 	cachedResponse, err := c.cache.Get(f.Request.URL.String(), decodedBody)
 	if err != nil {
 		logger.Error("error accessing cache, bypassing", "error", err)
+		cacheStatusHeaderValue = headers.CacheStatusValueSkip
 		return
 	}
 
 	// handle cache miss, return early otherwise NPEs below
 	if cachedResponse == nil {
-		f.Request.Header.Set(headers.CacheStatusHeader, headers.CacheStatusValueMiss)
-		logger.Info("Cache miss")
+		cacheStatusHeaderValue = headers.CacheStatusValueMiss
 		return
 	}
 
 	// handle cache hit
-	logger.Info("Cache hit")
+	cacheStatusHeaderValue = headers.CacheStatusValueHit
 
 	// filter the headers before returning the cached response, and remove the Content-Encoding
 	// header, because next we will be re-encoding the body according to the request's
 	// Accept-Encoding header, and a new Content-Encoding header will be added.
 	cachedResponse.Header = c.filterReqHeaders.FilterHeaders(
 		cachedResponse.Header,
-		"Content-Encoding", "Content-Length",
+		// remove these headers from the cached response before returning
+		"Content-Encoding", "Content-Length", headers.CacheStatusHeader,
 	)
 
 	// convert the cached response to a ProxyResponse, and encode the body according to the request's Accept-Encoding header
 	encodedCachedResponse, err := mitm.ToProxyResponse(cachedResponse, f.Request.Header.Get("Accept-Encoding"))
 	if err != nil {
 		logger.Error("error converting cached response to ProxyResponse", "error", err)
+		cacheStatusHeaderValue = headers.CacheStatusValueSkip
 		return
 	}
 

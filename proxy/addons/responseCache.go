@@ -68,13 +68,10 @@ func (c *ResponseCacheAddon) requestClosed(logger *slog.Logger, f *px.Flow) {
 
 // requestOpen is the function typically used by the Request method
 func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
-	// check if the request has a no-cache or no-store header, bypass the cache lookup if true
-	cacheControlHeader := strings.ToLower(f.Request.Header.Get("Cache-Control"))
-	var cacheStatusHeaderValue string
-
 	// Send a log message and set the Request header after this function returns.
 	// The response header with cache status will be set in the Response method.
 	// This is a bit of a hack because we don't have an easy way to store context.
+	var cacheStatusHeaderValue string
 	defer func() {
 		if cacheStatusHeaderValue == "" {
 			return
@@ -84,6 +81,8 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 		f.Request.Header.Set(headers.CacheStatusHeader, cacheStatusHeaderValue)
 	}()
 
+	// check if the request has a no-cache or no-store header, bypass the cache lookup if true
+	cacheControlHeader := strings.ToLower(f.Request.Header.Get("Cache-Control"))
 	for _, header := range []string{"no-cache", "no-store"} {
 		if cacheControlHeader == header {
 			logger.Debug(

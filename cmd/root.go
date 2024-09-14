@@ -72,15 +72,18 @@ This is useful for:
 		cfg.HeaderFilters.BuildIndexes()
 		cfg.GetLogger().Debug("Header filter indexes built")
 
+		// setup traffic transformers
 		cfg.TrafficTransformers, err = config.NewTrafficTransformers(reqTransformerInput, respTransformerInput)
 		if err != nil {
 			cfg.GetLogger().Error("Could not setup traffic transformers", "error", err)
 			os.Exit(1)
 		}
-		cfg.GetLogger().Debug(
-			"Traffic transformers setup completed",
-			"Transformers", cfg.TrafficTransformers,
-		)
+		if len(cfg.TrafficTransformers.Request) > 0 {
+			cfg.GetLogger().Debug("Request transformers configured", "Transformers", cfg.TrafficTransformers.Request)
+		}
+		if len(cfg.TrafficTransformers.Response) > 0 {
+			cfg.GetLogger().Debug("Response transformers configured", "Transformers", cfg.TrafficTransformers.Response)
+		}
 	},
 	SilenceUsage: true,
 }

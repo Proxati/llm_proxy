@@ -50,3 +50,15 @@ func configureCacheAddon(logger *slog.Logger, cfg *config.Config) (*addons.Respo
 	}
 	return cacheAddon, nil
 }
+
+func configureTrafficTransformers(logger *slog.Logger, cfg *config.Config) (*addons.TrafficTransformerAddon, error) {
+	transformersAddon, err := addons.NewTrafficTransformerAddon(
+		logger,
+		cfg.TrafficTransformers.Request,
+		cfg.TrafficTransformers.Response,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create traffic transformers addon: %w", err)
+	}
+	return transformersAddon, nil
+}

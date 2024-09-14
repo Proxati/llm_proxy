@@ -40,7 +40,6 @@ func TestToProxyResponse(t *testing.T) {
 		expectedBody         []byte
 		expectError          bool
 	}{
-		// Existing test cases
 		{
 			name: "Successful conversion with gzip encoding",
 			pRes: mockResponseReaderAdapter{
@@ -67,7 +66,6 @@ func TestToProxyResponse(t *testing.T) {
 			expectedBody:         nil,
 			expectError:          false,
 		},
-		// New test cases
 		{
 			name: "Response with 404 Not Found",
 			pRes: mockResponseReaderAdapter{

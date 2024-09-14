@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -31,8 +32,14 @@ type TrafficTransformerAddon struct {
 func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 	a.wg.Add(1)
 	defer a.wg.Done()
-
 	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Request")
+
+	if a.closed.Load() {
+		logger.ErrorContext(a.ctx, "Addon is closed, not processing request")
+		helpers.RequestClosed(a.logger, f)
+		return
+	}
+
 	logger.DebugContext(a.ctx, "Starting transformations")
 
 	req := mitm.NewProxyRequestAdapter(f.Request)
@@ -49,38 +56,45 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 	for name, providers := range a.requestProviders {
 		logger := logger.With("name", name)
 		for _, provider := range providers {
-			logger.Debug("Communicating with transformer")
+			logger.DebugContext(a.ctx, "Communicating with transformer")
+			Tcfg := provider.GetTransformerConfig()
+
 			// TODO: handle multiple providers with the same service name
 			// - failover / backup ?
 			// - random / round robin ?
 			req, resp, err := provider.Transform(a.ctx, req, newReq, newResp)
 			if err != nil {
-				logger.Error("Failed to transform request", "error", err)
+				logger.ErrorContext(a.ctx, "Failed to transform request", "error", err)
+				if Tcfg.FailureMode == config.FailureModeHard {
+					helpers.ProxyError(a.logger, f)
+					return
+				}
+
 				continue
 			}
 			if req != nil {
 				newReq = req
-				logger.Debug("Transformer updated request", "request", req)
+				logger.DebugContext(a.ctx, "Transformer updated request", "request", req)
 			}
 			if resp != nil {
 				newResp = resp
-				logger.Debug("Transformer updated response", "response", resp)
+				logger.DebugContext(a.ctx, "Transformer updated response", "response", resp)
 			}
-			logger.Debug("Done communicating with transformer")
+			logger.DebugContext(a.ctx, "Done communicating with transformer")
 		}
 	}
 
 	if newReq != nil {
 		// TODO: update the flow with the new request
-		logger.Debug("Done editing request")
+		logger.DebugContext(a.ctx, "request object updated from transformers")
 	}
 
 	if newResp != nil {
 		// TODO: update the flow with the new response
-		logger.Debug("Done editing response")
+		logger.DebugContext(a.ctx, "response object updated from transformers")
 	}
 
-	logger.Debug("Done with transformations")
+	logger.DebugContext(a.ctx, "transformations completed for request")
 }
 
 func (a *TrafficTransformerAddon) Response(f *px.Flow) {
@@ -89,6 +103,7 @@ func (a *TrafficTransformerAddon) Response(f *px.Flow) {
 	defer a.wg.Done()
 
 	if f.Response != nil && (f.Response.StatusCode < 100 || f.Response.StatusCode > 999) {
+		// defense to prevent a misbehaving transformer from setting an invalid status code
 		logger.ErrorContext(a.ctx, "Invalid StatusCode in response", "StatusCode", f.Response.StatusCode)
 		f.Response.StatusCode = http.StatusInternalServerError
 	}
@@ -103,24 +118,57 @@ func (a *TrafficTransformerAddon) String() string {
 		len(a.requestProviders), len(a.responseProviders))
 }
 
+func (a *TrafficTransformerAddon) closeProviders() error {
+	logger := a.logger.WithGroup("closeProviders")
+	errs := []error{}
+
+	providerMaps := []map[string][]transformers.Provider{
+		a.requestProviders,
+		a.responseProviders,
+	}
+
+	for _, providersMap := range providerMaps {
+		for name, providers := range providersMap {
+			logger.WithGroup(name)
+			for _, provider := range providers {
+				defer a.wg.Done()
+
+				logger = logger.With("provider", provider)
+				logger.DebugContext(a.ctx, "Starting close")
+				if err := provider.Close(); err != nil {
+					errs = append(errs, fmt.Errorf("failed to close provider: %w", err))
+				}
+				logger.DebugContext(a.ctx, "Closed provider")
+			}
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
 func (a *TrafficTransformerAddon) Close() error {
 	if !a.closed.Swap(true) {
 		a.logger.DebugContext(a.ctx, "Closing...")
 		a.cancel()
+		err := a.closeProviders()
+		if err != nil {
+			a.logger.ErrorContext(a.ctx, "Failed to close one or more providers", "error", err)
+		}
+
 		a.wg.Wait()
 	}
 
 	return nil
 }
 
-func loadTransformers(logger *slog.Logger, transformersConfig []*config.Transformer) (map[string][]transformers.Provider, error) {
+func loadTransformerProviders(logger *slog.Logger, ctx context.Context, wg *sync.WaitGroup, transformersConfig []*config.Transformer) (map[string][]transformers.Provider, error) {
 	providers := make(map[string][]transformers.Provider)
 	errs := []error{}
 	for _, t := range transformersConfig {
 		var prov transformers.Provider
 		var err error
 
-		switch t.URL.Scheme {
+		switch strings.ToLower(t.URL.Scheme) {
 		/*
 			case "file":
 				prov, err = transformers.NewFileProvider(t.URL)
@@ -128,7 +176,7 @@ func loadTransformers(logger *slog.Logger, transformersConfig []*config.Transfor
 				prov, err = transformers.NewGrpcProvider(t.URL)
 		*/
 		case "http", "https":
-			prov, err = transformers.NewHttpProvider(logger, t)
+			prov, err = transformers.NewHttpProvider(logger, ctx, t)
 		default:
 			err = fmt.Errorf("unsupported scheme: %s", t.URL.Scheme)
 		}
@@ -139,6 +187,7 @@ func loadTransformers(logger *slog.Logger, transformersConfig []*config.Transfor
 		}
 
 		if prov != nil {
+			wg.Add(1)
 			providers[t.Name] = append(providers[t.Name], prov)
 		}
 	}
@@ -158,17 +207,20 @@ func NewTrafficTransformerAddon(
 	responseTransformer []*config.Transformer,
 ) (*TrafficTransformerAddon, error) {
 	logger = logger.WithGroup("addons.TrafficTransformerAddon")
+	wg := &sync.WaitGroup{}
+
+	// create a new context for the addon, this handles shutdown of the providers and the addon itself
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// load the providers for the various configured transformers
-	reqProv, reqErr := loadTransformers(logger, requestTransformer)
-	respProv, respErr := loadTransformers(logger, responseTransformer)
+	reqProv, reqErr := loadTransformerProviders(logger, ctx, wg, requestTransformer)
+	respProv, respErr := loadTransformerProviders(logger, ctx, wg, responseTransformer)
 	if reqErr != nil || respErr != nil {
+		cancel()
 		return nil, errors.Join(errors.New("unable to load transformer(s)"), reqErr, respErr)
 	}
 	logger.Debug("Loaded request transformers", "count", len(reqProv))
 	logger.Debug("Loaded response transformers", "count", len(respProv))
-
-	ctx, cancel := context.WithCancel(context.Background())
 
 	ta := &TrafficTransformerAddon{
 		logger:            logger,

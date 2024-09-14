@@ -3,6 +3,7 @@ package transformers
 import (
 	"context"
 
+	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 )
 
@@ -18,4 +19,6 @@ type Provider interface {
 		proxyadapters.ResponseReaderAdapter, // new response, possibly modified or nil
 		error,
 	)
+	Close() error
+	GetTransformerConfig() config.Transformer
 }

@@ -69,16 +69,15 @@ type HttpProvider struct {
 	primaryBundle     *httpBundle
 	healthCheckBundle *httpBundle
 	context           context.Context
-	cancelCtx         context.CancelFunc
 }
 
 // NewHttpProvider creates a new HttpProvider object with the given logger and transformer config
 // Notes:
 // Tcfg.Concurrency is the number of concurrent requests allowed
 // Tcfg.RequestTimeout is the maximum time allowed for a request to begin
-func NewHttpProvider(logger *slog.Logger, Tcfg *config.Transformer) (*HttpProvider, error) {
+func NewHttpProvider(logger *slog.Logger, ctx context.Context, Tcfg *config.Transformer) (*HttpProvider, error) {
 	if Tcfg == nil {
-		return nil, errors.New("no transformer config provided")
+		return nil, errors.New("transformer config object is nil")
 	}
 	logger = logger.WithGroup("HttpProvider").With("ServiceName", Tcfg.Name)
 
@@ -99,14 +98,12 @@ func NewHttpProvider(logger *slog.Logger, Tcfg *config.Transformer) (*HttpProvid
 	hcB := newHttpBundle(
 		logger.WithGroup("HealthCheck"), healthCheckURL, 1, healthCheckRetry, bhTimeout, Tcfg.HealthCheck.Timeout, hcInitialRetryTime, hcInitialRetryTimeMax)
 
-	ctx, cancel := context.WithCancel(context.Background())
 	return &HttpProvider{
 		logger:            logger,
 		TransformerConfig: Tcfg,
 		primaryBundle:     tfB,
 		healthCheckBundle: hcB,
 		context:           ctx,
-		cancelCtx:         cancel,
 	}, nil
 }
 
@@ -145,4 +142,12 @@ func (ht *HttpProvider) Transform(
 	logger := ht.logger.With("req", req, "newReq", newReq, "newResp", newResp)
 	logger.Debug("Transforming")
 	return nil, nil, nil
+}
+
+func (ht *HttpProvider) Close() error {
+	return nil
+}
+
+func (ht *HttpProvider) GetTransformerConfig() config.Transformer {
+	return *ht.TransformerConfig
 }

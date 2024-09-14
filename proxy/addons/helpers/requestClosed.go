@@ -8,7 +8,7 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
-// requestClosed is the function used by the Request method when the addon is closed. It doesn't
+// RequestClosed is the function used by the Request method when the addon is closed. It doesn't
 // return anything, but instead attaches a 503 response to the flow, and sets a few headers on
 // the response. When the proxy sees the response != nil, it will skip the rest of the addons.
 func RequestClosed(logger *slog.Logger, f *px.Flow) {

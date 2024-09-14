@@ -12,11 +12,11 @@ import (
 	"github.com/failsafe-go/failsafe-go/bulkhead"
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
+	"github.com/proxati/llm_proxy/v2/schema"
 )
 
 // configRetryPolicy create a RetryPolicy that only handles 500 responses, with backoff delays between retries
-func configRetryPolicy(logger *slog.Logger, retryCount int, initialRetryTime, maxRetryTime time.Duration) retrypolicy.RetryPolicy[*http.Response] {
+func httpConfigRetryPolicy(logger *slog.Logger, retryCount int, initialRetryTime, maxRetryTime time.Duration) retrypolicy.RetryPolicy[*http.Response] {
 	return retrypolicy.Builder[*http.Response]().
 		HandleIf(func(response *http.Response, _ error) bool {
 			// if upstream responds with a 500, retry
@@ -57,7 +57,7 @@ func newHttpBundle(logger *slog.Logger, url string, concurrency, retryCount int,
 
 	return &httpBundle{
 		client:      &http.Client{Timeout: httpClientTimeout},
-		retryPolicy: configRetryPolicy(logger, retryCount, initialRetryTime, maxRetryTime),
+		retryPolicy: httpConfigRetryPolicy(logger, retryCount, initialRetryTime, maxRetryTime),
 		bulkhead:    bh,
 		url:         url,
 	}
@@ -135,12 +135,18 @@ func (ht *HttpProvider) HealthCheck() error {
 
 func (ht *HttpProvider) Transform(
 	ctx context.Context,
-	req proxyadapters.RequestReaderAdapter,
-	newReq proxyadapters.RequestReaderAdapter,
-	newResp proxyadapters.ResponseReaderAdapter,
-) (proxyadapters.RequestReaderAdapter, proxyadapters.ResponseReaderAdapter, error) {
+	req *schema.ProxyRequest,
+	newReq *schema.ProxyRequest,
+	newResp *schema.ProxyResponse,
+) (*schema.ProxyRequest, *schema.ProxyResponse, error) {
+	if req == nil {
+		return nil, nil, errors.New("unable to transform, request object is nil")
+	}
 	logger := ht.logger.With("req", req, "newReq", newReq, "newResp", newResp)
+
 	logger.Debug("Transforming")
+
+	// all nil, no transformation needed, and no errors while transforming
 	return nil, nil, nil
 }
 

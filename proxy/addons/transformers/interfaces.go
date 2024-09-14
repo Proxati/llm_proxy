@@ -4,19 +4,19 @@ import (
 	"context"
 
 	"github.com/proxati/llm_proxy/v2/config"
-	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
+	"github.com/proxati/llm_proxy/v2/schema"
 )
 
 type Provider interface {
 	HealthCheck() error
 	Transform(
 		ctx context.Context,
-		oldReq proxyadapters.RequestReaderAdapter,
-		newReq proxyadapters.RequestReaderAdapter,
-		newResp proxyadapters.ResponseReaderAdapter,
+		oldReq *schema.ProxyRequest,
+		newReq *schema.ProxyRequest,
+		newResp *schema.ProxyResponse,
 	) (
-		proxyadapters.RequestReaderAdapter, // new request, possibly modified or nil
-		proxyadapters.ResponseReaderAdapter, // new response, possibly modified or nil
+		*schema.ProxyRequest, // new request, possibly modified or nil
+		*schema.ProxyResponse, // new response, possibly modified or nil
 		error,
 	)
 	Close() error

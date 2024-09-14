@@ -13,7 +13,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/helpers"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/transformers"
-	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
+	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
 	px "github.com/proxati/mitmproxy/proxy"
 )
@@ -27,6 +27,7 @@ type TrafficTransformerAddon struct {
 	responseProviders map[string][]transformers.Provider
 	ctx               context.Context
 	cancel            context.CancelFunc
+	headerFilter      *config.HeaderFilterGroup
 }
 
 func (a *TrafficTransformerAddon) Request(f *px.Flow) {
@@ -40,19 +41,23 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 		return
 	}
 
-	logger.DebugContext(a.ctx, "Starting transformations")
-
-	req := mitm.NewProxyRequestAdapter(f.Request)
-	if req == nil {
+	reqAdapter := mitm.NewProxyRequestAdapter(f.Request)
+	if reqAdapter == nil {
 		logger.ErrorContext(a.ctx, "Failed to create request adapter")
 		helpers.ProxyError(a.logger, f)
 		return
 	}
 
-	var newReq proxyadapters.RequestReaderAdapter
-	var newResp proxyadapters.ResponseReaderAdapter
-	logger.DebugContext(a.ctx, "debug...", "req", req, "newReq", newReq, "newResp", newResp)
+	reqObj, err := schema.NewProxyRequest(reqAdapter, a.headerFilter)
+	if err != nil {
+		logger.ErrorContext(a.ctx, "Failed to create request object", "error", err)
+		helpers.ProxyError(a.logger, f)
+		return
+	}
 
+	logger.DebugContext(a.ctx, "Starting transformations")
+	var newReq *schema.ProxyRequest
+	var newResp *schema.ProxyResponse
 	for name, providers := range a.requestProviders {
 		logger := logger.With("name", name)
 		for _, provider := range providers {
@@ -62,16 +67,16 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 			// TODO: handle multiple providers with the same service name
 			// - failover / backup ?
 			// - random / round robin ?
-			req, resp, err := provider.Transform(a.ctx, req, newReq, newResp)
+			req, resp, err := provider.Transform(a.ctx, reqObj, newReq, newResp)
 			if err != nil {
 				logger.ErrorContext(a.ctx, "Failed to transform request", "error", err)
 				if Tcfg.FailureMode == config.FailureModeHard {
 					helpers.ProxyError(a.logger, f)
 					return
 				}
-
 				continue
 			}
+
 			if req != nil {
 				newReq = req
 				logger.DebugContext(a.ctx, "Transformer updated request", "request", req)
@@ -83,14 +88,16 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 			logger.DebugContext(a.ctx, "Done communicating with transformer")
 		}
 	}
+	logger.DebugContext(a.ctx, "Transformers complete, checking results...",
+		"reqObj", reqObj, "newReq", newReq, "newResp", newResp)
 
 	if newReq != nil {
-		// TODO: update the flow with the new request
+		// TODO: update f.Request with the new request
 		logger.DebugContext(a.ctx, "request object updated from transformers")
 	}
 
 	if newResp != nil {
-		// TODO: update the flow with the new response
+		// TODO: update f.Response with the new response, which will prevent the remaining addons from running
 		logger.DebugContext(a.ctx, "response object updated from transformers")
 	}
 
@@ -98,9 +105,9 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 }
 
 func (a *TrafficTransformerAddon) Response(f *px.Flow) {
-	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Response")
 	a.wg.Add(1)
 	defer a.wg.Done()
+	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Response")
 
 	if f.Response != nil && (f.Response.StatusCode < 100 || f.Response.StatusCode > 999) {
 		// defense to prevent a misbehaving transformer from setting an invalid status code
@@ -169,12 +176,8 @@ func loadTransformerProviders(logger *slog.Logger, ctx context.Context, wg *sync
 		var err error
 
 		switch strings.ToLower(t.URL.Scheme) {
-		/*
-			case "file":
-				prov, err = transformers.NewFileProvider(t.URL)
-			case "grpc":
-				prov, err = transformers.NewGrpcProvider(t.URL)
-		*/
+		case "file":
+			prov, err = transformers.NewFileProvider(logger, ctx, t)
 		case "http", "https":
 			prov, err = transformers.NewHttpProvider(logger, ctx, t)
 		default:
@@ -187,7 +190,7 @@ func loadTransformerProviders(logger *slog.Logger, ctx context.Context, wg *sync
 		}
 
 		if prov != nil {
-			wg.Add(1)
+			wg.Add(1) // counter is decremented later in closeProviders
 			providers[t.Name] = append(providers[t.Name], prov)
 		}
 	}
@@ -228,6 +231,7 @@ func NewTrafficTransformerAddon(
 		responseProviders: respProv,
 		ctx:               ctx,
 		cancel:            cancel,
+		headerFilter:      config.NewHeaderFilterGroup("TODO", []string{}, []string{}),
 	}
 
 	return ta, nil

@@ -22,11 +22,15 @@ func ToProxyResponse(pRes proxyadapters.ResponseReaderAdapter, acceptEncodingHea
 	// encode the body based on the new request's accept encoding header
 	encodedBody, encoding, err := utils.EncodeBody(body, acceptEncodingHeader)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding body: %v", err)
+		return nil, fmt.Errorf("failed to encode response body with encoding '%s': %w", acceptEncodingHeader, err)
 	}
 
 	// set the new content encoding and length headers
-	resp.Header.Set("Content-Encoding", encoding)
+	if encoding != "" {
+		resp.Header.Set("Content-Encoding", encoding)
+	} else {
+		resp.Header.Del("Content-Encoding")
+	}
 	resp.Header.Set("Content-Length", fmt.Sprintf("%d", len(encodedBody)))
 
 	resp.Body = encodedBody

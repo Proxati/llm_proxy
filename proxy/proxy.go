@@ -110,18 +110,6 @@ func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 		metaAdd.addAddon(addons.NewSchemeUpgrader(logger))
 	}
 
-	// add the request/response transformers
-	if len(cfg.TrafficTransformers.Request) > 0 || len(cfg.TrafficTransformers.Response) > 0 {
-		transformerAddon, err := configureTrafficTransformers(logger, cfg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create traffic transformers addon: %w", err)
-		}
-		logger.Debug("Created " + transformerAddon.String())
-		metaAdd.addAddon(transformerAddon)
-	} else {
-		logger.Debug("No traffic transformers configured")
-	}
-
 	logger.Debug("Building proxy config", "AppMode", cfg.AppMode.String())
 	switch cfg.AppMode {
 	case config.CacheMode:
@@ -138,6 +126,18 @@ func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 		// log.Debugf("No addons enabled for the basic proxy mode")
 	default:
 		return nil, fmt.Errorf("unknown app mode: %v", cfg.AppMode)
+	}
+
+	// add the request/response transformers
+	if len(cfg.TrafficTransformers.Request) > 0 || len(cfg.TrafficTransformers.Response) > 0 {
+		transformerAddon, err := configureTrafficTransformers(logger, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create traffic transformers addon: %w", err)
+		}
+		logger.Debug("Created " + transformerAddon.String())
+		metaAdd.addAddon(transformerAddon)
+	} else {
+		logger.Debug("No traffic transformers configured")
 	}
 
 	// add our single metaAddon abstraction to the proxy

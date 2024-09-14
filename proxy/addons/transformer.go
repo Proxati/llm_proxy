@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"sync"
 	"sync/atomic"
 
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/helpers"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/transformers"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
@@ -27,14 +29,22 @@ type TrafficTransformerAddon struct {
 }
 
 func (a *TrafficTransformerAddon) Request(f *px.Flow) {
-	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Request")
 	a.wg.Add(1)
 	defer a.wg.Done()
 
-	fa := mitm.NewFlowAdapter(f)
-	ctx := context.WithValue(a.ctx, "flow", fa)
-	var newReq proxyadapters.ResponseReaderAdapter
-	var newResp proxyadapters.RequestReaderAdapter
+	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Request")
+	logger.DebugContext(a.ctx, "Starting transformations")
+
+	req := mitm.NewProxyRequestAdapter(f.Request)
+	if req == nil {
+		logger.ErrorContext(a.ctx, "Failed to create request adapter")
+		helpers.ProxyError(a.logger, f)
+		return
+	}
+
+	var newReq proxyadapters.RequestReaderAdapter
+	var newResp proxyadapters.ResponseReaderAdapter
+	logger.DebugContext(a.ctx, "debug...", "req", req, "newReq", newReq, "newResp", newResp)
 
 	for name, providers := range a.requestProviders {
 		logger := logger.With("name", name)
@@ -43,7 +53,7 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 			// TODO: handle multiple providers with the same service name
 			// - failover / backup ?
 			// - random / round robin ?
-			req, resp, err := provider.Transform(ctx, fa, newReq, newResp)
+			req, resp, err := provider.Transform(a.ctx, req, newReq, newResp)
 			if err != nil {
 				logger.Error("Failed to transform request", "error", err)
 				continue
@@ -78,8 +88,13 @@ func (a *TrafficTransformerAddon) Response(f *px.Flow) {
 	a.wg.Add(1)
 	defer a.wg.Done()
 
+	if f.Response != nil && (f.Response.StatusCode < 100 || f.Response.StatusCode > 999) {
+		logger.ErrorContext(a.ctx, "Invalid StatusCode in response", "StatusCode", f.Response.StatusCode)
+		f.Response.StatusCode = http.StatusInternalServerError
+	}
+
 	// TODO: response body editing here
-	logger.Debug("Done editing response body")
+	logger.DebugContext(a.ctx, "Done editing response body")
 }
 
 func (a *TrafficTransformerAddon) String() string {
@@ -90,7 +105,7 @@ func (a *TrafficTransformerAddon) String() string {
 
 func (a *TrafficTransformerAddon) Close() error {
 	if !a.closed.Swap(true) {
-		a.logger.Debug("Closing...")
+		a.logger.DebugContext(a.ctx, "Closing...")
 		a.cancel()
 		a.wg.Wait()
 	}

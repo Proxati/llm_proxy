@@ -138,10 +138,11 @@ func (ht *HttpProvider) HealthCheck() error {
 
 func (ht *HttpProvider) Transform(
 	ctx context.Context,
-	flow proxyadapters.FlowReaderAdapter,
-	req proxyadapters.ResponseReaderAdapter, resp proxyadapters.RequestReaderAdapter,
-) (proxyadapters.ResponseReaderAdapter, proxyadapters.RequestReaderAdapter, error) {
-	logger := ht.logger.With("flow", flow, "request", req, "response", resp)
+	req proxyadapters.RequestReaderAdapter,
+	newReq proxyadapters.RequestReaderAdapter,
+	newResp proxyadapters.ResponseReaderAdapter,
+) (proxyadapters.RequestReaderAdapter, proxyadapters.ResponseReaderAdapter, error) {
+	logger := ht.logger.With("req", req, "newReq", newReq, "newResp", newResp)
 	logger.Debug("Transforming")
 	return nil, nil, nil
 }

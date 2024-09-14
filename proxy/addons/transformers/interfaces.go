@@ -8,5 +8,14 @@ import (
 
 type Provider interface {
 	HealthCheck() error
-	Transform(context.Context, proxyadapters.FlowReaderAdapter, proxyadapters.ResponseReaderAdapter, proxyadapters.RequestReaderAdapter) (proxyadapters.ResponseReaderAdapter, proxyadapters.RequestReaderAdapter, error)
+	Transform(
+		ctx context.Context,
+		oldReq proxyadapters.RequestReaderAdapter,
+		newReq proxyadapters.RequestReaderAdapter,
+		newResp proxyadapters.ResponseReaderAdapter,
+	) (
+		proxyadapters.RequestReaderAdapter, // new request, possibly modified or nil
+		proxyadapters.ResponseReaderAdapter, // new response, possibly modified or nil
+		error,
+	)
 }

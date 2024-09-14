@@ -90,18 +90,22 @@ func (d *MegaTrafficDumper) convertFlowToLogDump(logger *slog.Logger, flowAdapte
 
 // sendToLogDestinations writes the log data to the configured log destinations
 func (d *MegaTrafficDumper) sendToLogDestinations(logger *slog.Logger, id string, dumpContainer *schema.LogDumpContainer) {
+	if dumpContainer == nil {
+		// this should never happen
+		logger.Error("LogDumpContainer is nil, skipping write")
+		return
+	}
+	// dereference the pointer to the LogDumpContainer once
+	output := *dumpContainer
+
+	// writes to all destinations concurrently
 	wg := sync.WaitGroup{}
 	for _, ldc := range d.logDestinationConfigs {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			wLogger := logger.With("logDestinationConfig", ldc.String())
-			if dumpContainer == nil {
-				wLogger.Error("LogDumpContainer is nil, skipping write")
-				return
-			}
-
-			bytesWritten, err := ldc.Write(id, *dumpContainer)
+			bytesWritten, err := ldc.Write(id, output)
 			if err != nil {
 				wLogger.Error("Could not write log", "error", err)
 				return

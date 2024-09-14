@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/proxati/llm_proxy/v2/schema/proxyadapters"
 	"github.com/proxati/llm_proxy/v2/schema/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,78 +13,154 @@ import (
 
 // mockResponseReaderAdapter is a mock implementation of the ResponseReaderAdapter interface
 type mockResponseReaderAdapter struct {
-	t          *testing.T
 	StatusCode int
 	Headers    http.Header
 	Body       []byte
 }
 
 func (m mockResponseReaderAdapter) GetStatusCode() int {
-	m.t.Helper()
 	return m.StatusCode
 }
 
 func (m mockResponseReaderAdapter) GetHeaders() http.Header {
-	m.t.Helper()
 	return m.Headers
 }
 
 func (m mockResponseReaderAdapter) GetBodyBytes() []byte {
-	m.t.Helper()
 	return m.Body
 }
 
 func TestToProxyResponse(t *testing.T) {
-	t.Parallel()
-	mockResponseReader := &mockResponseReaderAdapter{
-		t:          t,
-		StatusCode: 200,
-		Headers:    http.Header{"Content-Type": {"application/json"}},
-		Body:       []byte(`{"key":"value"}`),
+	tests := []struct {
+		name                 string
+		pRes                 proxyadapters.ResponseReaderAdapter
+		acceptEncodingHeader string
+		expectedStatusCode   int
+		expectedHeaders      http.Header
+		expectedBody         []byte
+		expectError          bool
+	}{
+		// Existing test cases
+		{
+			name: "Successful conversion with gzip encoding",
+			pRes: mockResponseReaderAdapter{
+				StatusCode: 200,
+				Headers:    http.Header{"Content-Type": {"application/json"}},
+				Body:       []byte(`{"key":"value"}`),
+			},
+			acceptEncodingHeader: "gzip",
+			expectedStatusCode:   200,
+			expectedHeaders:      nil, // Will be set in the test
+			expectedBody:         nil, // Will be set in the test
+			expectError:          false,
+		},
+		{
+			name: "Invalid encoding means uncompressed response",
+			pRes: mockResponseReaderAdapter{
+				StatusCode: 200,
+				Headers:    http.Header{"Content-Type": {"application/json"}},
+				Body:       []byte(`{"key":"value"}`),
+			},
+			acceptEncodingHeader: "invalid-encoding",
+			expectedStatusCode:   200,
+			expectedHeaders:      nil,
+			expectedBody:         nil,
+			expectError:          false,
+		},
+		// New test cases
+		{
+			name: "Response with 404 Not Found",
+			pRes: mockResponseReaderAdapter{
+				StatusCode: 404,
+				Headers:    http.Header{"Content-Type": {"text/plain"}},
+				Body:       []byte("Not Found"),
+			},
+			acceptEncodingHeader: "gzip",
+			expectedStatusCode:   404,
+			expectedHeaders:      nil,
+			expectedBody:         nil,
+			expectError:          false,
+		},
+		{
+			name: "Response with existing Content-Encoding header",
+			pRes: mockResponseReaderAdapter{
+				StatusCode: 200,
+				Headers: http.Header{
+					"Content-Type":     {"application/json"},
+					"Content-Encoding": {"deflate"},
+				},
+				Body: []byte(`{"key":"value"}`),
+			},
+			acceptEncodingHeader: "gzip",
+			expectedStatusCode:   200,
+			expectedHeaders:      nil,
+			expectedBody:         nil,
+			expectError:          false,
+		},
+		{
+			name: "Response with large body",
+			pRes: mockResponseReaderAdapter{
+				StatusCode: 200,
+				Headers:    http.Header{"Content-Type": {"application/octet-stream"}},
+				Body:       largeBodyHelper(1 * 1024 * 1024), // 1MB body
+			},
+			acceptEncodingHeader: "gzip",
+			expectedStatusCode:   200,
+			expectedHeaders:      nil,
+			expectedBody:         nil,
+			expectError:          false,
+		},
+		{
+			name: "Response with empty body",
+			pRes: mockResponseReaderAdapter{
+				StatusCode: 204, // No Content
+				Headers:    http.Header{"Content-Type": {"application/json"}},
+				Body:       []byte{},
+			},
+			acceptEncodingHeader: "gzip",
+			expectedStatusCode:   204,
+			expectedHeaders:      nil,
+			expectedBody:         nil,
+			expectError:          false,
+		},
 	}
 
-	t.Run("Successful conversion", func(t *testing.T) {
-		acceptEncodingHeader := "gzip"
-		encodedBody, encoding, err := utils.EncodeBody(
-			mockResponseReader.GetBodyBytes(), acceptEncodingHeader)
-		require.NoError(t, err)
+	for _, tt := range tests {
+		tt := tt // Capture range variable
+		t.Run(tt.name, func(t *testing.T) {
+			// Prepare expected values if no error is expected
+			if !tt.expectError {
+				encodedBody, encoding, err := utils.EncodeBody(tt.pRes.GetBodyBytes(), tt.acceptEncodingHeader)
+				require.NoError(t, err)
 
-		resp, err := ToProxyResponse(mockResponseReader, acceptEncodingHeader)
-		require.NoError(t, err)
-		assert.Equal(t, mockResponseReader.GetStatusCode(), resp.StatusCode)
+				// Clone the original headers
+				expectedHeaders := tt.pRes.GetHeaders().Clone()
 
-		// Build expected headers
-		expectedHeaders := http.Header{
-			"Content-Type":     {"application/json"},
-			"Content-Encoding": {encoding},
-			"Content-Length":   {fmt.Sprintf("%d", len(encodedBody))},
-		}
+				// Set Content-Length header
+				expectedHeaders.Set("Content-Length", fmt.Sprintf("%d", len(encodedBody)))
 
-		// Compare headers
-		assert.Equal(t, expectedHeaders, resp.Header)
-		assert.Equal(t, encodedBody, resp.Body)
-	})
+				// Set expectedBody and adjust headers based on encoding
+				if encoding == "" {
+					tt.expectedBody = tt.pRes.GetBodyBytes()
+					expectedHeaders.Del("Content-Encoding")
+				} else {
+					tt.expectedBody = encodedBody
+					expectedHeaders.Set("Content-Encoding", encoding)
+				}
 
-	t.Run("Invalid encoding means uncompressed response", func(t *testing.T) {
-		acceptEncodingHeader := "invalid-encoding"
-		encodedBody, encoding, err := utils.EncodeBody(
-			mockResponseReader.GetBodyBytes(), acceptEncodingHeader)
-		require.NoError(t, err)
-		assert.Equal(t, []byte(`{"key":"value"}`), encodedBody)
-		assert.Equal(t, "", encoding)
+				tt.expectedHeaders = expectedHeaders
+			}
 
-		resp, err := ToProxyResponse(mockResponseReader, acceptEncodingHeader)
-		require.NoError(t, err)
-		assert.Equal(t, mockResponseReader.GetStatusCode(), resp.StatusCode)
-
-		// Build expected headers
-		expectedHeaders := http.Header{
-			"Content-Type":   {"application/json"},
-			"Content-Length": {fmt.Sprintf("%d", len(encodedBody))},
-		}
-
-		// Compare headers
-		assert.Equal(t, expectedHeaders, resp.Header)
-		assert.Equal(t, encodedBody, resp.Body)
-	})
+			// Call the function under test
+			resp, err := ToProxyResponse(tt.pRes, tt.acceptEncodingHeader)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedStatusCode, resp.StatusCode)
+				assert.Equal(t, tt.expectedHeaders, resp.Header)
+				assert.Equal(t, tt.expectedBody, resp.Body)
+			}
+		})
+	}
 }

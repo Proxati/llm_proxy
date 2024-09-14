@@ -66,7 +66,6 @@ func TestToProxyRequest(t *testing.T) {
 		expectedBody         []byte
 		expectError          bool
 	}{
-		// Existing test cases
 		{
 			name: "Valid request with gzip encoding",
 			pReq: mockRequestReaderAdapter{
@@ -101,7 +100,6 @@ func TestToProxyRequest(t *testing.T) {
 			expectedBody:         nil, // Will be set in the test
 			expectError:          false,
 		},
-		// New test cases
 		{
 			name: "PUT request with gzip encoding",
 			pReq: mockRequestReaderAdapter{

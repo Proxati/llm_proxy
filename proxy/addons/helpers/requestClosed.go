@@ -28,3 +28,18 @@ func GenerateClosedResponse(logger *slog.Logger, f *px.Flow) {
 		},
 	}
 }
+
+// RequestClosed is the function used by the Request method when the addon is closed. It doesn't
+// return anything, but instead attaches a 503 response to the flow, and sets a few headers on
+// the response. When the proxy sees the response != nil, it will skip the rest of the addons.
+func ProxyError(logger *slog.Logger, f *px.Flow) {
+	logger.Error("internal proxy error")
+	f.Response = &px.Response{
+		StatusCode: http.StatusBadGateway,
+		Body:       []byte("LLM_Proxy internal error"),
+		Header: http.Header{
+			"Content-Type": {"text/plain"},
+			"Connection":   {"close"},
+		},
+	}
+}

@@ -9,10 +9,8 @@ import (
 )
 
 // ToProxyRequest converts a RequestReaderAdapter into a MITM proxy request object with body encoding
-// matching the new request's acceptEncodingHeader. Since all responses are stored as uncompressed
-// strings, the cached response might need to be encoded before being sent. This function encodes
-// the response body based on the requested acceptEncodingHeader argument and sets the appropriate
-// headers for content encoding and content length.
+// matching the provided acceptEncodingHeader. It encodes the request body based on the
+// acceptEncodingHeader argument and sets the appropriate headers for content encoding and content length.
 func ToProxyRequest(pReq proxyadapters.RequestReaderAdapter, acceptEncodingHeader string) (*px.Request, error) {
 	req := &px.Request{
 		Method: pReq.GetMethod(),
@@ -25,11 +23,16 @@ func ToProxyRequest(pReq proxyadapters.RequestReaderAdapter, acceptEncodingHeade
 	// Encode the body based on the accept encoding header
 	encodedBody, encoding, err := utils.EncodeBody(body, acceptEncodingHeader)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding body: %v", err)
+		return nil, fmt.Errorf("failed to encode request body with encoding '%s': %w", acceptEncodingHeader, err)
+
 	}
 
 	// Set the new content encoding and length headers
-	req.Header.Set("Content-Encoding", encoding)
+	if encoding != "" {
+		req.Header.Set("Content-Encoding", encoding)
+	} else {
+		req.Header.Del("Content-Encoding")
+	}
 	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(encodedBody)))
 
 	req.Body = encodedBody

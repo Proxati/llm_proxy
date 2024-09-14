@@ -10,27 +10,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockResponseReaderAdapter is a mock implementation of the ResponseReaderAdapter interface
-type MockResponseReaderAdapter struct {
+// mockResponseReaderAdapter is a mock implementation of the ResponseReaderAdapter interface
+type mockResponseReaderAdapter struct {
+	t          *testing.T
 	StatusCode int
 	Headers    http.Header
 	Body       []byte
 }
 
-func (m *MockResponseReaderAdapter) GetStatusCode() int {
+func (m mockResponseReaderAdapter) GetStatusCode() int {
+	m.t.Helper()
 	return m.StatusCode
 }
 
-func (m *MockResponseReaderAdapter) GetHeaders() http.Header {
+func (m mockResponseReaderAdapter) GetHeaders() http.Header {
+	m.t.Helper()
 	return m.Headers
 }
 
-func (m *MockResponseReaderAdapter) GetBodyBytes() []byte {
+func (m mockResponseReaderAdapter) GetBodyBytes() []byte {
+	m.t.Helper()
 	return m.Body
 }
 
 func TestToProxyResponse(t *testing.T) {
-	mockResponseReader := &MockResponseReaderAdapter{
+	t.Parallel()
+	mockResponseReader := &mockResponseReaderAdapter{
+		t:          t,
 		StatusCode: 200,
 		Headers:    http.Header{"Content-Type": {"application/json"}},
 		Body:       []byte(`{"key":"value"}`),
@@ -46,12 +52,15 @@ func TestToProxyResponse(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, mockResponseReader.GetStatusCode(), resp.StatusCode)
 
-		// a few headers added by the encoding process
-		assert.Equal(t, http.Header{
+		// Build expected headers
+		expectedHeaders := http.Header{
 			"Content-Type":     {"application/json"},
 			"Content-Encoding": {encoding},
 			"Content-Length":   {fmt.Sprintf("%d", len(encodedBody))},
-		}, resp.Header)
+		}
+
+		// Compare headers
+		assert.Equal(t, expectedHeaders, resp.Header)
 		assert.Equal(t, encodedBody, resp.Body)
 	})
 
@@ -67,12 +76,14 @@ func TestToProxyResponse(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, mockResponseReader.GetStatusCode(), resp.StatusCode)
 
-		// a few headers added by the encoding process
-		assert.Equal(t, http.Header{
-			"Content-Type":     {"application/json"},
-			"Content-Encoding": {encoding},
-			"Content-Length":   {fmt.Sprintf("%d", len(encodedBody))},
-		}, resp.Header)
+		// Build expected headers
+		expectedHeaders := http.Header{
+			"Content-Type":   {"application/json"},
+			"Content-Length": {fmt.Sprintf("%d", len(encodedBody))},
+		}
+
+		// Compare headers
+		assert.Equal(t, expectedHeaders, resp.Header)
 		assert.Equal(t, encodedBody, resp.Body)
 	})
 }

@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sync/atomic"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/helpers"
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
@@ -19,6 +21,7 @@ type metaAddon struct {
 	mitmAddons     []px.Addon
 	closableAddons []addons.ClosableAddon
 	logger         *slog.Logger
+	closed         atomic.Bool
 }
 
 // NewMetaAddon creates a new MetaAddon with the given config and addons. The order of the addons
@@ -42,11 +45,16 @@ func newMetaAddon(logger *slog.Logger, cfg *config.Config, addons ...px.Addon) *
 }
 
 func (ma *metaAddon) Close() error {
-	for _, a := range ma.closableAddons {
-		if err := a.Close(); err != nil {
-			ma.logger.Error("could not close the addon", "error", err)
+	if !ma.closed.Swap(true) {
+		ma.logger.Debug("Closing addons...")
+		for _, a := range ma.closableAddons {
+			logger := ma.logger.With("addonName", a.String())
+			if err := a.Close(); err != nil {
+				logger.Error("error while closing", "error", err)
+				continue
+			}
+			logger.Debug("Closed addon")
 		}
-		ma.logger.Debug("Closed addon", "addonName", a.String())
 	}
 
 	return nil
@@ -79,6 +87,11 @@ func (ma *metaAddon) addAddon(a any) error {
 }
 
 func (addon *metaAddon) ClientConnected(client *px.ClientConn) {
+	if addon.closed.Load() {
+		addon.logger.Warn("skipping addons for ClientConnected, metaAddon is being closed")
+		return
+	}
+
 	for _, a := range addon.mitmAddons {
 		// the caller for this method doesn't check for client mutations, so just iterate peacefully
 		a.ClientConnected(client)
@@ -124,6 +137,12 @@ func (addon *metaAddon) TlsEstablishedServer(ctx *px.ConnContext) {
 }
 
 func (addon *metaAddon) Requestheaders(flow *px.Flow) {
+	if addon.closed.Load() {
+		addon.logger.Warn("skipping addons for Requestheaders, metaAddon is being closed")
+		helpers.RequestClosed(addon.logger, flow)
+		return
+	}
+
 	for _, a := range addon.mitmAddons {
 		a.Requestheaders(flow)
 		if flow.Response != nil {

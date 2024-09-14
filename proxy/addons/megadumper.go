@@ -10,6 +10,7 @@ import (
 	px "github.com/proxati/mitmproxy/proxy"
 
 	"github.com/proxati/llm_proxy/v2/config"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/helpers"
 	md "github.com/proxati/llm_proxy/v2/proxy/addons/megadumper"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
@@ -32,7 +33,8 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 	logger := configLoggerFieldsWithFlow(d.logger, f)
 
 	if d.closed.Load() {
-		logger.Warn("MegaDumpAddon is being closed, not logging a request")
+		logger.Warn("Addon is being closed, denying request")
+		helpers.RequestClosed(d.logger, f)
 		return
 	}
 

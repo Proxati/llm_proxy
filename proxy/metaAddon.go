@@ -46,7 +46,7 @@ func newMetaAddon(logger *slog.Logger, cfg *config.Config, addons ...px.Addon) *
 
 func (ma *metaAddon) Close() error {
 	if !ma.closed.Swap(true) {
-		ma.logger.Debug("Closing addons...")
+		ma.logger.Debug("Closing all sub-addons...")
 		for _, a := range ma.closableAddons {
 			logger := ma.logger.With("addonName", a.String())
 			if err := a.Close(); err != nil {

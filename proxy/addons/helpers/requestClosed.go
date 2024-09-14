@@ -18,7 +18,7 @@ func RequestClosed(logger *slog.Logger, f *px.Flow) {
 		Body:       []byte("LLM_Proxy is not available"),
 		Header: http.Header{
 			"Content-Type":            {"text/plain"},
-			headers.CacheStatusHeader: {headers.CacheStatusValueSkip},
+			headers.CacheStatusHeader: {headers.CacheStatusValueSkip}, // Not ideal to always add this here
 			"Connection":              {"close"},
 		},
 	}

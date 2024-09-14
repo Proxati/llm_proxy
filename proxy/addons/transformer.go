@@ -201,6 +201,10 @@ func loadTransformerProviders(logger *slog.Logger, ctx context.Context, wg *sync
 		}
 	}
 
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+
 	return providers, nil
 }
 

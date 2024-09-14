@@ -67,12 +67,19 @@ func (ht *FileProvider) Transform(
 	newReq *schema.ProxyRequest,
 	newResp *schema.ProxyResponse,
 ) (*schema.ProxyRequest, *schema.ProxyResponse, error) {
+	logger := ht.logger.WithGroup("Transform")
+
+	// check if another transformer has previously updated the request
+	if newReq != nil {
+		logger.Debug("Transformer is working with an updated request, bypassing the original request", "newReq", newReq)
+		req = newReq
+	}
+
 	if req == nil {
 		return nil, nil, errors.New("unable to transform, request object is nil")
 	}
 
-	logger := ht.logger.With("req", req, "newReq", newReq, "newResp", newResp)
-	logger.Debug("Transforming")
+	logger.Debug("Starting transformer", "request", req)
 
 	// convert the req to a json string, which will be sent via stdin to the command
 	// the command should return a schema.LogDumpContainer object in json format.

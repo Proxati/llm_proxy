@@ -135,7 +135,9 @@ func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 			return nil, fmt.Errorf("failed to create traffic transformers addon: %w", err)
 		}
 		logger.Debug("Created " + transformerAddon.String())
-		metaAdd.addAddon(transformerAddon)
+		if err := metaAdd.addAddon(transformerAddon); err != nil {
+			return nil, fmt.Errorf("failed to add traffic transformers addon: %w", err)
+		}
 	} else {
 		logger.Debug("No traffic transformers configured")
 	}

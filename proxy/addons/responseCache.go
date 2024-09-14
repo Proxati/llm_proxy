@@ -13,6 +13,7 @@ import (
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/cache"
+	"github.com/proxati/llm_proxy/v2/proxy/addons/helpers"
 	"github.com/proxati/llm_proxy/v2/proxy/addons/megadumper/formatters"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/headers"
@@ -48,22 +49,6 @@ type ResponseCacheAddon struct {
 	wg                sync.WaitGroup
 	closed            atomic.Bool
 	logger            *slog.Logger
-}
-
-// requestClosed is the function used by the Request method when the addon is closed. It doesn't
-// return anything, but instead attaches a 503 response to the flow, and sets a few headers on
-// the response. When the proxy sees the response != nil, it will skip the rest of the addons.
-func (c *ResponseCacheAddon) requestClosed(logger *slog.Logger, f *px.Flow) {
-	logger.WithGroup("closed").Warn("sending a 503 response to client, because this addon is being closed")
-	f.Response = &px.Response{
-		StatusCode: http.StatusServiceUnavailable,
-		Body:       []byte("LLM_Proxy is not available"),
-		Header: http.Header{
-			"Content-Type":            {"text/plain"},
-			headers.CacheStatusHeader: {headers.CacheStatusValueSkip},
-			"Connection":              {"close"},
-		},
-	}
 }
 
 // requestOpen is the function typically used by the Request method
@@ -158,7 +143,7 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	defer c.wg.Done()
 
 	if c.closed.Load() {
-		c.requestClosed(logger, f)
+		helpers.RequestClosed(logger, f)
 		return
 	}
 

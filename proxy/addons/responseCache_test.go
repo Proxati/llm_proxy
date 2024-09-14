@@ -395,33 +395,6 @@ func TestRequest(t *testing.T) {
 	})
 }
 
-func TestRequestClosed(t *testing.T) {
-	t.Parallel()
-	testLogger := slog.Default()
-	respCacheAddon := &ResponseCacheAddon{}
-
-	t.Run("requestClosed sets correct response", func(t *testing.T) {
-		flow := &px.Flow{
-			Request: &px.Request{
-				Method: "GET",
-				URL:    &url.URL{Path: "/test"},
-				Header: http.Header{
-					"Host": []string{"example.com"},
-				},
-			},
-		}
-
-		respCacheAddon.requestClosed(testLogger, flow)
-
-		require.NotNil(t, flow.Response, "Response should not be nil")
-		assert.Equal(t, http.StatusServiceUnavailable, flow.Response.StatusCode, "Expected status code 503")
-		assert.Equal(t, "LLM_Proxy is not available", string(flow.Response.Body), "Expected response body to match")
-		assert.Equal(t, "text/plain", flow.Response.Header.Get("Content-Type"), "Expected Content-Type header to be text/plain")
-		assert.Equal(t, headers.CacheStatusValueSkip, flow.Response.Header.Get(headers.CacheStatusHeader), "Expected headers.CacheStatusHeader to be SKIP")
-		assert.Equal(t, "close", flow.Response.Header.Get("Connection"), "Expected Connection header to be close")
-	})
-}
-
 func TestRequestOpen(t *testing.T) {
 	t.Parallel()
 	testLogger := slog.Default()

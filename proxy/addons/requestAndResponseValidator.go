@@ -3,13 +3,18 @@ package addons
 import (
 	"log/slog"
 	"net/http"
+	"sync"
+	"sync/atomic"
 
+	"github.com/proxati/llm_proxy/v2/proxy/addons/helpers"
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
 type RequestAndResponseValidator struct {
 	px.BaseAddon
 	logger *slog.Logger
+	wg     sync.WaitGroup
+	closed atomic.Bool
 }
 
 func NewRequestAndResponseValidator(logger *slog.Logger) *RequestAndResponseValidator {
@@ -19,6 +24,13 @@ func NewRequestAndResponseValidator(logger *slog.Logger) *RequestAndResponseVali
 // Request validates the request, and does not use the normal logger, because
 // the request may not have all the necessary fields needed to log.
 func (c *RequestAndResponseValidator) Request(f *px.Flow) {
+	if c.closed.Load() {
+		helpers.RequestClosed(c.logger, f)
+		return
+	}
+	c.wg.Add(1)
+	defer c.wg.Done()
+
 	if f.Request != nil {
 		if f.Request.URL == nil || f.Request.URL.String() == "" {
 			c.logger.Error(
@@ -55,6 +67,9 @@ func (c *RequestAndResponseValidator) Request(f *px.Flow) {
 // Response validates the response, and does not use the normal logger, because
 // the response may not have all the necessary fields needed to log.
 func (c *RequestAndResponseValidator) Response(f *px.Flow) {
+	c.wg.Add(1)
+	defer c.wg.Done()
+
 	if f.Response != nil {
 		return
 	}
@@ -71,4 +86,17 @@ func (c *RequestAndResponseValidator) Response(f *px.Flow) {
 			"Content-Type": []string{"text/plain"},
 		},
 	}
+}
+
+func (d *RequestAndResponseValidator) Close() error {
+	if !d.closed.Swap(true) {
+		d.logger.Debug("Closing...")
+		d.wg.Wait()
+	}
+
+	return nil
+}
+
+func (d *RequestAndResponseValidator) String() string {
+	return "RequestAndResponseValidator"
 }

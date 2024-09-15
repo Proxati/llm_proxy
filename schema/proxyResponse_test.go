@@ -56,3 +56,71 @@ func TestNewProxyResponseFromMITMResponse(t *testing.T) {
 		assert.NotContains(t, res.Header, "Delete-Me")
 	})
 }
+
+func TestProxyResponse_Merge(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NilOther", func(t *testing.T) {
+		original := &schema.ProxyResponse{
+			Status: 200,
+			Header: http.Header{"Content-Type": {"application/json"}},
+			Body:   `{"key":"value"}`,
+		}
+		original.Merge(nil)
+
+		assert.Equal(t, 200, original.Status)
+		assert.Equal(t, http.Header{"Content-Type": {"application/json"}}, original.Header)
+		assert.Equal(t, `{"key":"value"}`, original.Body)
+	})
+
+	t.Run("DifferentStatus", func(t *testing.T) {
+		original := &schema.ProxyResponse{
+			Status: 200,
+			Header: http.Header{"Content-Type": {"application/json"}},
+			Body:   `{"key":"value"}`,
+		}
+		other := &schema.ProxyResponse{
+			Status: 404,
+		}
+		original.Merge(other)
+
+		assert.Equal(t, 404, original.Status)
+		assert.Equal(t, http.Header{"Content-Type": {"application/json"}}, original.Header)
+		assert.Equal(t, `{"key":"value"}`, original.Body)
+	})
+
+	t.Run("AdditionalHeaders", func(t *testing.T) {
+		original := &schema.ProxyResponse{
+			Status: 200,
+			Header: http.Header{"Content-Type": {"application/json"}},
+			Body:   `{"key":"value"}`,
+		}
+		other := &schema.ProxyResponse{
+			Header: http.Header{"Authorization": {"Bearer token"}},
+		}
+		original.Merge(other)
+
+		assert.Equal(t, 200, original.Status)
+		assert.Equal(t, http.Header{
+			"Content-Type":  {"application/json"},
+			"Authorization": {"Bearer token"},
+		}, original.Header)
+		assert.Equal(t, `{"key":"value"}`, original.Body)
+	})
+
+	t.Run("DifferentBody", func(t *testing.T) {
+		original := &schema.ProxyResponse{
+			Status: 200,
+			Header: http.Header{"Content-Type": {"application/json"}},
+			Body:   `{"key":"value"}`,
+		}
+		other := &schema.ProxyResponse{
+			Body: `{"new_key":"new_value"}`,
+		}
+		original.Merge(other)
+
+		assert.Equal(t, 200, original.Status)
+		assert.Equal(t, http.Header{"Content-Type": {"application/json"}}, original.Header)
+		assert.Equal(t, `{"new_key":"new_value"}`, original.Body)
+	})
+}

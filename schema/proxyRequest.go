@@ -22,6 +22,31 @@ type ProxyRequest struct {
 	headerFilter *config.HeaderFilterGroup
 }
 
+// GetMethod returns the HTTP method of the request
+func (pReq *ProxyRequest) GetMethod() string {
+	return pReq.Method
+}
+
+// GetURL returns the URL of the request
+func (pReq *ProxyRequest) GetURL() *url.URL {
+	return pReq.URL
+}
+
+// GetProto returns the protocol of the request
+func (pReq *ProxyRequest) GetProto() string {
+	return pReq.Proto
+}
+
+// GetHeaders returns the headers of the request
+func (pReq *ProxyRequest) GetHeaders() http.Header {
+	return pReq.Header
+}
+
+// GetBodyBytes returns the body of the request as a byte slice
+func (pReq *ProxyRequest) GetBodyBytes() []byte {
+	return []byte(pReq.Body)
+}
+
 // filterHeaders filters the headers in the ProxyResponse object using the headerFilter object
 func (pReq *ProxyRequest) filterHeaders() {
 	if pReq.headerFilter == nil {
@@ -138,6 +163,33 @@ func (pReq *ProxyRequest) MarshalJSON() ([]byte, error) {
 		URL:   urlString,
 		Alias: (*Alias)(pReq),
 	})
+}
+
+// Merge will merge the fields of the given ProxyRequest into this ProxyRequest
+func (pReq *ProxyRequest) Merge(other *ProxyRequest) {
+	if other == nil {
+		return
+	}
+	if other.Method != "" {
+		pReq.Method = other.Method
+	}
+	if other.URL != nil {
+		pReq.URL = other.URL
+	}
+	if other.Proto != "" {
+		pReq.Proto = other.Proto
+	}
+	if other.Header != nil {
+		if pReq.Header == nil {
+			pReq.Header = make(http.Header)
+		}
+		for key, values := range other.Header {
+			pReq.Header[key] = values
+		}
+	}
+	if other.Body != "" {
+		pReq.Body = other.Body
+	}
 }
 
 // NewProxyRequest creates a new ProxyRequest from a MITM proxy request object

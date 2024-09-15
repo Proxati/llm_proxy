@@ -437,3 +437,78 @@ func TestUnmarshalLogDumpContainer(t *testing.T) {
 		})
 	}
 }
+
+func TestLogDumpContainer_MarshalJSON(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		input    *schema.LogDumpContainer
+		expected string
+	}{
+		{
+			name: "all fields set",
+			input: &schema.LogDumpContainer{
+				ObjectType:    schema.ObjectTypeDefault,
+				SchemaVersion: schema.DefaultSchemaVersion,
+				Timestamp:     parseTimeStampString(t, "2023-01-01T00:00:00Z"),
+				ConnectionStats: &schema.ProxyConnectionStats{
+					ClientAddress: "127.0.0.1",
+					URL:           "http://example.com",
+					Duration:      100,
+					ProxyID:       "proxy-1",
+				},
+				Request: &schema.ProxyRequest{
+					Method: "GET",
+					URL: &url.URL{
+						Scheme: "http",
+						Host:   "example.com",
+						Path:   "/",
+					},
+					Proto: "HTTP/1.1",
+					Header: http.Header{
+						"Content-Type": []string{"application/json"},
+					},
+					Body: `{"key": "value"}`,
+				},
+				Response: &schema.ProxyResponse{
+					Header: http.Header{
+						"Content-Type": []string{"application/json"},
+					},
+					Body: `{"status": "success"}`,
+				},
+			},
+			expected: `{"object_type":"llm_proxy_traffic_log","schema":"v2","timestamp":"2023-01-01T00:00:00Z","connection_stats":{"client_address":"127.0.0.1","url":"http://example.com","duration_ms":100,"proxy_id":"proxy-1"},"request":{"method":"GET","url":"http://example.com/","proto":"HTTP/1.1","header":{"Content-Type":["application/json"]},"body":"{\"key\": \"value\"}"},"response":{"header":{"Content-Type":["application/json"]},"body":"{\"status\": \"success\"}"}}`,
+		},
+		{
+			name: "only mandatory fields set",
+			input: &schema.LogDumpContainer{
+				ObjectType:    schema.ObjectTypeDefault,
+				SchemaVersion: schema.DefaultSchemaVersion,
+			},
+			expected: `{"object_type":"llm_proxy_traffic_log","schema":"v2"}`,
+		},
+		{
+			name: "timestamp not set",
+			input: &schema.LogDumpContainer{
+				ObjectType:    schema.ObjectTypeDefault,
+				SchemaVersion: schema.DefaultSchemaVersion,
+				ConnectionStats: &schema.ProxyConnectionStats{
+					ClientAddress: "127.0.0.1",
+					URL:           "http://example.com",
+					Duration:      100,
+					ProxyID:       "proxy-1",
+				},
+			},
+			expected: `{"object_type":"llm_proxy_traffic_log","schema":"v2","connection_stats":{"client_address":"127.0.0.1","url":"http://example.com","duration_ms":100,"proxy_id":"proxy-1"}}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := tc.input.MarshalJSON()
+			require.NoError(t, err)
+			assert.JSONEq(t, tc.expected, string(actual))
+		})
+	}
+}

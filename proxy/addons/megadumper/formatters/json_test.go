@@ -10,29 +10,33 @@ import (
 )
 
 func TestJSONFormatter(t *testing.T) {
-	container := &schema.LogDumpContainer{
-		Request: &schema.ProxyRequest{
-			Header: http.Header{"ReqHeader": []string{"ReqValue"}},
-			Body:   "Request Body",
-		},
-		Response: &schema.ProxyResponse{
-			Header: http.Header{"RespHeader": []string{"RespValue"}},
-			Body:   "Response Body",
-		},
+	container := schema.NewLogDumpContainerWithDefaults()
+	container.Request = &schema.ProxyRequest{
+		Header: http.Header{"ReqHeader": []string{"ReqValue"}},
+		Body:   "Request Body",
 	}
+	container.Response = &schema.ProxyResponse{
+		Header: http.Header{"RespHeader": []string{"RespValue"}},
+		Body:   "Response Body",
+	}
+
+	// Format the container.Timestamp back into a string
+	const layout = "2006-01-02T15:04:05Z07:00"
+	timestampStr := container.Timestamp.Format(layout)
+
 	j := &JSON{}
 
 	expectedJSON := `{
-	  "timestamp": "0001-01-01T00:00:00Z",
-	  "request": {
-		"body": "Request Body",
-		"header": { "ReqHeader": [ "ReqValue" ] }
-	  },
-	  "response": {
-		"body": "Response Body",
-		"header": { "RespHeader": [ "RespValue" ] }
-	  }
-	}`
+		"timestamp": "` + timestampStr + `",
+		"request": {
+		  "body": "Request Body",
+		  "header": { "ReqHeader": [ "ReqValue" ] }
+		},
+		"response": {
+		  "body": "Response Body",
+		  "header": { "RespHeader": [ "RespValue" ] }
+		}
+	  }`
 
 	jsonBytes, err := j.Read(container)
 	assert.NoError(t, err)
@@ -62,13 +66,16 @@ func TestJSONFormatter(t *testing.T) {
 }
 
 func TestJSONFormatter_Empty(t *testing.T) {
-	container := &schema.LogDumpContainer{
-		Request:  &schema.ProxyRequest{},
-		Response: &schema.ProxyResponse{},
-	}
+	container := schema.NewLogDumpContainerWithDefaults()
+	container.Request = &schema.ProxyRequest{}
+	container.Response = &schema.ProxyResponse{}
+	// Format the container.Timestamp back into a string
+	const layout = "2006-01-02T15:04:05Z07:00"
+	timestampStr := container.Timestamp.Format(layout)
+
 	j := &JSON{}
 	expectedJSON := `{
-		"timestamp": "0001-01-01T00:00:00Z",
+		"timestamp": "` + timestampStr + `",
 		"request": {
 			"body": "",
 			"header": null

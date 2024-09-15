@@ -122,6 +122,28 @@ func (pRes *ProxyResponse) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Merge merges the headers and body of another ProxyResponse object into this one
+func (pRes *ProxyResponse) Merge(other *ProxyResponse) {
+	if other == nil {
+		return
+	}
+	if other.Status != 0 {
+		pRes.Status = other.Status
+	}
+	if other.Header != nil {
+		if pRes.Header == nil {
+			pRes.Header = make(http.Header)
+		}
+		for k, v := range other.Header {
+			pRes.Header[k] = v
+		}
+	}
+
+	if other.Body != "" {
+		pRes.Body = other.Body
+	}
+}
+
 // NewProxyResponse creates a new ProxyRequest from a MITM proxy request object
 func NewProxyResponse(req proxyadapters.ResponseReaderAdapter, headerFilter *config.HeaderFilterGroup) (*ProxyResponse, error) {
 	if req == nil {

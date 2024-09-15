@@ -20,23 +20,7 @@ func TestJSONFormatter(t *testing.T) {
 		Body:   "Response Body",
 	}
 
-	// Format the container.Timestamp back into a string
-	const layout = "2006-01-02T15:04:05Z07:00"
-	timestampStr := container.Timestamp.Format(layout)
-
 	j := &JSON{}
-
-	expectedJSON := `{
-		"timestamp": "` + timestampStr + `",
-		"request": {
-		  "body": "Request Body",
-		  "header": { "ReqHeader": [ "ReqValue" ] }
-		},
-		"response": {
-		  "body": "Response Body",
-		  "header": { "RespHeader": [ "RespValue" ] }
-		}
-	  }`
 
 	jsonBytes, err := j.Read(container)
 	assert.NoError(t, err)
@@ -45,46 +29,37 @@ func TestJSONFormatter(t *testing.T) {
 	err = json.Unmarshal(jsonBytes, &parsedJSON)
 	assert.NoError(t, err)
 
-	expectedParsedJSON := make(map[string]interface{})
-	err = json.Unmarshal([]byte(expectedJSON), &expectedParsedJSON)
+	// Create expected container and marshal to JSON
+	expectedContainer := &schema.LogDumpContainer{
+		ObjectType:    container.ObjectType,
+		SchemaVersion: container.SchemaVersion,
+		Timestamp:     container.Timestamp,
+		Request: &schema.ProxyRequest{
+			Header: http.Header{"ReqHeader": []string{"ReqValue"}},
+			Body:   "Request Body",
+		},
+		Response: &schema.ProxyResponse{
+			Header: http.Header{"RespHeader": []string{"RespValue"}},
+			Body:   "Response Body",
+		},
+	}
+
+	expectedJSONBytes, err := json.MarshalIndent(expectedContainer, "", "  ")
 	assert.NoError(t, err)
 
-	keys := []string{"timestamp", "request", "response"}
-	for _, key := range keys {
-		parsedValue, ok := parsedJSON[key]
-		if ok {
-			expectedValue, ok := expectedParsedJSON[key]
-			if ok {
-				assert.Equal(t, expectedValue, parsedValue)
-			} else {
-				t.Errorf("Expected to find %s in expectedParsedJSON", key)
-			}
-		} else {
-			t.Errorf("Expected to find %s in parsedJSON", key)
-		}
-	}
+	var expectedParsedJSON map[string]interface{}
+	err = json.Unmarshal(expectedJSONBytes, &expectedParsedJSON)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedParsedJSON, parsedJSON)
 }
 
 func TestJSONFormatter_Empty(t *testing.T) {
 	container := schema.NewLogDumpContainerWithDefaults()
 	container.Request = &schema.ProxyRequest{}
 	container.Response = &schema.ProxyResponse{}
-	// Format the container.Timestamp back into a string
-	const layout = "2006-01-02T15:04:05Z07:00"
-	timestampStr := container.Timestamp.Format(layout)
 
 	j := &JSON{}
-	expectedJSON := `{
-		"timestamp": "` + timestampStr + `",
-		"request": {
-			"body": "",
-			"header": null
-		},
-		"response": {
-			"body": "",
-			"header": null
-		}
-	  }`
 
 	jsonBytes, err := j.Read(container)
 	assert.NoError(t, err)
@@ -93,25 +68,30 @@ func TestJSONFormatter_Empty(t *testing.T) {
 	err = json.Unmarshal(jsonBytes, &parsedJSON)
 	assert.NoError(t, err)
 
-	expectedParsedJSON := make(map[string]interface{})
-	err = json.Unmarshal([]byte(expectedJSON), &expectedParsedJSON)
-	assert.NoError(t, err)
-
-	keys := []string{"timestamp", "request", "response"}
-	for _, key := range keys {
-		parsedValue, ok := parsedJSON[key]
-		if ok {
-			expectedValue, ok := expectedParsedJSON[key]
-			if ok {
-				assert.Equal(t, expectedValue, parsedValue)
-			} else {
-				t.Errorf("Expected to find %s in expectedParsedJSON", key)
-			}
-		} else {
-			t.Errorf("Expected to find %s in parsedJSON", key)
-		}
+	// Create expected container and marshal to JSON
+	expectedContainer := &schema.LogDumpContainer{
+		ObjectType:    container.ObjectType,
+		SchemaVersion: container.SchemaVersion,
+		Timestamp:     container.Timestamp,
+		Request:       &schema.ProxyRequest{},
+		Response:      &schema.ProxyResponse{},
 	}
 
+	expectedJSONBytes, err := json.MarshalIndent(expectedContainer, "", "  ")
+	assert.NoError(t, err)
+
+	var expectedParsedJSON map[string]interface{}
+	err = json.Unmarshal(expectedJSONBytes, &expectedParsedJSON)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expectedParsedJSON, parsedJSON)
+}
+
+func TestJSONFormatter_NilContainer(t *testing.T) {
+	j := &JSON{}
+	jsonBytes, err := j.Read(nil)
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("{}"), jsonBytes)
 }
 
 func TestJSONFormatter_implements_Reader(t *testing.T) {

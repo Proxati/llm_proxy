@@ -7,5 +7,5 @@ import (
 
 type Provider interface {
 	Run(ctx context.Context, input *bytes.Reader) ([]byte, error)
-	HealthCheck() error
+	HealthCheck(ctx context.Context) error
 }

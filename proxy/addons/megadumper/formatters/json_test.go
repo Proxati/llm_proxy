@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +46,6 @@ func TestJSONFormatter(t *testing.T) {
 
 	expectedJSONBytes, err := json.MarshalIndent(expectedContainer, "", "  ")
 	assert.NoError(t, err)
-	spew.Dump(parsedJSON)
 
 	var expectedParsedJSON map[string]interface{}
 	err = json.Unmarshal(expectedJSONBytes, &expectedParsedJSON)

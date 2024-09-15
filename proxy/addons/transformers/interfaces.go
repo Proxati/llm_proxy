@@ -9,11 +9,12 @@ import (
 )
 
 type Provider interface {
-	HealthCheck() error
+	HealthCheck(context.Context) error
 	Transform(
 		ctx context.Context,
 		logger *slog.Logger,
 		oldReq *schema.ProxyRequest,
+		oldResp *schema.ProxyResponse,
 		newReq *schema.ProxyRequest,
 		newResp *schema.ProxyResponse,
 	) (

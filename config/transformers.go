@@ -96,8 +96,12 @@ type Transformer struct {
 	RetryCount       int                    `transformer:"retry-count"`
 	InitialRetryTime time.Duration          `transformer:"initial-retry-time"`
 	MaxRetryTime     time.Duration          `transformer:"max-retry-time"`
-	BackPressureMode BackPressureMode       `transformer:"back-pressure-mode"`
 	HealthCheck      TransformerHealthCheck `transformer:"health-check"`
+	// AuthToken        string                 `transformer:"auth-token"`
+	// Headers          http.Header            `transformer:"headers"`
+	// TLSConfig        *tls.Config            `transformer:"-"`
+	// ProxyURL         url.URL                `transformer:"proxy-url"`
+	// BackPressureMode BackPressureMode       `transformer:"back-pressure-mode"`
 }
 
 func NewTransformer() *Transformer {
@@ -109,7 +113,7 @@ func NewTransformer() *Transformer {
 		RetryCount:       2,
 		InitialRetryTime: 100 * time.Millisecond,
 		MaxRetryTime:     60 * time.Second,
-		BackPressureMode: BackPressureModeNone,
+		// BackPressureMode: BackPressureModeNone,
 		HealthCheck: TransformerHealthCheck{
 			Interval: 30 * time.Second,
 			Path:     "/health",
@@ -164,12 +168,14 @@ func (t *Transformer) validate() error {
 		errs = append(errs, errors.New("invalid concurrency"))
 	}
 
+	/* TODO: re-enable when back pressure is implemented
 	switch t.BackPressureMode {
 	case BackPressureModeNone, BackPressureMode429, BackPressureModeTimeout:
 		// Valid modes, do nothing
 	default:
 		errs = append(errs, errors.New("invalid back pressure mode"))
 	}
+	*/
 
 	switch t.FailureMode {
 	case FailureModeHard, FailureModeSoft:

@@ -221,39 +221,50 @@ Examples:
 	// traffic transformation settings
 	rootCmd.PersistentFlags().StringVar(
 		&reqTransformerInput, "request-transformers", reqTransformerInput,
-		`List of request transformers that will mutate traffic before being sent upstream.
-Each transformer configuration string contains one or more URLs with associated options, separated
-by semicolons (;). The transformers will run in the order they are specified. A request transformer
-service can either modify the request, return an error, or return a response. If it returns a
-response, the proxy will use that response as the final response to the client, and will not
-forward the request upstream.
+		`List of request transformers that will mutate traffic before being
+sent upstream. Each transformer configuration string contains one or more URLs
+with associated options, separated by semicolons (;). The transformers will
+run in the order they are specified. A request transformer service can either
+modify the request, return an error, or return a response. If it returns a
+response, the proxy will use that response as the final response to the client
+and will not forward the request upstream.
 
-Options for each transformer are specified after the URL, separated by a pipe (|) character.
+Options for each transformer are specified after the URL.
+The format of a transformer: proto://server/path|option1=value,option2=value
+
 Available options:
-  timeout, fail-mode, concurrency, retries, retry-interval, health-check-interval, and health-check-path
+  name, failure-mode, concurrency, request-timeout, timeout, retry-count,
+  initial-retry-time, max-retry-time, back-pressure-mode,
+  health-check.interval, health-check.interval, health-check.timeout
 
 In this example, two independent request transformers are configured:
-1. http://service1.com:123/request-filter with a timeout of 3000ms and fail-mode set to soft.
-2. http://service2.com/request-filter with a timeout of 2000ms and fail-mode set to hard.
+1. http://service1.com:123/request-filter timeout of 3s w/ soft fail
+2. http://service2.com/request-filter timeout of 2s and hard fail
 
 Example Input:
-    --request-transformers "http://service1.com:123/request-filter|timeout=3000ms,fail-mode=soft;http://service2.com/request-filter|timeout=2000ms,fail-mode=hard"
+    --request-transformers "http://service1.com:123/request-filter|timeout=3s,fail-mode=soft;http://service2.com/request-filter|timeout=2s,fail-mode=hard"
 `,
 	)
 
 	rootCmd.PersistentFlags().StringVar(
 		&reqTransformerInput, "response-transformers", reqTransformerInput,
-		`List of response transformers that will mutate traffic before being sent back to the
-client. Each transformer configuration string contains one or more URLs with associated options,
-separated by semicolons (;). Like the request transformers, the response transformers will run in
-the order they are specified. The response transformers can modify the response from upstream, or
-return an error. If a response transformer has fail-mode=hard, and the transformer service returns
-an error, the proxy will return that error to the client. If the fail-mode is set to soft, the
-proxy will ignore the error and continue processing the response.
+		`List of response transformers that will mutate traffic before being
+sent back to the client. Each transformer configuration string contains one or
+more URLs with associated options, separated by semicolons (;). Like the
+request transformers, the response transformers will run in the order they are
+specified. The response transformers can modify the response from upstream, or
+return an error. If a response transformer has fail-mode=hard, and the
+transformer service returns an error, the proxy will return that error to the
+client. If the fail-mode is set to soft, the proxy will ignore the error and
+continue processing the response.
 
-Options for each transformer are specified after the URL, separated by a pipe (|) character.
+Options for each transformer are specified after the URL.
+The format of a transformer: proto://server/path|option1=value,option2=value
+
 Available options:
-  timeout, fail-mode, concurrency, retries, retry-interval, health-check-interval, and health-check-path
+  name, failure-mode, concurrency, request-timeout, timeout, retry-count,
+  initial-retry-time, max-retry-time, back-pressure-mode,
+  health-check.interval, health-check.interval, health-check.timeout
 `,
 	)
 

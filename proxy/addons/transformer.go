@@ -51,7 +51,7 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 		return
 	}
 
-	reqObj, err := schema.NewProxyRequest(reqAdapter, a.headerFilter)
+	oldReq, err := schema.NewProxyRequest(reqAdapter, a.headerFilter)
 	if err != nil {
 		logger.ErrorContext(a.ctx, "Failed to create request object", "error", err)
 		helpers.ProxyError(a.logger, f)
@@ -59,6 +59,7 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 	}
 
 	logger.DebugContext(a.ctx, "Starting transformations")
+	var oldResp *schema.ProxyResponse // there should never be an old response object in the request phase
 	var newReq *schema.ProxyRequest
 	var newResp *schema.ProxyResponse
 	for name, providers := range a.requestProviders {
@@ -70,7 +71,10 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 			// TODO: handle multiple providers with the same service name
 			// - failover / backup ?
 			// - random / round robin ?
-			req, resp, err := provider.Transform(a.ctx, logger, reqObj, newReq, newResp)
+			ctx, cancel := context.WithTimeout(a.ctx, Tcfg.ResponseTimeout)
+			req, resp, err := provider.Transform(ctx, logger, oldReq, oldResp, newReq, newResp)
+			cancel()
+
 			if err != nil {
 				logger.ErrorContext(a.ctx, "Failed to transform request", "error", err)
 				if Tcfg.FailureMode == config.FailureModeHard {
@@ -88,27 +92,28 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 				newResp = resp
 				logger.DebugContext(a.ctx, "Transformer updated response", "response", resp)
 			}
+
 			logger.DebugContext(a.ctx, "Done communicating with transformer")
 		}
 	}
 	logger.DebugContext(a.ctx, "Transformer execution completed, checking and merging results...",
-		"reqObj", reqObj, "newReq", newReq, "newResp", newResp)
+		"reqObj", oldReq, "newReq", newReq, "newResp", newResp)
 
 	if newReq != nil {
 		contentEncoding := f.Request.Header.Get("Content-Encoding")
-		reqObj.Merge(newReq)
+		oldReq.Merge(newReq)
 
-		encodedBody, encodingType, err := utils.EncodeBody(reqObj.GetBodyBytes(), contentEncoding)
+		encodedBody, encodingType, err := utils.EncodeBody(oldReq.GetBodyBytes(), contentEncoding)
 		if err != nil {
 			logger.ErrorContext(a.ctx, "Failed to encode request body", "error", err)
 			helpers.ProxyError(a.logger, f)
 			return
 		}
 
-		f.Request.Method = reqObj.Method
-		f.Request.URL = reqObj.URL
-		f.Request.Proto = reqObj.Proto
-		f.Request.Header = reqObj.Header
+		f.Request.Method = oldReq.Method
+		f.Request.URL = oldReq.URL
+		f.Request.Proto = oldReq.Proto
+		f.Request.Header = oldReq.Header
 		f.Request.Body = encodedBody
 		if encodingType != "" {
 			f.Request.Header.Set("Content-Encoding", encodingType)

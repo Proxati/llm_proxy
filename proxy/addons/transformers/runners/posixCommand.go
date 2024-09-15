@@ -13,26 +13,25 @@ import (
 	"github.com/proxati/llm_proxy/v2/internal/fileutils"
 )
 
-type UnixCommand struct {
+// PosixCommand is a command runner that executes a command on a POSIX system.
+type PosixCommand struct {
 	logger          *slog.Logger
 	command         string
 	sha256sum       string
 	concurrency     int
-	timeout         time.Duration
 	bulkhead        bulkhead.Bulkhead[any]
 	bulkheadTimeout time.Duration
 }
 
-func NewUnixCommand(logger *slog.Logger, command string, concurrency int, timeout time.Duration) (*UnixCommand, error) {
-	cr := &UnixCommand{
+func NewPosixCommand(logger *slog.Logger, ctx context.Context, command string, concurrency int, bulkHeadTimeout time.Duration) (*PosixCommand, error) {
+	cr := &PosixCommand{
 		logger:      logger.With("commandRunner", command),
 		command:     command,
 		concurrency: concurrency,
-		timeout:     timeout,
 	}
 
 	// check the commands sha256sum, store it in the provider so we can check if the command has changed
-	sha256sum, err := fileutils.ComputeSHA256FromFileContents(command)
+	sha256sum, err := fileutils.ComputeSHA256FromFileContentsContext(ctx, command)
 	if err != nil {
 		return nil, fmt.Errorf("unable to compute sha256sum of command: %w", err)
 	}
@@ -47,7 +46,7 @@ func NewUnixCommand(logger *slog.Logger, command string, concurrency int, timeou
 			}).
 			Build()
 		cr.bulkhead = bh
-		cr.bulkheadTimeout = timeout + 1*time.Minute
+		cr.bulkheadTimeout = bulkHeadTimeout
 	}
 
 	return cr, nil
@@ -57,10 +56,7 @@ func NewUnixCommand(logger *slog.Logger, command string, concurrency int, timeou
 // There are two timeout values to consider:
 // - The context timeout, which is the maximum time the command is allowed to run.
 // - The bulkhead timeout, which is the maximum time to wait in line for a permit to execute the command.
-func (cr *UnixCommand) Run(ctx context.Context, stdin *bytes.Reader) ([]byte, error) {
-	runCtx, cancel := context.WithTimeout(ctx, cr.timeout) // command running timeout
-	defer cancel()
-
+func (cr *PosixCommand) Run(ctx context.Context, stdin *bytes.Reader) ([]byte, error) {
 	if cr.concurrency > 0 {
 		// Attempt to acquire a permit
 		if err := cr.bulkhead.AcquirePermitWithMaxWait(ctx, cr.bulkheadTimeout); err != nil {
@@ -72,7 +68,7 @@ func (cr *UnixCommand) Run(ctx context.Context, stdin *bytes.Reader) ([]byte, er
 	}
 
 	// Execute the command
-	cmd := exec.CommandContext(runCtx, cr.command)
+	cmd := exec.CommandContext(ctx, cr.command)
 	cmd.Stdin = stdin
 
 	output, err := cmd.Output()
@@ -83,7 +79,7 @@ func (cr *UnixCommand) Run(ctx context.Context, stdin *bytes.Reader) ([]byte, er
 	return output, nil
 }
 
-func (cr *UnixCommand) HealthCheck() error {
+func (cr *PosixCommand) HealthCheck(ctx context.Context) error {
 	// check if the command exists
 	if _, err := exec.LookPath(cr.command); err != nil {
 		return fmt.Errorf("command not found: %w", err)
@@ -95,20 +91,20 @@ func (cr *UnixCommand) HealthCheck() error {
 	}
 
 	// check the commands sha256sum, and compare it to the stored sha256sum
-	sha256sum, err := fileutils.ComputeSHA256FromFileContents(cr.command)
+	sha256sum, err := fileutils.ComputeSHA256FromFileContentsContext(ctx, cr.command)
 	if err != nil {
-		return fmt.Errorf("unable to get sha256sum: %w", err)
+		return fmt.Errorf("unable to compute the SHA256 checksum: %w", err)
 	}
 
 	if sha256sum != cr.sha256sum {
-		return fmt.Errorf("sha256 checksum of the command has changed: %w", err)
+		return fmt.Errorf("SHA256 checksum of the command has changed: %w", err)
 	}
 
 	return nil
 }
 
-func (cr *UnixCommand) String() string {
+func (cr *PosixCommand) String() string {
 	return fmt.Sprintf(
-		"unixPathCommandRunner{Command: %s, Concurrency: %d, Timeout: %s}",
-		cr.command, cr.concurrency, cr.timeout)
+		"unixPathCommandRunner{Command: %s, Concurrency: %d, BulkheadTimeout: %s}",
+		cr.command, cr.concurrency, cr.bulkheadTimeout)
 }

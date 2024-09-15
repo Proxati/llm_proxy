@@ -32,7 +32,7 @@ func TestNewTransformer(t *testing.T) {
 				RetryCount:       2,
 				InitialRetryTime: 100 * time.Millisecond,
 				MaxRetryTime:     60 * time.Second,
-				BackPressureMode: BackPressureModeNone,
+				// // BackPressureMode:  BackPressureModeNone,
 				HealthCheck: TransformerHealthCheck{
 					Interval: 30 * time.Second,
 					Path:     "/health",
@@ -60,10 +60,10 @@ func TestNewTransformerWithInput(t *testing.T) {
 	}{
 		{
 			name:  "ValidInput_AllOptions",
-			input: "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s,back-pressure-mode=429",
+			input: "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s",
 			expected: &Transformer{
-				rawInput:         "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s,back-pressure-mode=429",
-				rawOptions:       "timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s,back-pressure-mode=429",
+				rawInput:         "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s",
+				rawOptions:       "timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s",
 				rawURL:           "http://example.com/foo",
 				URL:              parseURL(t, "http://example.com/foo"),
 				Name:             "test",
@@ -74,7 +74,7 @@ func TestNewTransformerWithInput(t *testing.T) {
 				RetryCount:       3,
 				InitialRetryTime: 500 * time.Millisecond,
 				MaxRetryTime:     10 * time.Second,
-				BackPressureMode: BackPressureMode429,
+				// BackPressureMode:  BackPressureMode429,
 				HealthCheck: TransformerHealthCheck{
 					Interval: 1 * time.Minute,
 					Path:     "/status",
@@ -99,7 +99,7 @@ func TestNewTransformerWithInput(t *testing.T) {
 				RetryCount:       2,
 				InitialRetryTime: 100 * time.Millisecond,
 				MaxRetryTime:     60 * time.Second,
-				BackPressureMode: BackPressureModeNone,
+				// BackPressureMode:  BackPressureModeNone,
 				HealthCheck: TransformerHealthCheck{
 					Interval: 30 * time.Second,
 					Path:     "/health",
@@ -205,17 +205,19 @@ func TestNewTransformerWithInput(t *testing.T) {
 			hasError: true,
 		},
 		{
-			name:     "InvalidInput_InvalidBackPressureMode",
-			input:    "http://example.com/foo|back-pressure-mode=invalid",
-			expected: nil,
-			hasError: true,
-		},
-		{
 			name:     "InvalidInput_InvalidRetryCount",
 			input:    "http://example.com/foo|retry-count=-1",
 			expected: nil,
 			hasError: true,
 		},
+		/*
+			{
+				name:     "InvalidInput_InvalidBackPressureMode",
+				input:    "http://example.com/foo|back-pressure-mode=invalid",
+				expected: nil,
+				hasError: true,
+			},
+		*/
 	}
 
 	for _, tt := range tests {
@@ -242,10 +244,10 @@ func TestSetInput(t *testing.T) {
 	}{
 		{
 			name:  "ValidInput_AllOptions",
-			input: "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s,back-pressure-mode=429",
+			input: "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s",
 			expected: &Transformer{
-				rawInput:         "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s,back-pressure-mode=429",
-				rawOptions:       "timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s,back-pressure-mode=429",
+				rawInput:         "http://example.com/foo|timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s",
+				rawOptions:       "timeout=10s,name=test,failure-mode=soft,concurrency=5,retry-count=3,initial-retry-time=2s,health-check.interval=1m,health-check.path=/status,health-check.timeout=5s,request-timeout=2s,initial-retry-time=500ms,max-retry-time=10s",
 				Name:             "test",
 				rawURL:           "http://example.com/foo",
 				URL:              parseURL(t, "http://example.com/foo"),
@@ -256,7 +258,7 @@ func TestSetInput(t *testing.T) {
 				RetryCount:       3,
 				InitialRetryTime: 500 * time.Millisecond,
 				MaxRetryTime:     10 * time.Second,
-				BackPressureMode: BackPressureMode429,
+				// BackPressureMode:  BackPressureMode429,
 				HealthCheck: TransformerHealthCheck{
 					Interval: 1 * time.Minute,
 					Path:     "/status",
@@ -281,7 +283,7 @@ func TestSetInput(t *testing.T) {
 				RetryCount:       2,
 				InitialRetryTime: 100 * time.Millisecond,
 				MaxRetryTime:     60 * time.Second,
-				BackPressureMode: BackPressureModeNone,
+				// BackPressureMode:  BackPressureModeNone,
 				HealthCheck: TransformerHealthCheck{
 					Interval: 30 * time.Second,
 					Path:     "/health",
@@ -424,7 +426,7 @@ func TestNewTrafficTransformers(t *testing.T) {
 					RetryCount:       2,
 					InitialRetryTime: 100 * time.Millisecond,
 					MaxRetryTime:     60 * time.Second,
-					BackPressureMode: BackPressureModeNone,
+					// BackPressureMode:  BackPressureModeNone,
 					HealthCheck: TransformerHealthCheck{
 						Interval: 30 * time.Second,
 						Path:     "/health",
@@ -454,7 +456,7 @@ func TestNewTrafficTransformers(t *testing.T) {
 					RetryCount:       2,
 					InitialRetryTime: 100 * time.Millisecond,
 					MaxRetryTime:     60 * time.Second,
-					BackPressureMode: BackPressureModeNone,
+					// BackPressureMode:  BackPressureModeNone,
 					HealthCheck: TransformerHealthCheck{
 						Interval: 30 * time.Second,
 						Path:     "/health",
@@ -482,7 +484,7 @@ func TestNewTrafficTransformers(t *testing.T) {
 					RetryCount:       2,
 					InitialRetryTime: 100 * time.Millisecond,
 					MaxRetryTime:     60 * time.Second,
-					BackPressureMode: BackPressureModeNone,
+					// BackPressureMode:  BackPressureModeNone,
 					HealthCheck: TransformerHealthCheck{
 						Interval: 30 * time.Second,
 						Path:     "/health",
@@ -502,7 +504,7 @@ func TestNewTrafficTransformers(t *testing.T) {
 					RetryCount:       2,
 					InitialRetryTime: 100 * time.Millisecond,
 					MaxRetryTime:     60 * time.Second,
-					BackPressureMode: BackPressureModeNone,
+					// BackPressureMode:  BackPressureModeNone,
 					HealthCheck: TransformerHealthCheck{
 						Interval: 30 * time.Second,
 						Path:     "/health",

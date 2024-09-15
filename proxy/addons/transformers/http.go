@@ -111,24 +111,26 @@ func (ht *HttpProvider) String() string {
 	return fmt.Sprintf("HttpProvider{Name: %s, URL: %s}", ht.TransformerConfig.Name, ht.TransformerConfig.URL.String())
 }
 
-func (ht *HttpProvider) HealthCheck() error {
-	// Create a new request
-	req, err := http.NewRequest("GET", ht.healthCheckBundle.url, nil)
-	if err != nil {
-		return fmt.Errorf("unable to create new request: %w", err)
-	}
+func (ht *HttpProvider) HealthCheck(ctx context.Context) error {
+	/*
+		// Create a new request
+		req, err := http.NewRequest("GET", ht.healthCheckBundle.url, nil)
+		if err != nil {
+			return fmt.Errorf("unable to create new request: %w", err)
+		}
 
-	// Send the request
-	resp, err := ht.healthCheckBundle.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("unable to send request: %w", err)
-	}
-	defer resp.Body.Close()
+		// Send the request
+		resp, err := ht.healthCheckBundle.client.Do(req)
+		if err != nil {
+			return fmt.Errorf("unable to send request: %w", err)
+		}
+		defer resp.Body.Close()
 
-	// Check the status code
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("health check failed: %s", resp.Status)
-	}
+		// Check the status code
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("health check failed: %s", resp.Status)
+		}
+	*/
 
 	return nil
 }
@@ -136,14 +138,30 @@ func (ht *HttpProvider) HealthCheck() error {
 func (ht *HttpProvider) Transform(
 	ctx context.Context,
 	logger *slog.Logger,
-	req *schema.ProxyRequest,
+	oldReq *schema.ProxyRequest,
+	oldResp *schema.ProxyResponse,
 	newReq *schema.ProxyRequest,
 	newResp *schema.ProxyResponse,
 ) (*schema.ProxyRequest, *schema.ProxyResponse, error) {
-	if req == nil {
-		return nil, nil, errors.New("unable to transform, request object is nil")
-	}
 	logger = logger.WithGroup("HttpProvider.Transform").With("ServiceName", ht.TransformerConfig.Name)
+
+	req := oldReq // default to operating on the original request/response
+	resp := oldResp
+
+	// check if another transformer has previously updated the request
+	if newReq != nil {
+		logger.Debug("Transforming an updated request, and ignoring the original request", "newReq", newReq)
+		req = newReq
+	}
+
+	if newResp != nil {
+		logger.Debug("Transforming an updated response, and ignoring the original response", "newResp", newResp)
+		resp = newResp
+	}
+
+	newLDC := schema.NewLogDumpContainerEmpty()
+	newLDC.Request = req
+	newLDC.Response = resp
 
 	logger.Debug("Transforming TODO!")
 

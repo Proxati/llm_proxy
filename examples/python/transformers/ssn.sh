@@ -15,4 +15,4 @@ PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PARENT_DIR" || { echo "Failed to change directory to ${PARENT_DIR}"; exit 1; }
 
 # Run the ssn.py script using Poetry
-poetry run python "${SCRIPT_DIR}/ssn.py"
+poetry run python "${SCRIPT_DIR}/ssn.py" stdin

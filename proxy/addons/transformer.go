@@ -15,6 +15,7 @@ import (
 	"github.com/proxati/llm_proxy/v2/proxy/addons/transformers"
 	"github.com/proxati/llm_proxy/v2/schema"
 	"github.com/proxati/llm_proxy/v2/schema/proxyadapters/mitm"
+	"github.com/proxati/llm_proxy/v2/schema/utils"
 	px "github.com/proxati/mitmproxy/proxy"
 )
 
@@ -33,7 +34,9 @@ type TrafficTransformerAddon struct {
 func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 	a.wg.Add(1)
 	defer a.wg.Done()
+
 	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Request")
+	defer logger.DebugContext(a.ctx, "transformations completed")
 
 	if a.closed.Load() {
 		logger.ErrorContext(a.ctx, "Addon is closed, not processing request")
@@ -88,26 +91,53 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 			logger.DebugContext(a.ctx, "Done communicating with transformer")
 		}
 	}
-	logger.DebugContext(a.ctx, "Transformers complete, checking results...",
+	logger.DebugContext(a.ctx, "Transformer execution completed, checking and merging results...",
 		"reqObj", reqObj, "newReq", newReq, "newResp", newResp)
 
 	if newReq != nil {
-		// TODO: update f.Request with the new request
-		logger.DebugContext(a.ctx, "request object updated from transformers")
+		contentEncoding := f.Request.Header.Get("Content-Encoding")
+		reqObj.Merge(newReq)
+
+		encodedBody, encodingType, err := utils.EncodeBody(reqObj.GetBodyBytes(), contentEncoding)
+		if err != nil {
+			logger.ErrorContext(a.ctx, "Failed to encode request body", "error", err)
+			helpers.ProxyError(a.logger, f)
+			return
+		}
+
+		f.Request.Method = reqObj.Method
+		f.Request.URL = reqObj.URL
+		f.Request.Proto = reqObj.Proto
+		f.Request.Header = reqObj.Header
+		f.Request.Body = encodedBody
+		if encodingType != "" {
+			f.Request.Header.Set("Content-Encoding", encodingType)
+		}
+		f.Request.Header.Set("Content-Length", fmt.Sprintf("%d", len(encodedBody)))
+
+		logger.DebugContext(a.ctx, "Request object updated")
 	}
 
 	if newResp != nil {
-		// TODO: update f.Response with the new response, which will prevent the remaining addons from running
-		logger.DebugContext(a.ctx, "response object updated from transformers")
+		// a new response object was created, update the flow with the response
+		newMitmResp, err := mitm.ToProxyResponse(newResp, f.Response.Header.Get("Accept-Encoding"))
+		if err != nil {
+			logger.ErrorContext(a.ctx, "Failed to prepare response object", "error", err)
+			helpers.ProxyError(a.logger, f)
+			return
+		}
+		f.Response = newMitmResp
+		logger.DebugContext(a.ctx, "response object added", "response", newMitmResp)
+		return
 	}
-
-	logger.DebugContext(a.ctx, "transformations completed for request")
 }
 
 func (a *TrafficTransformerAddon) Response(f *px.Flow) {
 	a.wg.Add(1)
 	defer a.wg.Done()
+
 	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Response")
+	defer logger.DebugContext(a.ctx, "transformations completed")
 
 	if f.Response != nil && (f.Response.StatusCode < 100 || f.Response.StatusCode > 999) {
 		// defense to prevent a misbehaving transformer from setting an invalid status code
@@ -116,7 +146,6 @@ func (a *TrafficTransformerAddon) Response(f *px.Flow) {
 	}
 
 	// TODO: response body editing here
-	logger.DebugContext(a.ctx, "Done editing response body")
 }
 
 func (a *TrafficTransformerAddon) String() string {
@@ -136,10 +165,8 @@ func (a *TrafficTransformerAddon) closeProviders() error {
 
 	for _, providersMap := range providerMaps {
 		for name, providers := range providersMap {
-			logger.WithGroup(name)
+			logger = logger.WithGroup(name)
 			for _, provider := range providers {
-				defer a.wg.Done()
-
 				logger = logger.With("provider", provider)
 				logger.DebugContext(a.ctx, "Starting close")
 				if err := provider.Close(); err != nil {
@@ -190,7 +217,6 @@ func loadTransformerProviders(logger *slog.Logger, ctx context.Context, wg *sync
 		}
 
 		if prov != nil {
-			wg.Add(1) // counter is decremented later in closeProviders
 			providers[t.Name] = append(providers[t.Name], prov)
 		}
 	}

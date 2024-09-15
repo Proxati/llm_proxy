@@ -5,33 +5,34 @@ import random
 from datetime import datetime, timezone
 from fastapi import FastAPI, Request
 import uvicorn
+from typing import Any, Dict, List
 
 
-def generate_timestamp():
+def generate_timestamp() -> str:
     # Create a datetime object for the current time with timezone information
-    now = datetime.now(timezone.utc).astimezone()
+    now: datetime = datetime.now(timezone.utc).astimezone()
     # Format the datetime object to the desired string format with timezone offset
-    timestamp = now.isoformat(timespec="microseconds")
+    timestamp: str = now.isoformat(timespec="microseconds")
     return timestamp
 
 
-def generate_random_ssn():
+def generate_random_ssn() -> str:
     # Generate a random valid SSN in the format XXX-XX-XXXX
     # Area numbers cannot be 666 or between 900 and 999
-    area_numbers = [i for i in range(1, 900) if i != 666]
-    area = random.choice(area_numbers)
-    group = random.randint(1, 99)
-    serial = random.randint(1, 9999)
+    area_numbers: List[int] = [i for i in range(1, 900) if i != 666]
+    area: int = random.choice(area_numbers)
+    group: int = random.randint(1, 99)
+    serial: int = random.randint(1, 9999)
     return f"{area:03d}-{group:02d}-{serial:04d}"
 
 
-def replace_ssn(text):
+def replace_ssn(text: str) -> str:
     # Regular expression for SSN: XXX-XX-XXXX, XXX XX XXXX, or XXX.XX.XXXX
-    ssn_pattern = re.compile(r"\b\d{3}[-.\s]\d{2}[-.\s]\d{4}\b")
+    ssn_pattern: re.Pattern = re.compile(r"\b\d{3}[-.\s]\d{2}[-.\s]\d{4}\b")
     return ssn_pattern.sub(lambda _: generate_random_ssn(), text)
 
 
-def replace_ssn_in_data(data):
+def replace_ssn_in_data(data: Any) -> Any:
     if isinstance(data, dict):
         return {key: replace_ssn_in_data(value) for key, value in data.items()}
     elif isinstance(data, list):
@@ -42,8 +43,8 @@ def replace_ssn_in_data(data):
         return data
 
 
-def process_data(data):
-    original_body = ""
+def process_data(data: Dict[str, Any]) -> Dict[str, Any]:
+    original_body: str = ""
     if "request" in data.keys():
         original_body = data["request"].get("body", "")
 
@@ -66,10 +67,10 @@ def process_data(data):
         new_body = data["request"].get("body")
         try:
             if json.loads(new_body) == json.loads(original_body):
-                # no changes made, so delete the body from the request to prevent it from being sent
+                # No changes made, so delete the body from the request to prevent it from being sent
                 data["request"].pop("body", None)
         except (json.JSONDecodeError, TypeError):
-            # unable to parse JSON or new_body is None, skip it
+            # Unable to parse JSON or new_body is None, skip it
             pass
 
     if data.get("request", {}) == {}:
@@ -78,10 +79,10 @@ def process_data(data):
     return data
 
 
-def stdin_mode():
-    input_json = sys.stdin.read()
+def stdin_mode() -> None:
+    input_json: str = sys.stdin.read()
     try:
-        data = json.loads(input_json)
+        data: Dict[str, Any] = json.loads(input_json)
     except json.JSONDecodeError:
         print("Invalid JSON input")
         sys.exit(1)
@@ -91,13 +92,13 @@ def stdin_mode():
     print(json.dumps(data, indent=2))
 
 
-def rest_mode():
-    app = FastAPI()
+def rest_mode() -> None:
+    app: FastAPI = FastAPI()
 
     @app.post("/ssn")
-    async def ssn_endpoint(request: Request):
-        input_json = await request.json()
-        data = input_json
+    async def ssn_endpoint(request: Request) -> Dict[str, Any]:
+        input_json: Any = await request.json()
+        data: Dict[str, Any] = input_json
         data = process_data(data)
         # Return the modified JSON
         return data
@@ -108,7 +109,7 @@ def rest_mode():
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        mode = sys.argv[1]
+        mode: str = sys.argv[1]
     else:
         print("Usage: ssn.py [stdin|rest]")
         sys.exit(1)

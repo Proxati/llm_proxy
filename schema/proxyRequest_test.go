@@ -165,3 +165,94 @@ func TestProxyRequest_MarshalJSON(t *testing.T) {
 		assert.JSONEq(t, expected, string(data))
 	})
 }
+
+func TestProxyRequest_Merge(t *testing.T) {
+	t.Run("merge with all fields set", func(t *testing.T) {
+		url1, err := url.Parse("http://example1.com")
+		require.NoError(t, err)
+		url2, err := url.Parse("http://example2.com")
+		require.NoError(t, err)
+
+		pReq1 := &schema.ProxyRequest{
+			Method: "GET",
+			URL:    url1,
+			Proto:  "HTTP/1.1",
+			Header: http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+			Body: "hello",
+		}
+
+		pReq2 := &schema.ProxyRequest{
+			Method: "POST",
+			URL:    url2,
+			Proto:  "HTTP/2.0",
+			Header: http.Header{
+				"Authorization": []string{"Bearer token"},
+			},
+			Body: "world",
+		}
+
+		pReq1.Merge(pReq2)
+
+		assert.Equal(t, "POST", pReq1.Method)
+		assert.Equal(t, "http://example2.com", pReq1.URL.String())
+		assert.Equal(t, "HTTP/2.0", pReq1.Proto)
+		assert.Contains(t, pReq1.Header, "Content-Type")
+		assert.Contains(t, pReq1.Header, "Authorization")
+		assert.Equal(t, "world", pReq1.Body)
+	})
+
+	t.Run("merge with some fields set", func(t *testing.T) {
+		url1, err := url.Parse("http://example1.com")
+		require.NoError(t, err)
+
+		pReq1 := &schema.ProxyRequest{
+			Method: "GET",
+			URL:    url1,
+			Proto:  "HTTP/1.1",
+			Header: http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+			Body: "hello",
+		}
+
+		pReq2 := &schema.ProxyRequest{
+			Header: http.Header{
+				"Authorization": []string{"Bearer token"},
+			},
+		}
+
+		pReq1.Merge(pReq2)
+
+		assert.Equal(t, "GET", pReq1.Method)
+		assert.Equal(t, "http://example1.com", pReq1.URL.String())
+		assert.Equal(t, "HTTP/1.1", pReq1.Proto)
+		assert.Contains(t, pReq1.Header, "Content-Type")
+		assert.Contains(t, pReq1.Header, "Authorization")
+		assert.Equal(t, "hello", pReq1.Body)
+	})
+
+	t.Run("merge with nil request", func(t *testing.T) {
+		url1, err := url.Parse("http://example1.com")
+		require.NoError(t, err)
+
+		pReq1 := &schema.ProxyRequest{
+			Method: "GET",
+			URL:    url1,
+			Proto:  "HTTP/1.1",
+			Header: http.Header{
+				"Content-Type": []string{"application/json"},
+			},
+			Body: "hello",
+		}
+
+		pReq1.Merge(nil)
+
+		assert.Equal(t, "GET", pReq1.Method)
+		assert.Equal(t, "http://example1.com", pReq1.URL.String())
+		assert.Equal(t, "HTTP/1.1", pReq1.Proto)
+		assert.Contains(t, pReq1.Header, "Content-Type")
+		assert.Equal(t, "hello", pReq1.Body)
+	})
+}

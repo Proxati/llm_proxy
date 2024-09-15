@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -32,6 +33,16 @@ type LogDumpContainer struct {
 	logConfig       config.LogSourceConfig
 }
 
+func NewLogDumpContainerWithDefaults() *LogDumpContainer {
+	return &LogDumpContainer{
+		ObjectType:    ObjectTypeDefault,
+		SchemaVersion: DefaultSchemaVersion,
+		Timestamp:     time.Now(),
+		Request:       &ProxyRequest{URL: &url.URL{}, Header: make(http.Header)},
+		Response:      &ProxyResponse{Header: make(http.Header)},
+	}
+}
+
 // NewLogDumpContainer returns a LogDumpContainer with *only* the fields requested in logSources populated
 func NewLogDumpContainer(
 	f proxyadapters.FlowReaderAdapter,
@@ -45,17 +56,8 @@ func NewLogDumpContainer(
 
 	var err error
 	errs := make([]error, 0)
-
-	ldc := &LogDumpContainer{
-		ObjectType:    ObjectTypeDefault,
-		SchemaVersion: DefaultSchemaVersion,
-		Timestamp:     time.Now(),
-		logConfig:     logSources,
-		Request: &ProxyRequest{
-			URL: &url.URL{}, // NPE defense
-		},
-		Response: &ProxyResponse{},
-	}
+	ldc := NewLogDumpContainerWithDefaults()
+	ldc.logConfig = logSources
 
 	if logSources.LogRequest {
 		// convert the request to a request adapter
@@ -200,4 +202,27 @@ func UnmarshalLogDumpContainer(data []byte) (*LogDumpContainer, error) {
 		return nil, err
 	}
 	return &ldc, nil
+}
+
+func (ldc *LogDumpContainer) MarshalJSON() ([]byte, error) {
+	// Create an alias to avoid infinite recursion
+	type Alias LogDumpContainer
+
+	// Format the timestamp if it's not zero
+	var timestamp string
+	if !ldc.Timestamp.IsZero() {
+		timestamp = ldc.Timestamp.Format(time.RFC3339)
+	}
+
+	// Construct the temporary struct for marshaling
+	aux := &struct {
+		*Alias
+		Timestamp string `json:"timestamp,omitempty"`
+	}{
+		Alias:     (*Alias)(ldc),
+		Timestamp: timestamp,
+	}
+
+	// Marshal the temporary struct to JSON
+	return json.Marshal(aux)
 }

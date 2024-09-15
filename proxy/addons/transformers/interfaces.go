@@ -2,6 +2,7 @@ package transformers
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/proxati/llm_proxy/v2/config"
 	"github.com/proxati/llm_proxy/v2/schema"
@@ -11,6 +12,7 @@ type Provider interface {
 	HealthCheck() error
 	Transform(
 		ctx context.Context,
+		logger *slog.Logger,
 		oldReq *schema.ProxyRequest,
 		newReq *schema.ProxyRequest,
 		newResp *schema.ProxyResponse,

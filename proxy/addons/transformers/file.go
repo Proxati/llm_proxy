@@ -63,11 +63,12 @@ func (ht *FileProvider) HealthCheck() error {
 
 func (ht *FileProvider) Transform(
 	ctx context.Context,
+	logger *slog.Logger,
 	req *schema.ProxyRequest,
 	newReq *schema.ProxyRequest,
 	newResp *schema.ProxyResponse,
 ) (*schema.ProxyRequest, *schema.ProxyResponse, error) {
-	logger := ht.logger.WithGroup("Transform")
+	logger = logger.WithGroup("FileProvider.Transform").With("ServiceName", ht.TransformerConfig.Name)
 
 	// check if another transformer has previously updated the request
 	if newReq != nil {
@@ -79,7 +80,7 @@ func (ht *FileProvider) Transform(
 		return nil, nil, errors.New("unable to transform, request object is nil")
 	}
 
-	logger.Debug("Starting transformer", "request", req)
+	logger.Debug("Starting transformation", "request", req)
 
 	// convert the req to a json string, which will be sent via stdin to the command
 	// the command should return a schema.LogDumpContainer object in json format.
@@ -95,6 +96,7 @@ func (ht *FileProvider) Transform(
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to run command: %w", err)
 	}
+	logger.Debug("Command executed successfully", "output", string(out))
 
 	// create a new schema.LogDumpContainer from the output
 	ldc := &schema.LogDumpContainer{}

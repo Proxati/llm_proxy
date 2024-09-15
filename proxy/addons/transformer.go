@@ -70,7 +70,7 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 			// TODO: handle multiple providers with the same service name
 			// - failover / backup ?
 			// - random / round robin ?
-			req, resp, err := provider.Transform(a.ctx, reqObj, newReq, newResp)
+			req, resp, err := provider.Transform(a.ctx, logger, reqObj, newReq, newResp)
 			if err != nil {
 				logger.ErrorContext(a.ctx, "Failed to transform request", "error", err)
 				if Tcfg.FailureMode == config.FailureModeHard {

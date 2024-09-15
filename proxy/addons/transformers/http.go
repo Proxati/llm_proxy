@@ -135,6 +135,7 @@ func (ht *HttpProvider) HealthCheck() error {
 
 func (ht *HttpProvider) Transform(
 	ctx context.Context,
+	logger *slog.Logger,
 	req *schema.ProxyRequest,
 	newReq *schema.ProxyRequest,
 	newResp *schema.ProxyResponse,
@@ -142,9 +143,9 @@ func (ht *HttpProvider) Transform(
 	if req == nil {
 		return nil, nil, errors.New("unable to transform, request object is nil")
 	}
-	logger := ht.logger.With("req", req, "newReq", newReq, "newResp", newResp)
+	logger = logger.WithGroup("HttpProvider.Transform").With("ServiceName", ht.TransformerConfig.Name)
 
-	logger.Debug("Transforming")
+	logger.Debug("Transforming TODO!")
 
 	// all nil, no transformation needed, and no errors while transforming
 	return nil, nil, nil

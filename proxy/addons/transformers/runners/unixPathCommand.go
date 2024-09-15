@@ -38,15 +38,17 @@ func NewUnixCommand(logger *slog.Logger, command string, concurrency int, timeou
 	}
 	cr.sha256sum = sha256sum
 
-	// Create a Bulkhead with a limit of N concurrent executions
-	bh := bulkhead.Builder[any](uint(concurrency)).
-		// WithMaxWaitTime(bhTimeout).
-		OnFull(func(e failsafe.ExecutionEvent[any]) {
-			cr.logger.Warn("Bulkhead full")
-		}).
-		Build()
-	cr.bulkhead = bh
-	cr.bulkheadTimeout = timeout + 1*time.Minute
+	if cr.concurrency > 0 {
+		// Create a Bulkhead with a limit of N concurrent executions
+		bh := bulkhead.Builder[any](uint(concurrency)).
+			// WithMaxWaitTime(bhTimeout).
+			OnFull(func(e failsafe.ExecutionEvent[any]) {
+				cr.logger.Warn("Bulkhead full")
+			}).
+			Build()
+		cr.bulkhead = bh
+		cr.bulkheadTimeout = timeout + 1*time.Minute
+	}
 
 	return cr, nil
 }
@@ -55,23 +57,30 @@ func NewUnixCommand(logger *slog.Logger, command string, concurrency int, timeou
 // There are two timeout values to consider:
 // - The context timeout, which is the maximum time the command is allowed to run.
 // - The bulkhead timeout, which is the maximum time to wait in line for a permit to execute the command.
-func (cr *UnixCommand) Run(ctx context.Context, stdin *bytes.Reader) (outPut []byte, err error) {
+func (cr *UnixCommand) Run(ctx context.Context, stdin *bytes.Reader) ([]byte, error) {
 	runCtx, cancel := context.WithTimeout(ctx, cr.timeout) // command running timeout
 	defer cancel()
 
-	// wait for a permit to execute the command
-	if err = cr.bulkhead.AcquirePermitWithMaxWait(ctx, cr.bulkheadTimeout); err != nil {
+	if cr.concurrency > 0 {
+		// Attempt to acquire a permit
+		if err := cr.bulkhead.AcquirePermitWithMaxWait(ctx, cr.bulkheadTimeout); err != nil {
+			// Failed to acquire a permit; return an error
+			return nil, fmt.Errorf("unable to acquire bulkhead permit: %w", err)
+		}
+		// Ensure the permit is released after execution
 		defer cr.bulkhead.ReleasePermit()
-		cmd := exec.CommandContext(runCtx, cr.command)
-		cmd.Stdin = stdin
-		return cmd.Output()
 	}
 
+	// Execute the command
+	cmd := exec.CommandContext(runCtx, cr.command)
+	cmd.Stdin = stdin
+
+	output, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("error while attempting to acquire bulkhead permit: %w", err)
+		return nil, fmt.Errorf("command execution failed: %w", err)
 	}
 
-	return nil, fmt.Errorf("unable to acquire bulkhead permit")
+	return output, nil
 }
 
 func (cr *UnixCommand) HealthCheck() error {

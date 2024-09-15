@@ -10,30 +10,27 @@ import (
 const jsonExt = "json"
 
 // JSON is a formatter that converts the LogDumpContainer into a JSON formatted byte array
-type JSON struct {
-	container *schema.LogDumpContainer
+type JSON struct{}
+
+// Read returns the JSON representation of a LogDumpContainer (JSON formatted byte array)
+func (f *JSON) Read(container *schema.LogDumpContainer) ([]byte, error) {
+	return f.dumpToJSONBytes(container)
 }
 
-// dumpToJSONBytes converts the requestLogDump struct to a byte array, omitting fields that are empty
-func (f *JSON) dumpToJSONBytes() ([]byte, error) {
-	if f.container == nil {
+// dumpToJSONBytes converts the LogDumpContainer struct to a byte array
+func (f *JSON) dumpToJSONBytes(container *schema.LogDumpContainer) ([]byte, error) {
+	if container == nil {
 		return []byte("{}"), nil
 	}
 
-	j, err := json.MarshalIndent(f.container, "", "  ")
+	j, err := json.MarshalIndent(container, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal requestLogDump to JSON: %w", err)
+		return nil, fmt.Errorf("failed to marshal LogDumpContainer to JSON: %w", err)
 	}
 	return j, nil
 }
 
-// Read returns the JSON representation of a LogDumpContainer (json formatted byte array)
-func (f *JSON) Read(container *schema.LogDumpContainer) ([]byte, error) {
-	f.container = container
-	return f.dumpToJSONBytes()
-}
-
-// GetFileExtension returns the file extension for a plain text file
+// GetFileExtension returns the file extension for a JSON file
 func (f *JSON) GetFileExtension() string {
 	return jsonExt
 }

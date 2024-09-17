@@ -10,7 +10,7 @@ import (
 )
 
 func TestJSONFormatter(t *testing.T) {
-	container := schema.NewLogDumpContainerWithDefaults()
+	container := schema.NewLogDumpContainerEmpty()
 	container.Request = &schema.ProxyRequest{
 		Header: http.Header{"ReqHeader": []string{"ReqValue"}},
 		Body:   "Request Body",
@@ -55,7 +55,7 @@ func TestJSONFormatter(t *testing.T) {
 }
 
 func TestJSONFormatter_Empty(t *testing.T) {
-	container := schema.NewLogDumpContainerWithDefaults()
+	container := schema.NewLogDumpContainerEmpty()
 	container.Request = &schema.ProxyRequest{}
 	container.Response = &schema.ProxyResponse{}
 

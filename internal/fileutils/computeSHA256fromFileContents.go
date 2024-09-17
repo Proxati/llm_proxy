@@ -13,21 +13,17 @@ const BufferSizeBytes = 4096 * 2
 
 // ComputeSHA256FromFileContents computes the SHA-256 checksum of the file at the given path.
 func ComputeSHA256FromFileContents(commandPath string) (string, error) {
-	return ComputeSHA256FromFileContentsCancelable(context.Background(), commandPath)
+	return ComputeSHA256FromFileContentsContext(context.Background(), commandPath)
 }
 
 // ComputeSHA256FromFileContents computes the SHA-256 checksum of the file at the given path with context support.
-func ComputeSHA256FromFileContentsCancelable(ctx context.Context, filePath string) (string, error) {
+func ComputeSHA256FromFileContentsContext(ctx context.Context, filePath string) (string, error) {
 	// Open the file
 	file, err := os.Open(filePath)
 	if err != nil {
 		return "", fmt.Errorf("unable to open file: %w", err)
 	}
-	defer func() {
-		if cerr := file.Close(); cerr != nil {
-			err = fmt.Errorf("unable to close file: %w", cerr)
-		}
-	}()
+	defer file.Close()
 
 	// Create a new SHA-256 hash
 	hash := sha256.New()
@@ -50,6 +46,11 @@ func ComputeSHA256FromFileContentsCancelable(ctx context.Context, filePath strin
 			return "", fmt.Errorf("operation canceled: %w", ctx.Err())
 		default:
 		}
+	}
+
+	err = file.Close()
+	if err != nil {
+		return "", fmt.Errorf("unable to close file: %w", err)
 	}
 
 	// Get the final hash sum

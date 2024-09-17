@@ -68,7 +68,7 @@ func TestComputeSHA256FromFileContentsCancelable(t *testing.T) {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			_, err := ComputeSHA256FromFileContentsCancelable(ctx, tmpFilePath)
+			_, err := ComputeSHA256FromFileContentsContext(ctx, tmpFilePath)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "operation canceled")
 		}()

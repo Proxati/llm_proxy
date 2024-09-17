@@ -46,8 +46,8 @@ github.com/muesli/termenv v0.15.2 h1:GohcuySI0QmI3wN8Ok9PtKGkgkFIk7y6Vpb5PvrY+Wo
 github.com/muesli/termenv v0.15.2/go.mod h1:Epx+iuz8sNs7mNKhxzH4fWXGNpZwUaJKRS1noLXviQ8=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/proxati/mitmproxy v1.0.1-0.20240819235341-78c20d7bf8b6 h1:hAutWOJ1GsQvUdIvWzB1ohUTcd46O29AXl+aNGckRH4=
-github.com/proxati/mitmproxy v1.0.1-0.20240819235341-78c20d7bf8b6/go.mod h1:/eLjFoH1wigOkx2/6qojnoiUYUyybk10MogIbPmZ1Mk=
+github.com/proxati/mitmproxy v1.0.1 h1:1O+L13VW1RVgu+jwu6jX/kqK8rtdgh/5Q6NgZA5+pAM=
+github.com/proxati/mitmproxy v1.0.1/go.mod h1:/eLjFoH1wigOkx2/6qojnoiUYUyybk10MogIbPmZ1Mk=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=

@@ -259,7 +259,7 @@ func TestNewLogDumpDiskContainer_JSON(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			container, err := schema.NewLogDumpContainer(tc.flow, tc.logSources, 0, tc.filterReqHeaders, tc.filterRespHeaders)
+			container, err := schema.NewLogDumpContainerFromFlowAdapter(tc.flow, tc.logSources, 0, tc.filterReqHeaders, tc.filterRespHeaders)
 			require.Nil(t, err)
 			assert.Equal(t, tc.expectedConnectionStats, container.ConnectionStats)
 			assert.Equal(t, tc.expectedRequestMethod, container.Request.Method)

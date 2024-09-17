@@ -33,7 +33,7 @@ type LogDumpContainer struct {
 	logConfig       config.LogSourceConfig
 }
 
-func NewLogDumpContainerWithDefaults() *LogDumpContainer {
+func NewLogDumpContainerEmpty() *LogDumpContainer {
 	return &LogDumpContainer{
 		ObjectType:    ObjectTypeDefault,
 		SchemaVersion: DefaultSchemaVersion,
@@ -43,8 +43,8 @@ func NewLogDumpContainerWithDefaults() *LogDumpContainer {
 	}
 }
 
-// NewLogDumpContainer returns a LogDumpContainer with *only* the fields requested in logSources populated
-func NewLogDumpContainer(
+// NewLogDumpContainerFromFlowAdapter returns a LogDumpContainer with *only* the fields requested in logSources populated
+func NewLogDumpContainerFromFlowAdapter(
 	f proxyadapters.FlowReaderAdapter,
 	logSources config.LogSourceConfig,
 	doneAt int64,
@@ -56,7 +56,7 @@ func NewLogDumpContainer(
 
 	var err error
 	errs := make([]error, 0)
-	ldc := NewLogDumpContainerWithDefaults()
+	ldc := NewLogDumpContainerEmpty()
 	ldc.logConfig = logSources
 
 	if logSources.LogRequest {

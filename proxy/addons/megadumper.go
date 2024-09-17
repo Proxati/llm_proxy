@@ -80,7 +80,7 @@ func (d *MegaTrafficDumper) Close() error {
 // convertFlowToLogDump creates a LogDumpContainer from a px.Flow object
 func (d *MegaTrafficDumper) convertFlowToLogDump(logger *slog.Logger, flowAdapter *mitm.FlowAdapter, doneAt int64) *schema.LogDumpContainer {
 	// load the selected fields into a container object
-	dumpContainer, err := schema.NewLogDumpContainer(flowAdapter, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
+	dumpContainer, err := schema.NewLogDumpContainerFromFlowAdapter(flowAdapter, d.logSources, doneAt, d.filterReqHeaders, d.filterRespHeaders)
 	if err != nil {
 		logger.Error("Could not create LogDumpContainer", "error", err)
 		return nil

@@ -1,6 +1,7 @@
 package fileutils
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -45,5 +46,34 @@ func TestComputeSHA256FromFileContents(t *testing.T) {
 		hash, err := ComputeSHA256FromFileContents(tmpFilePath)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedHash, hash)
+	})
+}
+
+func TestComputeSHA256FromFileContentsCancelable(t *testing.T) {
+	t.Run("CancelableContext", func(t *testing.T) {
+		content := []byte("Hello, World!")
+		tmpFilePath := t.TempDir() + "/CancelableContext.txt"
+		tmpfile, err := os.Create(tmpFilePath)
+		require.NoError(t, err)
+
+		_, err = tmpfile.Write(content)
+		require.NoError(t, err)
+
+		err = tmpfile.Close()
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			_, err := ComputeSHA256FromFileContentsCancelable(ctx, tmpFilePath)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "operation canceled")
+		}()
+
+		cancel()
+		<-done
 	})
 }

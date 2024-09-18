@@ -31,6 +31,39 @@ type TrafficTransformerAddon struct {
 	headerFilter      *config.HeaderFilterGroup
 }
 
+func NewTrafficTransformerAddon(
+	logger *slog.Logger,
+	requestTransformer []*config.Transformer,
+	responseTransformer []*config.Transformer,
+) (*TrafficTransformerAddon, error) {
+	logger = logger.WithGroup("addons.TrafficTransformerAddon")
+	wg := &sync.WaitGroup{}
+
+	// create a new context for the addon, this handles shutdown of the providers and the addon itself
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// load the providers for the various configured transformers
+	reqProv, reqErr := loadTransformerProviders(logger, ctx, wg, requestTransformer)
+	respProv, respErr := loadTransformerProviders(logger, ctx, wg, responseTransformer)
+	if reqErr != nil || respErr != nil {
+		cancel()
+		return nil, errors.Join(errors.New("unable to load transformer(s)"), reqErr, respErr)
+	}
+	logger.Debug("Loaded request transformers", "count", len(reqProv))
+	logger.Debug("Loaded response transformers", "count", len(respProv))
+
+	ta := &TrafficTransformerAddon{
+		logger:            logger,
+		requestProviders:  reqProv,
+		responseProviders: respProv,
+		ctx:               ctx,
+		cancel:            cancel,
+		headerFilter:      config.NewHeaderFilterGroup("TODO", []string{}, []string{}),
+	}
+
+	return ta, nil
+}
+
 func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 	a.wg.Add(1)
 	defer a.wg.Done()
@@ -237,37 +270,4 @@ func loadTransformerProviders(logger *slog.Logger, ctx context.Context, wg *sync
 	}
 
 	return providers, nil
-}
-
-func NewTrafficTransformerAddon(
-	logger *slog.Logger,
-	requestTransformer []*config.Transformer,
-	responseTransformer []*config.Transformer,
-) (*TrafficTransformerAddon, error) {
-	logger = logger.WithGroup("addons.TrafficTransformerAddon")
-	wg := &sync.WaitGroup{}
-
-	// create a new context for the addon, this handles shutdown of the providers and the addon itself
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// load the providers for the various configured transformers
-	reqProv, reqErr := loadTransformerProviders(logger, ctx, wg, requestTransformer)
-	respProv, respErr := loadTransformerProviders(logger, ctx, wg, responseTransformer)
-	if reqErr != nil || respErr != nil {
-		cancel()
-		return nil, errors.Join(errors.New("unable to load transformer(s)"), reqErr, respErr)
-	}
-	logger.Debug("Loaded request transformers", "count", len(reqProv))
-	logger.Debug("Loaded response transformers", "count", len(respProv))
-
-	ta := &TrafficTransformerAddon{
-		logger:            logger,
-		requestProviders:  reqProv,
-		responseProviders: respProv,
-		ctx:               ctx,
-		cancel:            cancel,
-		headerFilter:      config.NewHeaderFilterGroup("TODO", []string{}, []string{}),
-	}
-
-	return ta, nil
 }

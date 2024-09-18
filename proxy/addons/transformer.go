@@ -37,14 +37,13 @@ func NewTrafficTransformerAddon(
 	responseTransformer []*config.Transformer,
 ) (*TrafficTransformerAddon, error) {
 	logger = logger.WithGroup("addons.TrafficTransformerAddon")
-	wg := &sync.WaitGroup{}
 
 	// create a new context for the addon, this handles shutdown of the providers and the addon itself
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// load the providers for the various configured transformers
-	reqProv, reqErr := loadTransformerProviders(logger, ctx, wg, requestTransformer)
-	respProv, respErr := loadTransformerProviders(logger, ctx, wg, responseTransformer)
+	reqProv, reqErr := loadTransformerProviders(logger, ctx, requestTransformer)
+	respProv, respErr := loadTransformerProviders(logger, ctx, responseTransformer)
 	if reqErr != nil || respErr != nil {
 		cancel()
 		return nil, errors.Join(errors.New("unable to load transformer(s)"), reqErr, respErr)
@@ -53,6 +52,8 @@ func NewTrafficTransformerAddon(
 	logger.Debug("Loaded response transformers", "count", len(respProv))
 
 	ta := &TrafficTransformerAddon{
+		wg:                sync.WaitGroup{},
+		closed:            atomic.Bool{},
 		logger:            logger,
 		requestProviders:  reqProv,
 		responseProviders: respProv,
@@ -233,7 +234,7 @@ func (a *TrafficTransformerAddon) Close() error {
 	return nil
 }
 
-func loadTransformerProviders(logger *slog.Logger, ctx context.Context, wg *sync.WaitGroup, transformersConfig []*config.Transformer) (map[string][]transformers.Provider, error) {
+func loadTransformerProviders(logger *slog.Logger, ctx context.Context, transformersConfig []*config.Transformer) (map[string][]transformers.Provider, error) {
 	providers := make(map[string][]transformers.Provider)
 	errs := []error{}
 	for _, t := range transformersConfig {

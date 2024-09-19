@@ -34,7 +34,7 @@ func (d *MegaTrafficDumper) Requestheaders(f *px.Flow) {
 
 	if d.closed.Load() {
 		logger.Warn("Addon is being closed, denying request")
-		helpers.RequestClosed(d.logger, f)
+		helpers.GenerateClosedResponse(d.logger, f)
 		return
 	}
 

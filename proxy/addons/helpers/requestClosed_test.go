@@ -28,7 +28,7 @@ func TestRequestClosed(t *testing.T) {
 			},
 		}
 
-		RequestClosedWithCacheSkipHeader(testLogger, flow)
+		GenerateClosedResponseWithCacheSkipHeader(testLogger, flow)
 
 		require.NotNil(t, flow.Response, "Response should not be nil")
 		assert.Equal(t, http.StatusServiceUnavailable, flow.Response.StatusCode, "Expected status code 503")

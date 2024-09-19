@@ -139,7 +139,7 @@ func (addon *metaAddon) TlsEstablishedServer(ctx *px.ConnContext) {
 func (addon *metaAddon) Requestheaders(flow *px.Flow) {
 	if addon.closed.Load() {
 		addon.logger.Warn("skipping addons for Requestheaders, metaAddon is being closed")
-		helpers.RequestClosed(addon.logger, flow)
+		helpers.GenerateClosedResponse(addon.logger, flow)
 		return
 	}
 

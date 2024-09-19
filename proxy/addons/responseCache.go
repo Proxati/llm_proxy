@@ -143,7 +143,7 @@ func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	defer c.wg.Done()
 
 	if c.closed.Load() {
-		helpers.RequestClosedWithCacheSkipHeader(logger, f)
+		helpers.GenerateClosedResponseWithCacheSkipHeader(logger, f)
 		return
 	}
 

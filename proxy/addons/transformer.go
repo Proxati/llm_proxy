@@ -66,17 +66,16 @@ func NewTrafficTransformerAddon(
 }
 
 func (a *TrafficTransformerAddon) Request(f *px.Flow) {
-	a.wg.Add(1)
-	defer a.wg.Done()
-
 	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Request")
-	defer logger.DebugContext(a.ctx, "transformations completed")
-
 	if a.closed.Load() {
 		logger.ErrorContext(a.ctx, "Addon is closed, not processing request")
 		helpers.GenerateClosedResponse(a.logger, f)
 		return
 	}
+
+	a.wg.Add(1)
+	defer a.wg.Done()
+	defer logger.DebugContext(a.ctx, "transformations completed")
 
 	reqAdapter := mitm.NewProxyRequestAdapter(f.Request)
 	if reqAdapter == nil {
@@ -172,10 +171,15 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 }
 
 func (a *TrafficTransformerAddon) Response(f *px.Flow) {
+	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Response")
+	if a.closed.Load() {
+		logger.ErrorContext(a.ctx, "Addon is closed, not processing response")
+		helpers.GenerateClosedResponse(a.logger, f)
+		return
+	}
+
 	a.wg.Add(1)
 	defer a.wg.Done()
-
-	logger := configLoggerFieldsWithFlow(a.logger, f).WithGroup("Response")
 	defer logger.DebugContext(a.ctx, "transformations completed")
 
 	if f.Response != nil && (f.Response.StatusCode < 100 || f.Response.StatusCode > 999) {

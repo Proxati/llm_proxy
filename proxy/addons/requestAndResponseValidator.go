@@ -25,7 +25,7 @@ func NewRequestAndResponseValidator(logger *slog.Logger) *RequestAndResponseVali
 // the request may not have all the necessary fields needed to log.
 func (c *RequestAndResponseValidator) Request(f *px.Flow) {
 	if c.closed.Load() {
-		helpers.RequestClosed(c.logger, f)
+		helpers.GenerateClosedResponse(c.logger, f)
 		return
 	}
 	c.wg.Add(1)

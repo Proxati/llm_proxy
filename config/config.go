@@ -9,12 +9,13 @@ const (
 
 // Config is the main config mega-struct
 type Config struct {
-	AppMode        AppMode
-	Cache          *cacheBehavior
-	HeaderFilters  *HeaderFiltersContainer
-	HTTPBehavior   *httpBehavior
-	TrafficLogger  *TrafficLogger
-	terminalLogger *terminalLogger
+	AppMode             AppMode
+	Cache               *cacheBehavior
+	HeaderFilters       *HeaderFiltersContainer
+	HTTPBehavior        *httpBehavior
+	TrafficLogger       *TrafficLogger
+	terminalLogger      *terminalLogger
+	TrafficTransformers *TrafficTransformers
 }
 
 func (cfg *Config) getTerminalLogger() *terminalLogger {
@@ -122,6 +123,12 @@ func NewDefaultConfig() *Config {
 		panic(err)
 	}
 
+	tTrans, err := NewTrafficTransformers("", "")
+	if err != nil {
+		// this should never happen!
+		panic(err)
+	}
+
 	return &Config{
 		HTTPBehavior: &httpBehavior{
 			Listen:                defaultListenAddr,
@@ -143,7 +150,8 @@ func NewDefaultConfig() *Config {
 			Output: "",
 			LogFmt: LogFormatJSON,
 		},
-		HeaderFilters: NewHeaderFiltersContainer(),
-		Cache:         cb,
+		HeaderFilters:       NewHeaderFiltersContainer(),
+		Cache:               cb,
+		TrafficTransformers: tTrans,
 	}
 }

@@ -36,6 +36,8 @@ var trafficLogFormat string
 var debugMode bool
 var verboseMode bool
 var traceMode bool
+var reqTransformerInput string
+var respTransformerInput string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -69,6 +71,19 @@ This is useful for:
 
 		cfg.HeaderFilters.BuildIndexes()
 		cfg.GetLogger().Debug("Header filter indexes built")
+
+		// setup traffic transformers
+		cfg.TrafficTransformers, err = config.NewTrafficTransformers(reqTransformerInput, respTransformerInput)
+		if err != nil {
+			cfg.GetLogger().Error("Could not setup traffic transformers", "error", err)
+			os.Exit(1)
+		}
+		if len(cfg.TrafficTransformers.Request) > 0 {
+			cfg.GetLogger().Debug("Request transformers configured", "Transformers", cfg.TrafficTransformers.Request)
+		}
+		if len(cfg.TrafficTransformers.Response) > 0 {
+			cfg.GetLogger().Debug("Response transformers configured", "Transformers", cfg.TrafficTransformers.Response)
+		}
 	},
 	SilenceUsage: true,
 }
@@ -201,6 +216,56 @@ Examples:
 	rootCmd.PersistentFlags().BoolVar(
 		&cfg.TrafficLogger.NoLogRespBody, "no-log-resp-body", cfg.TrafficLogger.NoLogRespBody,
 		"Don't write response body or details to traffic logs",
+	)
+
+	// traffic transformation settings
+	rootCmd.PersistentFlags().StringVar(
+		&reqTransformerInput, "request-transformers", reqTransformerInput,
+		`List of request transformers that will mutate traffic before being
+sent upstream. Each transformer configuration string contains one or more URLs
+with associated options, separated by semicolons (;). The transformers will
+run in the order they are specified. A request transformer service can either
+modify the request, return an error, or return a response. If it returns a
+response, the proxy will use that response as the final response to the client
+and will not forward the request upstream.
+
+Options for each transformer are specified after the URL.
+The format of a transformer: proto://server/path|option1=value,option2=value
+
+Available options:
+  name, failure-mode, concurrency, request-timeout, timeout, retry-count,
+  initial-retry-time, max-retry-time, back-pressure-mode,
+  health-check.interval, health-check.interval, health-check.timeout
+
+In this example, two independent request transformers are configured:
+1. http://service1.com:123/request-filter timeout of 3s w/ soft fail
+2. http://service2.com/request-filter timeout of 2s and hard fail
+
+Example Input:
+    --request-transformers "http://service1.com:123/request-filter|timeout=3s,fail-mode=soft;http://service2.com/request-filter|timeout=2s,fail-mode=hard"
+`,
+	)
+
+	rootCmd.PersistentFlags().StringVar(
+		&reqTransformerInput, "response-transformers", reqTransformerInput,
+		`List of response transformers that will mutate traffic before being
+sent back to the client. Each transformer configuration string contains one or
+more URLs with associated options, separated by semicolons (;). Like the
+request transformers, the response transformers will run in the order they are
+specified. The response transformers can modify the response from upstream, or
+return an error. If a response transformer has fail-mode=hard, and the
+transformer service returns an error, the proxy will return that error to the
+client. If the fail-mode is set to soft, the proxy will ignore the error and
+continue processing the response.
+
+Options for each transformer are specified after the URL.
+The format of a transformer: proto://server/path|option1=value,option2=value
+
+Available options:
+  name, failure-mode, concurrency, request-timeout, timeout, retry-count,
+  initial-retry-time, max-retry-time, back-pressure-mode,
+  health-check.interval, health-check.interval, health-check.timeout
+`,
 	)
 
 	// "filter-request-headers-to-logs"

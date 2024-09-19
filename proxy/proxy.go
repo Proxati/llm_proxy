@@ -128,6 +128,20 @@ func configProxy(logger *slog.Logger, cfg *config.Config) (*px.Proxy, error) {
 		return nil, fmt.Errorf("unknown app mode: %v", cfg.AppMode)
 	}
 
+	// add the request/response transformers
+	if len(cfg.TrafficTransformers.Request) > 0 || len(cfg.TrafficTransformers.Response) > 0 {
+		transformerAddon, err := configureTrafficTransformers(logger, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create traffic transformers addon: %w", err)
+		}
+		logger.Debug("Created " + transformerAddon.String())
+		if err := metaAdd.addAddon(transformerAddon); err != nil {
+			return nil, fmt.Errorf("failed to add traffic transformers addon: %w", err)
+		}
+	} else {
+		logger.Debug("No traffic transformers configured")
+	}
+
 	// add our single metaAddon abstraction to the proxy
 	p.AddAddon(metaAdd)
 

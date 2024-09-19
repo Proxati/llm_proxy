@@ -67,8 +67,11 @@ func (c *RequestAndResponseValidator) Request(f *px.Flow) {
 // Response validates the response, and does not use the normal logger, because
 // the response may not have all the necessary fields needed to log.
 func (c *RequestAndResponseValidator) Response(f *px.Flow) {
-	c.wg.Add(1)
-	defer c.wg.Done()
+	if !c.closed.Load() {
+		// if the addon is NOT closed, then add to the wait group
+		c.wg.Add(1)
+		defer c.wg.Done()
+	}
 
 	if f.Response != nil {
 		return

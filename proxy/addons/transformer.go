@@ -74,7 +74,7 @@ func (a *TrafficTransformerAddon) Request(f *px.Flow) {
 
 	if a.closed.Load() {
 		logger.ErrorContext(a.ctx, "Addon is closed, not processing request")
-		helpers.RequestClosed(a.logger, f)
+		helpers.GenerateClosedResponse(a.logger, f)
 		return
 	}
 

@@ -139,12 +139,13 @@ func (c *ResponseCacheAddon) requestOpen(logger *slog.Logger, f *px.Flow) {
 
 func (c *ResponseCacheAddon) Request(f *px.Flow) {
 	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Request")
-	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
-	defer c.wg.Done()
 
 	if c.closed.Load() {
 		helpers.GenerateClosedResponseWithCacheSkipHeader(logger, f)
 		return
+	} else {
+		c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+		defer c.wg.Done()
 	}
 
 	c.requestOpen(logger, f)
@@ -208,18 +209,19 @@ func (c *ResponseCacheAddon) responseStorage(f *px.Flow) error {
 }
 
 func (c *ResponseCacheAddon) Response(f *px.Flow) {
-	c.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	logger := configLoggerFieldsWithFlow(c.logger, f).WithGroup("Response")
+
+	if c.closed.Load() {
+		logger.Warn("Skipping cache storage", "reason", "ResponseCacheAddon is being closed")
+		return
+	} else {
+		c.wg.Add(1) // for blocking this addon during shutdown in .Close()
+		// any returns after this need a .Done() call!
+	}
 
 	earlyReturnErr := c.responseCommon(f)
 	if earlyReturnErr != nil {
 		logger.Debug("Skipping cache storage", "reason", earlyReturnErr.Error())
-		c.wg.Done()
-		return
-	}
-
-	if c.closed.Load() {
-		logger.Warn("Skipping cache storage", "reason", "ResponseCacheAddon is being closed")
 		c.wg.Done()
 		return
 	}

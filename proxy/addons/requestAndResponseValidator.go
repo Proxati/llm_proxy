@@ -27,9 +27,10 @@ func (c *RequestAndResponseValidator) Request(f *px.Flow) {
 	if c.closed.Load() {
 		helpers.GenerateClosedResponse(c.logger, f)
 		return
+	} else {
+		c.wg.Add(1)
+		defer c.wg.Done()
 	}
-	c.wg.Add(1)
-	defer c.wg.Done()
 
 	if f.Request != nil {
 		if f.Request.URL == nil || f.Request.URL.String() == "" {

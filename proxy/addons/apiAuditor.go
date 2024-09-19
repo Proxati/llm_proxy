@@ -28,9 +28,10 @@ func (aud *APIAuditorAddon) Response(f *px.Flow) {
 	if aud.closed.Load() {
 		logger.Warn("APIAuditor is being closed, not processing request")
 		return
+	} else {
+		aud.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	}
 
-	aud.wg.Add(1) // for blocking this addon during shutdown in .Close()
 	go func() {
 		defer aud.wg.Done()
 		<-f.Done()
